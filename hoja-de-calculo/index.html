@@ -164,6 +164,19 @@ article[data-pf] .btn.ghost{background:transparent;color:color-mix(in srgb,var(-
 .next{border:2px solid var(--chalk)}
 footer{border-top:6px solid var(--chalk);background:var(--board);color:var(--on-board2)}
 @media (max-width:480px){article{padding:20px 16px 18px 24px}}
+
+.reg{display:flex;flex-direction:column;gap:14px;margin-top:14px;max-width:560px}
+.reg-row{display:grid;grid-template-columns:minmax(0,1fr) 130px;gap:12px}
+@media (max-width:480px){.reg-row{grid-template-columns:minmax(0,1fr)}}
+.reg label{display:flex;flex-direction:column;gap:4px;font-size:14px;font-weight:700;color:var(--ink2)}
+.reg input[type=text],.reg input[type=email]{font:inherit;font-size:16px;font-weight:400;color:var(--ink);background:var(--paper);border:1.5px solid var(--line);border-radius:8px;padding:10px 12px}
+.reg input:focus-visible{outline:3px solid var(--blue);outline-offset:1px}
+.reg .chk{flex-direction:row;align-items:flex-start;gap:10px;font-weight:400;font-size:14px;line-height:1.45}
+.reg .chk input{width:20px;height:20px;margin-top:2px;flex:none;accent-color:var(--board)}
+.reg .btn{align-self:flex-start;background:var(--board);color:#fff;font-size:16px;padding:11px 20px}
+.reg-msg{margin:0;font-size:15px;min-height:1.4em}
+.reg-msg.ok{color:#1d7f40;font-weight:700}.reg-msg.err{color:var(--red);font-weight:700}
+.reg-side{justify-content:center;background:var(--board);color:#fff;text-decoration:none;border:2px solid var(--chalk)}
 </style><style>
 .fbar{position:relative;display:flex;align-items:stretch;max-width:620px;margin-top:20px;border-radius:8px;overflow:hidden;background:#fff;color:#1b2340;font-family:var(--f-mono);font-size:16px;box-shadow:0 3px 0 rgba(0,0,0,.25)}
 .fbar .ref{padding:8px 14px;border-right:1px solid #cfd8d2;font-weight:700;color:#17603a}
@@ -220,6 +233,23 @@ header .tile{border:2px solid rgba(255,255,255,.28)}
     <button class="chip" id="f-eval" data-f="evaluacion" aria-pressed="false">Evaluaciones</button>
   </div>
   <div class="feed">
+  <article id="avisos" data-k="evaluacion" class="pinned">
+    <div class="meta"><span class="tag">fijo</span><span class="tag">avisos por correo</span></div>
+    <h2><a href="#avisos">Recibe recordatorios por correo</a></h2>
+    <p>Regístrate y te avisaremos por correo <b>3 días y 1 día antes</b> de cada evaluación de Hoja de Cálculo Aplicada, con los temas que debes repasar.</p>
+    <form id="reg-form" class="reg" novalidate>
+      <input type="hidden" name="asignatura" value="HC">
+      <div class="reg-row">
+        <label for="reg-nombre">Nombre completo<input id="reg-nombre" name="nombre" type="text" autocomplete="name" maxlength="80" required></label>
+        <label for="reg-grupo" class="sm">Grupo<input id="reg-grupo" name="grupo" type="text" placeholder="ej. 1° 2" maxlength="20" required></label>
+      </div>
+      <label for="reg-correo">Correo electrónico<input id="reg-correo" name="correo" type="email" autocomplete="email" maxlength="120" required></label>
+      <label class="chk" for="reg-acepto"><input id="reg-acepto" name="acepto" type="checkbox" value="si" required><span>Acepto que mi nombre, grupo y correo se usen solo para enviarme avisos de esta clase. Los datos los guarda el profesor y no se comparten. Puedo darme de baja desde cualquier correo.</span></label>
+      <button class="btn" id="reg-enviar" type="submit">Registrarme</button>
+      <p class="reg-msg" id="reg-msg" aria-live="polite"></p>
+    </form>
+  </article>
+
   <article id="evaluaciones" data-k="evaluacion" class="pinned">
     <div class="meta"><span class="tag">fijo</span><span class="tag">evaluaciones</span></div>
     <h2><a href="#evaluaciones">Fechas de evaluación</a></h2>
@@ -356,6 +386,7 @@ header .tile{border:2px solid rgba(255,255,255,.28)}
 </main>
 
 <aside><div class="side">
+  <a class="btn reg-side" href="#avisos">✉ Recibir avisos por correo</a>
   <div class="box next" id="ev-next"><p class="lbl">Próxima evaluación</p><p class="ev-none">Sin fechas por ahora.</p></div>
   <h2>Temas de la guía</h2>
   <ol class="pfs">
@@ -406,6 +437,30 @@ header .tile{border:2px solid rgba(255,255,255,.28)}
     next.innerHTML='<p class="lbl">Próxima evaluación</p>'+(prox?`<strong>${esc(prox.titulo)}</strong><p class="ev-none" style="margin:.2em 0">${DIA[prox.d.getDay()]} ${prox.d.getDate()} de ${['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][prox.d.getMonth()]}</p><span class="when">${cuando(Math.round((prox.d-h)/864e5))}</span> · <a href="#evaluaciones">Ver todas</a>`:'<p class="ev-none">No hay evaluaciones próximas.</p>');
   }
   fetch('evaluaciones.json',{cache:'no-store'}).then(r=>r.ok?r.json():[]).then(pintar).catch(()=>{});
+})();
+</script>
+
+<script>
+(function(){
+  const URL='https://script.google.com/macros/s/AKfycbwLExEAHLWpOx6P1bybsfJ1K859J5tr5fp9K0H41i58A1tBkFqOIOTQEoHoOEudn-4G1g/exec';
+  const f=document.getElementById('reg-form'); if(!f) return;
+  const msg=document.getElementById('reg-msg'), btn=document.getElementById('reg-enviar');
+  const say=(t,c)=>{msg.textContent=t;msg.className='reg-msg '+(c||'');};
+  f.addEventListener('submit',async ev=>{
+    ev.preventDefault();
+    const d=new FormData(f);
+    const nombre=(d.get('nombre')||'').trim(), grupo=(d.get('grupo')||'').trim(), correo=(d.get('correo')||'').trim();
+    if(!nombre) return say('Escribe tu nombre completo.','err');
+    if(!grupo) return say('Escribe tu grupo.','err');
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) return say('Revisa tu correo: debe tener la forma nombre@gmail.com.','err');
+    if(!d.get('acepto')) return say('Marca la casilla de aceptación para registrarte.','err');
+    btn.disabled=true; say('Enviando…');
+    try{
+      await fetch(URL,{method:'POST',mode:'no-cors',body:new URLSearchParams(d)});
+      f.reset(); say('¡Listo! Revisa tu correo: te llegará un mensaje de bienvenida (busca también en Spam).','ok');
+    }catch(e){ say('No se pudo enviar. Revisa tu conexión a internet e inténtalo de nuevo.','err'); }
+    finally{ btn.disabled=false; }
+  });
 })();
 </script>
 </body>
