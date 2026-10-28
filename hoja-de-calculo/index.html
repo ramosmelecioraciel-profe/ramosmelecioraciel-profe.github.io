@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hoja de Cálculo Aplicada</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Lexend:wght@500;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: hoja de cálculo verde (barra de fórmulas y encabezados de columna) con los 7 propósitos como fichas de color (los mismos colores de presentaciones y videos) sobre hoja cuadriculada; columna de entradas + índice */
+:root{
+  --paper:#fbfcfe; --grid:#e3e9f4; --ink:#1b2340; --ink2:#55607e;
+  --blue:#2343b8; --blue-soft:#e6ebfb; --red:#d24a4a; --line:#d6dceb; --card:#ffffff;
+  --board:#17603a; --chalk:#ffd23f; --on-board:#ffffff; --on-board2:#cdebd8;
+  --pf1:#8a2bc9; --pf2:#c45f06; --pf3:#1d6fd8; --pf4:#2e8a49; --pf5:#0f7f7a; --pf6:#c22a5f; --pf7:#6c3fc4; --c:var(--blue); --tint:0%;
+  --f-display:"Lexend", "Atkinson Hyperlegible", system-ui, sans-serif;
+  --f-body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12172a; --grid:#1b2238; --ink:#e8ecf7; --ink2:#a3acc7;
+  --blue:#8ea6ff; --blue-soft:#1e2950; --red:#ff7b7b; --line:#2a3352; --card:#171e35; --board:#0f3f27; --tint:40%; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#12172a; --grid:#1b2238; --ink:#e8ecf7; --ink2:#a3acc7;
+  --blue:#8ea6ff; --blue-soft:#1e2950; --red:#ff7b7b; --line:#2a3352; --card:#171e35; --board:#0f3f27; --tint:40%; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.6;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px;}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+a{color:var(--blue)}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px;border-radius:4px}
+
+header.top{padding-block:40px 28px;border-bottom:2px solid var(--red)}
+.eyebrow{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);font-weight:700}
+h1{font-family:var(--f-display);font-weight:400;font-size:clamp(34px,6vw,58px);line-height:1.05;margin:.25em 0 .3em;text-wrap:balance}
+h1 .frac{display:inline-flex;flex-direction:column;align-items:center;font-size:.55em;vertical-align:middle;line-height:1;color:var(--blue);margin:0 .1em}
+h1 .frac i{font-style:normal;border-top:3px solid currentColor;padding-top:2px}
+.lede{max-width:62ch;color:var(--ink2);margin:0}
+.who{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:16px;font-size:15px}
+.who b{color:var(--ink)}
+
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:40px;padding-block:32px 64px}
+@media (max-width:860px){.cols{grid-template-columns:minmax(0,1fr)}}
+
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px}
+.chip{font:inherit;font-size:14px;font-weight:700;border:1.5px solid var(--line);background:var(--card);color:var(--ink);padding:6px 14px;border-radius:999px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:var(--paper)}
+
+.feed{display:flex;flex-direction:column;gap:28px}
+article{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:24px 24px 22px 40px;position:relative;min-width:0}
+article::before{content:"";position:absolute;left:22px;top:0;bottom:0;width:2px;background:var(--red);opacity:.55}
+.meta{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:14px;color:var(--ink2)}
+.tag{font-family:var(--f-mono);font-size:12px;background:var(--blue-soft);color:var(--blue);padding:2px 8px;border-radius:4px}
+article h2{font-family:var(--f-display);font-weight:400;font-size:clamp(24px,3.4vw,31px);line-height:1.15;margin:.35em 0 .4em;text-wrap:balance}
+article h2 a{color:inherit;text-decoration:none}
+article h2 a:hover{text-decoration:underline;text-decoration-color:var(--red)}
+article p{margin:.6em 0;max-width:66ch}
+article h3{font-size:17px;margin:1.2em 0 .3em}
+article ul,article ol{padding-left:1.3em;margin:.4em 0;max-width:64ch}
+article li{margin:.2em 0}
+.media{margin:16px 0;border-radius:6px;overflow:hidden;border:1px solid var(--line);background:#000}
+.media video{display:block;width:100%;height:auto;aspect-ratio:16/9}
+.cover{margin:16px 0;border:1px solid var(--line);border-radius:6px;display:block;max-width:100%;height:auto}
+.note{font-size:15px;background:var(--blue-soft);border-radius:6px;padding:10px 14px;margin:12px 0;max-width:66ch}
+.math{font-family:var(--f-mono);font-size:.92em;white-space:nowrap}
+.reto{border:1.5px dashed var(--line);border-radius:6px;padding:12px 16px;margin:14px 0}
+.reto summary{cursor:pointer;font-weight:700;color:var(--blue)}
+.reto ol{margin-top:8px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.btn{text-decoration:none;font:inherit;font-size:15px;font-weight:700;display:inline-flex;align-items:center;gap:8px;border:none;border-radius:6px;padding:9px 16px;cursor:pointer;background:var(--blue);color:var(--paper)}
+.btn.ghost{background:transparent;color:var(--blue);border:1.5px solid var(--blue)}
+.btn[disabled]{opacity:.6;cursor:progress}
+.btn small{font-weight:400;opacity:.85}
+.open{align-self:center;font-size:14px;font-weight:700;margin-right:6px}
+.dl-msg{font-size:14px;color:var(--ink2);min-height:1.2em;margin-top:6px}
+
+
+.pf-list{display:flex;flex-direction:column;gap:0;margin-top:14px;border-top:1px solid var(--line)}
+.pf{padding-block:16px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+.pf-h{display:flex;align-items:baseline;gap:12px}
+.pf-h h3{font-family:var(--f-display);font-weight:400;font-size:21px;margin:0}
+.pf-n{font-family:var(--f-mono);font-size:13px;color:var(--red)}
+.lbl{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--ink2);margin-bottom:2px}
+.pf-p{margin:.5em 0 .7em;max-width:66ch;font-style:italic}
+.pf-p .lbl{font-style:normal}
+.pf-c{margin:.2em 0 .5em}
+.pf-l{margin:.3em 0 0;font-size:15px}
+
+.pinned{border-color:var(--blue)}
+.ev-list{display:flex;flex-direction:column;margin-top:12px;border-top:1px solid var(--line)}
+.ev{display:grid;grid-template-columns:84px minmax(0,1fr) auto;gap:14px;align-items:start;padding-block:12px;border-bottom:1px solid var(--line)}
+.ev-d{display:flex;flex-direction:column;align-items:center;border:1.5px solid var(--blue);border-radius:6px;padding:4px 0;line-height:1.1;font-variant-numeric:tabular-nums}
+.ev-d b{font-family:var(--f-display);font-weight:400;font-size:28px;color:var(--blue)}
+.ev-d span{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink2)}
+.ev-t{min-width:0}
+.ev-t strong{display:block;font-size:17px;line-height:1.3}
+.ev-t small{display:block;font-size:14px;color:var(--ink2);line-height:1.4}
+.ev-s{font-size:13px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap;background:var(--blue-soft);color:var(--blue)}
+.ev.soon .ev-s{background:var(--red);color:var(--paper)}
+.ev.past{opacity:.5}
+.ev.past .ev-d{border-color:var(--line)}.ev.past .ev-d b{color:var(--ink2)}
+.ev.past .ev-s{background:transparent;color:var(--ink2);border:1px solid var(--line)}
+.ev-empty,.ev-none{color:var(--ink2);font-size:15px;margin:.6em 0}
+.next .lbl{margin:0 0 6px}
+.next strong{display:block;font-size:16px;line-height:1.3}
+.next .when{font-size:14px;color:var(--red);font-weight:700}
+@media (max-width:480px){.ev{grid-template-columns:64px minmax(0,1fr)}.ev-s{grid-column:2;justify-self:start}}
+aside{min-width:0}
+.side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);display:flex;flex-direction:column;gap:18px}
+.side h2{font-family:var(--f-display);font-weight:400;font-size:22px;margin:0}
+.pfs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.pfs li{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;padding:10px 0;border-bottom:1px solid var(--line);align-items:start}
+.pfs .n{font-family:var(--f-mono);font-size:13px;color:var(--red);padding-top:3px}
+.pfs b{display:block;font-size:15px;line-height:1.3}
+.pfs span{font-size:13px;color:var(--ink2);line-height:1.35;display:block}
+.pfs a{font-size:13px;margin-right:10px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px 16px;font-size:15px}
+.box p{margin:.3em 0}
+footer{border-top:2px solid var(--red);padding-block:20px 40px;color:var(--ink2);font-size:14px}
+@media (max-width:480px){article{padding:20px 16px 18px 30px}article::before{left:14px}}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+
+/* ---- Identidad de la materia ---- */
+h1,h2,h3,.side h2{font-family:var(--f-display)}
+header.top{background:var(--board);color:var(--on-board);border-bottom:6px solid var(--chalk);padding-block:44px 34px;
+  background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:32px 32px;position:relative;overflow:hidden}
+header.top .eyebrow{color:var(--chalk)}
+header.top h1{font-weight:800;letter-spacing:-.02em;color:var(--on-board);margin:.2em 0 .25em}
+header.top h1 .num{color:var(--chalk)}
+header.top .lede{color:var(--on-board2)}
+header.top .who{color:var(--on-board2)}
+header.top .who b{color:var(--on-board)}
+.formulas{position:absolute;inset:0;pointer-events:none;font-family:var(--f-mono);color:rgba(255,255,255,.08);font-size:30px;line-height:1}
+.formulas span{position:absolute;white-space:nowrap}
+.hero-main{position:relative}
+.nline{display:block;width:100%;max-width:520px;height:auto;margin-top:18px}
+.tiles{position:relative;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;margin-top:28px}
+.tile{display:flex;flex-direction:column;justify-content:space-between;gap:8px;min-height:104px;padding:10px 12px;border-radius:10px;background:var(--c);color:#fff;text-decoration:none;box-shadow:0 3px 0 rgba(0,0,0,.3);transition:transform .15s}
+.tile:hover{transform:translateY(-3px)}
+.tile .sym{font-family:var(--f-mono);font-weight:700;font-size:21px;line-height:1.1}
+.tile .tn{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.9;font-weight:700}
+.tile .tt{display:block;font-size:14px;line-height:1.2;font-weight:700}
+@media (max-width:860px){.tiles{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:480px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.tile:last-child{grid-column:span 2;min-height:84px}.formulas{display:none}}
+@media (prefers-reduced-motion:reduce){.tile{transition:none}}
+[data-pf="1"]{--c:var(--pf1)}[data-pf="2"]{--c:var(--pf2)}[data-pf="3"]{--c:var(--pf3)}[data-pf="4"]{--c:var(--pf4)}[data-pf="5"]{--c:var(--pf5)}[data-pf="6"]{--c:var(--pf6)}[data-pf="7"]{--c:var(--pf7)}
+article{border-radius:10px;padding:24px 24px 22px 34px}
+article::before{left:0;top:0;bottom:0;width:8px;background:var(--c);opacity:1;border-radius:10px 0 0 10px}
+article h2{font-weight:700;letter-spacing:-.01em}
+article .tag.pfc{background:var(--c);color:#fff}
+.pinned{border:2px solid var(--chalk)}
+.pinned::before{background:var(--chalk)}
+.chip[aria-pressed="true"]{background:var(--board);border-color:var(--board);color:#fff}
+article[data-pf] .btn{background:var(--c);color:#fff}
+article[data-pf] .btn.ghost{background:transparent;color:color-mix(in srgb,var(--c),#fff var(--tint));border-color:currentColor}
+.pf{border-left:6px solid var(--c);padding-left:16px;margin-block:10px;border-bottom:none}
+.pf-list{border-top:none}
+.pf-n{display:inline-grid;place-items:center;min-width:46px;height:28px;border-radius:6px;background:var(--c);color:#fff;font-weight:700}
+.pf-h h3{font-weight:700;font-size:20px}
+.pfs .n{display:inline-grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--c);color:#fff;font-weight:700;padding:0;font-size:15px}
+.side h2{font-weight:700;font-size:20px}
+.next{border:2px solid var(--chalk)}
+footer{border-top:6px solid var(--chalk);background:var(--board);color:var(--on-board2)}
+@media (max-width:480px){article{padding:20px 16px 18px 24px}}
+</style><style>
+.fbar{position:relative;display:flex;align-items:stretch;max-width:620px;margin-top:20px;border-radius:8px;overflow:hidden;background:#fff;color:#1b2340;font-family:var(--f-mono);font-size:16px;box-shadow:0 3px 0 rgba(0,0,0,.25)}
+.fbar .ref{padding:8px 14px;border-right:1px solid #cfd8d2;font-weight:700;color:#17603a}
+.fbar .fx{padding:8px 12px;border-right:1px solid #cfd8d2;font-style:italic;color:#55607e}
+.fbar .f{padding:8px 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.colhead{position:absolute;left:0;right:0;top:0;display:flex;font-family:var(--f-mono);font-size:13px;color:rgba(255,255,255,.35);pointer-events:none}
+.colhead span{flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.08);padding:4px 0}
+.sheet-wrap{overflow-x:auto;margin:14px 0}
+table.sheet{border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:15px;background:var(--card);min-width:420px}
+table.sheet th,table.sheet td{border:1px solid var(--line);padding:6px 10px;text-align:left;white-space:nowrap}
+table.sheet thead th{background:var(--blue-soft);color:var(--ink2);font-family:var(--f-mono);font-weight:700;text-align:center;font-size:13px}
+table.sheet td.rn{background:var(--blue-soft);color:var(--ink2);font-family:var(--f-mono);text-align:center;font-size:13px;width:34px}
+table.sheet td.sel{outline:3px solid #17a45a;outline-offset:-3px}
+table.sheet td.f{font-family:var(--f-mono);font-size:13px;color:var(--ink2)}
+table.ref{border-collapse:collapse;font-size:15px;margin:10px 0;width:100%}
+table.ref th,table.ref td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+table.ref th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink2)}
+table.ref td code{font-family:var(--f-mono);font-size:14px;background:var(--blue-soft);padding:1px 6px;border-radius:4px;white-space:nowrap}
+.ref-wrap{overflow-x:auto}
+code{font-family:var(--f-mono);font-size:.9em;background:var(--blue-soft);padding:1px 6px;border-radius:4px}
+header .tile{border:2px solid rgba(255,255,255,.28)}
+.home{display:inline-block;margin-bottom:10px;color:var(--on-board2);font-size:14px}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="colhead" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span><span>G</span><span>H</span><span>I</span><span>J</span><span>K</span><span>L</span></div>
+  <div class="wrap">
+  <div class="hero-main">
+    <a class="home" href="../">← Todas mis asignaturas</a>
+    <div class="eyebrow">Preparatoria Oficial Núm. 252 · Tercer semestre · Formación laboral</div>
+    <h1>Hoja de Cálculo <span class="num">Aplicada</span></h1>
+    <p class="lede">Guía de consulta, prácticas y fechas de evaluación de la clase. Cada color es un tema de la guía.</p>
+    <div class="who"><span>Docente: <b>Raciel Ramos Melecio</b></span><span>Asignatura: <b>Hoja de Cálculo Aplicada</b></span></div>
+    <div class="fbar" role="img" aria-label="Barra de fórmulas con la fórmula igual promedio de B2 a B6"><span class="ref">D7</span><span class="fx">fx</span><span class="f">=PROMEDIO(B2:B6)</span></div>
+  </div>
+  <nav class="tiles" aria-label="Temas de la guía">
+    <a class="tile" data-pf="3" href="#celdas"><span class="sym">A1</span><span><span class="tn">Guía 1</span><span class="tt">Celdas y rangos</span></span></a>
+    <a class="tile" data-pf="1" href="#formulas"><span class="sym">=B2*C2</span><span><span class="tn">Guía 2</span><span class="tt">Fórmulas</span></span></a>
+    <a class="tile" data-pf="4" href="#funciones"><span class="sym">Σ SUMA</span><span><span class="tn">Guía 3</span><span class="tt">Funciones</span></span></a>
+    <a class="tile" data-pf="6" href="#logicas"><span class="sym">SI( )</span><span><span class="tn">Guía 4</span><span class="tt">Funciones lógicas</span></span></a>
+    <a class="tile" data-pf="2" href="#referencias"><span class="sym">$E$1</span><span><span class="tn">Guía 5</span><span class="tt">Referencias</span></span></a>
+    <a class="tile" data-pf="5" href="#graficos"><span class="sym">▁▃▅▇</span><span><span class="tn">Guía 6</span><span class="tt">Gráficos</span></span></a>
+    <a class="tile" data-pf="7" href="#datos"><span class="sym">⇅ ▾</span><span><span class="tn">Guía 7</span><span class="tt">Ordenar y filtrar</span></span></a>
+  </nav>
+</div></header>
+
+<div class="wrap cols">
+<main>
+  <div class="filters" role="group" aria-label="Filtrar entradas">
+    <button class="chip" id="f-all" data-f="all" aria-pressed="true">Todas</button>
+    <button class="chip" id="f-guia" data-f="guia" aria-pressed="false">Guía</button>
+    <button class="chip" id="f-prac" data-f="practica" aria-pressed="false">Prácticas</button>
+    <button class="chip" id="f-eval" data-f="evaluacion" aria-pressed="false">Evaluaciones</button>
+  </div>
+  <div class="feed">
+  <article id="evaluaciones" data-k="evaluacion" class="pinned">
+    <div class="meta"><span class="tag">fijo</span><span class="tag">evaluaciones</span></div>
+    <h2><a href="#evaluaciones">Fechas de evaluación</a></h2>
+    <p>Aquí aparecen los exámenes, prácticas y entregas, con lo que debes repasar. Las fechas ya aplicadas se marcan en gris.</p>
+    <div id="ev-list" class="ev-list" aria-live="polite"><p class="ev-empty">Todavía no hay fechas publicadas. El profesor las agregará aquí.</p></div>
+  </article>
+  <article id="celdas" data-k="guia" data-pf="3">
+    <div class="meta"><span class="tag pfc">Guía 1</span><span class="tag">conceptos</span></div>
+    <h2><a href="#celdas">La hoja de cálculo: celdas, filas y columnas</a></h2>
+    <p>Un <b>libro</b> es el archivo completo y cada pestaña es una <b>hoja</b>. Las <b>columnas</b> se nombran con letras (A, B, C…) y las <b>filas</b> con números (1, 2, 3…). Donde se cruzan está una <b>celda</b>, que se nombra con su columna y su fila.</p>
+    <div class="sheet-wrap"><table class="sheet"><thead><tr><th></th><th>A</th><th>B</th><th>C</th><th>D</th></tr></thead><tbody>
+      <tr><td class="rn">1</td><td>Alumno</td><td>Parcial 1</td><td>Parcial 2</td><td>Promedio</td></tr>
+      <tr><td class="rn">2</td><td>Ana</td><td>8</td><td class="sel">9</td><td></td></tr>
+      <tr><td class="rn">3</td><td>Luis</td><td>7</td><td>6</td><td></td></tr>
+      <tr><td class="rn">4</td><td>Sofía</td><td>10</td><td>9</td><td></td></tr>
+    </tbody></table></div>
+    <ul>
+      <li>La celda marcada es <code>C2</code>: columna C, fila 2. Contiene un 9.</li>
+      <li>Un <b>rango</b> es un grupo de celdas: <code>B2:B4</code> son las calificaciones del parcial 1.</li>
+      <li>La <b>barra de fórmulas</b> muestra lo que realmente hay dentro de la celda seleccionada.</li>
+    </ul>
+  </article>
+  <article id="formulas" data-k="guia" data-pf="1">
+    <div class="meta"><span class="tag pfc">Guía 2</span><span class="tag">fórmulas</span></div>
+    <h2><a href="#formulas">Fórmulas: siempre empiezan con =</a></h2>
+    <p>Una fórmula hace un cálculo con los valores de otras celdas. Si cambias un dato, el resultado se actualiza solo.</p>
+    <div class="ref-wrap"><table class="ref"><thead><tr><th>Operación</th><th>Símbolo</th><th>Ejemplo</th></tr></thead><tbody>
+      <tr><td>Suma</td><td><code>+</code></td><td><code>=B2+C2</code></td></tr>
+      <tr><td>Resta</td><td><code>-</code></td><td><code>=B2-C2</code></td></tr>
+      <tr><td>Multiplicación</td><td><code>*</code></td><td><code>=B2*C2</code></td></tr>
+      <tr><td>División</td><td><code>/</code></td><td><code>=B2/2</code></td></tr>
+      <tr><td>Potencia</td><td><code>^</code></td><td><code>=B2^2</code></td></tr>
+    </tbody></table></div>
+    <p class="note">La hoja respeta la jerarquía de operaciones que vimos en Pensamiento Matemático: <code>=2+3*4</code> da 14. Para el promedio de dos parciales usa paréntesis: <code>=(B2+C2)/2</code>. Sin ellos, <code>=B2+C2/2</code> divide solo el segundo.</p>
+  </article>
+  <article id="funciones" data-k="guia" data-pf="4">
+    <div class="meta"><span class="tag pfc">Guía 3</span><span class="tag">funciones</span></div>
+    <h2><a href="#funciones">Funciones básicas</a></h2>
+    <p>Una función es una fórmula ya hecha. Se escribe su nombre y, entre paréntesis, el rango con el que trabaja.</p>
+    <div class="ref-wrap"><table class="ref"><thead><tr><th>Función</th><th>Qué hace</th><th>Ejemplo</th></tr></thead><tbody>
+      <tr><td><code>SUMA</code></td><td>Suma un rango</td><td><code>=SUMA(B2:B4)</code></td></tr>
+      <tr><td><code>PROMEDIO</code></td><td>Saca el promedio</td><td><code>=PROMEDIO(B2:C2)</code></td></tr>
+      <tr><td><code>MAX</code> / <code>MIN</code></td><td>Valor más alto / más bajo</td><td><code>=MAX(B2:B4)</code></td></tr>
+      <tr><td><code>CONTAR</code></td><td>Cuenta celdas con números</td><td><code>=CONTAR(B2:B4)</code></td></tr>
+      <tr><td><code>CONTARA</code></td><td>Cuenta celdas que no están vacías</td><td><code>=CONTARA(A2:A4)</code></td></tr>
+      <tr><td><code>REDONDEAR</code></td><td>Redondea a ciertos decimales</td><td><code>=REDONDEAR(D2,1)</code></td></tr>
+    </tbody></table></div>
+    <p>Con la tabla de la Guía 1: <code>=PROMEDIO(B2:C2)</code> da 8.5 para Ana y <code>=MAX(B2:B4)</code> da 10.</p>
+  </article>
+  <article id="logicas" data-k="guia" data-pf="6">
+    <div class="meta"><span class="tag pfc">Guía 4</span><span class="tag">funciones lógicas</span></div>
+    <h2><a href="#logicas">Funciones lógicas: SI, CONTAR.SI y SUMAR.SI</a></h2>
+    <p>La función <code>SI</code> revisa una condición y escribe un resultado si se cumple y otro si no.</p>
+    <p><code>=SI(D2&gt;=6,"Aprobado","Reprobado")</code></p>
+    <ul>
+      <li><code>D2&gt;=6</code> es la condición: ¿el promedio es 6 o más?</li>
+      <li>Si se cumple escribe <b>Aprobado</b>; si no, <b>Reprobado</b>. Los textos van entre comillas.</li>
+      <li><code>=CONTAR.SI(E2:E30,"Aprobado")</code> cuenta cuántos aprobaron.</li>
+      <li><code>=SUMAR.SI(A2:A20,"Agua",B2:B20)</code> suma solo lo que se gastó en agua.</li>
+    </ul>
+    <p class="note">Comparadores: <code>=</code> igual, <code>&lt;&gt;</code> distinto, <code>&gt;</code> mayor, <code>&lt;</code> menor, <code>&gt;=</code> mayor o igual, <code>&lt;=</code> menor o igual. En México los argumentos se separan con coma; si tu programa marca error, prueba con punto y coma (<code>;</code>).</p>
+  </article>
+  <article id="referencias" data-k="guia" data-pf="2">
+    <div class="meta"><span class="tag pfc">Guía 5</span><span class="tag">referencias</span></div>
+    <h2><a href="#referencias">Referencias relativas y absolutas ($)</a></h2>
+    <p>Al copiar una fórmula hacia abajo, sus referencias cambian: <code>=B2*C2</code> se vuelve <code>=B3*C3</code>. Eso es una <b>referencia relativa</b>.</p>
+    <p>Si una celda debe quedarse fija, como la del IVA, se usa <b>referencia absoluta</b> con el signo <code>$</code>:</p>
+    <div class="sheet-wrap"><table class="sheet"><thead><tr><th></th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th></tr></thead><tbody>
+      <tr><td class="rn">1</td><td>Producto</td><td>Precio</td><td>Con IVA</td><td></td><td class="sel">0.16</td></tr>
+      <tr><td class="rn">2</td><td>Cuaderno</td><td>45</td><td class="f">=B2*(1+$E$1)</td><td></td><td></td></tr>
+      <tr><td class="rn">3</td><td>Calculadora</td><td>320</td><td class="f">=B3*(1+$E$1)</td><td></td><td></td></tr>
+    </tbody></table></div>
+    <p>Al copiar, <code>B2</code> cambia a <code>B3</code>, pero <code>$E$1</code> sigue apuntando al IVA. En Excel, la tecla <b>F4</b> agrega los signos <code>$</code>. Resultados: 52.20 y 371.20.</p>
+  </article>
+  <article id="graficos" data-k="guia" data-pf="5">
+    <div class="meta"><span class="tag pfc">Guía 6</span><span class="tag">gráficos</span></div>
+    <h2><a href="#graficos">Gráficos: cuál usar</a></h2>
+    <div class="ref-wrap"><table class="ref"><thead><tr><th>Gráfico</th><th>Úsalo para</th><th>Ejemplo</th></tr></thead><tbody>
+      <tr><td><b>Columnas o barras</b></td><td>Comparar cantidades</td><td>Litros de agua usados por cada grupo</td></tr>
+      <tr><td><b>Circular</b></td><td>Partes de un total</td><td>En qué se va el agua de la casa (%)</td></tr>
+      <tr><td><b>Líneas</b></td><td>Cambios a lo largo del tiempo</td><td>Consumo de agua por semana</td></tr>
+      <tr><td><b>Dispersión</b></td><td>Relación entre dos datos</td><td>Horas de estudio y calificación</td></tr>
+    </tbody></table></div>
+    <p>Pasos: selecciona los datos con sus títulos, ve a <b>Insertar</b> y elige el gráfico. Dale un título que diga qué muestra y revisa que los ejes tengan unidades.</p>
+  </article>
+  <article id="datos" data-k="guia" data-pf="7">
+    <div class="meta"><span class="tag pfc">Guía 7</span><span class="tag">datos</span></div>
+    <h2><a href="#datos">Ordenar, filtrar y formato condicional</a></h2>
+    <ul>
+      <li><b>Ordenar:</b> acomoda la tabla de menor a mayor, de mayor a menor o por orden alfabético. Selecciona toda la tabla para que no se revuelvan los datos de cada fila.</li>
+      <li><b>Filtrar:</b> muestra solo las filas que cumplen algo, por ejemplo solo los reprobados, sin borrar las demás.</li>
+      <li><b>Formato condicional:</b> colorea celdas automáticamente, por ejemplo en rojo las calificaciones menores a 6.</li>
+    </ul>
+  </article>
+  <article id="errores" data-k="guia" data-pf="6">
+    <div class="meta"><span class="tag pfc">Consulta</span><span class="tag">errores</span></div>
+    <h2><a href="#errores">Errores comunes y cómo arreglarlos</a></h2>
+    <div class="ref-wrap"><table class="ref"><thead><tr><th>Aparece</th><th>Qué significa</th><th>Cómo se arregla</th></tr></thead><tbody>
+      <tr><td><code>#####</code></td><td>La columna es muy angosta para el número</td><td>Haz más ancha la columna</td></tr>
+      <tr><td><code>#¡DIV/0!</code></td><td>Se dividió entre cero o entre una celda vacía</td><td>Revisa el divisor</td></tr>
+      <tr><td><code>#¿NOMBRE?</code></td><td>La función está mal escrita</td><td>Revisa la ortografía: PROMEDIO, no PROMEDIOS</td></tr>
+      <tr><td><code>#¡VALOR!</code></td><td>Se operó un texto como si fuera número</td><td>Revisa que las celdas tengan números</td></tr>
+      <tr><td><code>#¡REF!</code></td><td>La fórmula apunta a una celda que se borró</td><td>Vuelve a escribir la referencia</td></tr>
+    </tbody></table></div>
+  </article>
+  <article id="practica-papel" data-k="practica" data-pf="1">
+    <div class="meta"><span class="tag pfc">Práctica</span><span class="tag">en papel</span></div>
+    <h2><a href="#practica-papel">Práctica en papel: la tienda escolar</a></h2>
+    <p>No necesitas computadora. Copia la tabla en tu cuaderno, escribe la fórmula que pondrías en cada celda y calcula el resultado a mano.</p>
+    <div class="sheet-wrap"><table class="sheet"><thead><tr><th></th><th>A</th><th>B</th><th>C</th><th>D</th></tr></thead><tbody>
+      <tr><td class="rn">1</td><td>Producto</td><td>Precio</td><td>Vendidos</td><td>Total</td></tr>
+      <tr><td class="rn">2</td><td>Agua 600 mL</td><td>12</td><td>35</td><td class="sel"></td></tr>
+      <tr><td class="rn">3</td><td>Torta</td><td>30</td><td>18</td><td></td></tr>
+      <tr><td class="rn">4</td><td>Fruta</td><td>20</td><td>22</td><td></td></tr>
+      <tr><td class="rn">5</td><td></td><td></td><td>Total del día</td><td></td></tr>
+    </tbody></table></div>
+    <ol>
+      <li>¿Qué fórmula va en <code>D2</code>? Cópiala hacia <code>D3</code> y <code>D4</code>.</li>
+      <li>¿Qué función va en <code>D5</code> para el total del día?</li>
+      <li>¿Qué fórmula calcula el promedio de productos vendidos?</li>
+      <li>Escribe una fórmula con <code>SI</code> que diga "Meta" si el total del día es de 1 500 o más, y "Falta" si no.</li>
+    </ol>
+    <details class="reto"><summary>Ver respuestas</summary>
+      <ol><li><code>=B2*C2</code> → 420; luego 540 y 440.</li><li><code>=SUMA(D2:D4)</code> → 1 400.</li><li><code>=PROMEDIO(C2:C4)</code> → 25.</li><li><code>=SI(D5&gt;=1500,"Meta","Falta")</code> → Falta.</li></ol>
+    </details>
+  </article>
+  <article id="bienvenida" data-k="aviso">
+    <div class="meta"><span class="tag">aviso</span></div>
+    <h2><a href="#bienvenida">Bienvenidos a Hoja de Cálculo Aplicada</a></h2>
+    <p>Aquí está la guía de consulta de la materia: conceptos, fórmulas, funciones y gráficos, con ejemplos que puedes practicar en papel o en Excel o Google Hojas de cálculo si tienes acceso a una computadora o celular.</p>
+    <p>También verás las fechas de evaluación y los avisos de la clase.</p>
+  </article>
+  </div>
+</main>
+
+<aside><div class="side">
+  <div class="box next" id="ev-next"><p class="lbl">Próxima evaluación</p><p class="ev-none">Sin fechas por ahora.</p></div>
+  <h2>Temas de la guía</h2>
+  <ol class="pfs">
+    <li data-pf="3"><span class="n">1</span><div><b>Celdas y rangos</b><a href="#celdas">Ver guía</a></div></li>
+    <li data-pf="1"><span class="n">2</span><div><b>Fórmulas</b><a href="#formulas">Ver guía</a></div></li>
+    <li data-pf="4"><span class="n">3</span><div><b>Funciones</b><a href="#funciones">Ver guía</a></div></li>
+    <li data-pf="6"><span class="n">4</span><div><b>Funciones lógicas</b><a href="#logicas">Ver guía</a></div></li>
+    <li data-pf="2"><span class="n">5</span><div><b>Referencias</b><a href="#referencias">Ver guía</a></div></li>
+    <li data-pf="5"><span class="n">6</span><div><b>Gráficos</b><a href="#graficos">Ver guía</a></div></li>
+    <li data-pf="7"><span class="n">7</span><div><b>Ordenar y filtrar</b><a href="#datos">Ver guía</a></div></li>
+  </ol>
+  <div class="box"><p><b>¿Dudas?</b></p><p>Pregúntale al profesor en clase o anota tu pregunta en el cuaderno para revisarla juntos.</p></div>
+</div></aside>
+</div>
+
+<footer><div class="wrap">Hoja de Cálculo Aplicada · Preparatoria Oficial Núm. 252 · Prof. Raciel Ramos Melecio · <a href="../" style="color:inherit">Todas mis asignaturas</a></div></footer>
+
+<script>
+(function(){
+  // Filtros
+  const chips=[...document.querySelectorAll('.chip')], posts=[...document.querySelectorAll('article')];
+  chips.forEach(c=>c.addEventListener('click',()=>{
+    chips.forEach(x=>x.setAttribute('aria-pressed',x===c?'true':'false'));
+    const f=c.dataset.f; posts.forEach(p=>{p.hidden=!(f==='all'||p.dataset.k===f)});
+  }));
+})();
+</script>
+<script>
+(function(){
+  const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const DIA=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  function hoy(){const d=new Date();d.setHours(0,0,0,0);return d;}
+  function parse(f){const [y,m,d]=f.split('-').map(Number);return new Date(y,m-1,d);}
+  function cuando(dias){return dias===0?'Hoy':dias===1?'Mañana':dias<0?'Aplicada':'En '+dias+' días';}
+  function pintar(evs){
+    const h=hoy();
+    evs=evs.filter(e=>e&&e.fecha).map(e=>Object.assign({},e,{d:parse(e.fecha)})).sort((a,b)=>a.d-b.d);
+    const list=document.getElementById('ev-list'), next=document.getElementById('ev-next');
+    if(!evs.length) return;
+    list.innerHTML=evs.map(e=>{
+      const dias=Math.round((e.d-h)/864e5);
+      const cls=dias<0?'past':dias<=7?'soon':'';
+      return `<div class="ev ${cls}"><div class="ev-d"><span>${DIA[e.d.getDay()].slice(0,3)}</span><b>${e.d.getDate()}</b><span>${MES[e.d.getMonth()]}</span></div>
+        <div class="ev-t"><strong>${esc(e.titulo)}</strong><small>${esc([e.tipo,e.pf].filter(Boolean).join(' · '))}</small>${e.temas?`<small>Repasa: ${esc(e.temas)}</small>`:''}</div>
+        <span class="ev-s">${cuando(dias)}</span></div>`;}).join('');
+    const prox=evs.find(e=>e.d>=h);
+    next.innerHTML='<p class="lbl">Próxima evaluación</p>'+(prox?`<strong>${esc(prox.titulo)}</strong><p class="ev-none" style="margin:.2em 0">${DIA[prox.d.getDay()]} ${prox.d.getDate()} de ${['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][prox.d.getMonth()]}</p><span class="when">${cuando(Math.round((prox.d-h)/864e5))}</span> · <a href="#evaluaciones">Ver todas</a>`:'<p class="ev-none">No hay evaluaciones próximas.</p>');
+  }
+  fetch('evaluaciones.json',{cache:'no-store'}).then(r=>r.ok?r.json():[]).then(pintar).catch(()=>{});
+})();
+</script>
+</body>
+</html>
