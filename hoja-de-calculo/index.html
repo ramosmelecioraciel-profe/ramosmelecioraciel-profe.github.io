@@ -213,6 +213,35 @@ body.gated{overflow:hidden}
 .qchip.locked{opacity:.55;cursor:not-allowed;border-style:dashed}
 .qchip .lk{font-size:12px;font-weight:700;margin-left:4px}
 .qchip:disabled{cursor:not-allowed}
+
+.cal-next{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.cal-next div{flex:1 1 200px;border:1.5px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--paper)}
+.cal-next small{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink2);font-weight:700}
+.cal-next b{display:block;line-height:1.3}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}
+.calbtn{font:inherit;font-size:16px;font-weight:700;border:1.5px solid var(--line);background:var(--card);color:var(--ink);padding:4px 16px;border-radius:999px;cursor:pointer}
+.calbtn:disabled{opacity:.4;cursor:default}
+.cal-nav strong{font-family:var(--f-display);font-size:19px;text-transform:capitalize}
+.cal-wrap{overflow-x:auto}
+table.cal{width:100%;min-width:300px;border-collapse:separate;border-spacing:4px;table-layout:fixed;margin-top:6px;font-variant-numeric:tabular-nums}
+table.cal th{font-size:12px;color:var(--ink2);font-weight:700;padding:2px}
+table.cal td{height:44px;vertical-align:top;border-radius:8px;background:var(--paper);border:1px solid var(--line);padding:4px 6px;font-size:14px;position:relative}
+table.cal td.out{background:transparent;border-color:transparent}
+table.cal td.hoy{outline:3px solid var(--board);outline-offset:-2px;font-weight:700}
+table.cal td.vac{background:#dbeafe;border-color:#93c5fd;color:#1e3a8a}
+table.cal td.susp{background:#fde2e2;border-color:#fca5a5;color:#7f1d1d}
+table.cal td.jor{background:#ede9fe;border-color:#c4b5fd;color:#4c1d95}
+table.cal td.hito{background:var(--chalk);border-color:#e0b400;color:#1b2340;font-weight:700}
+table.cal td .dots{position:absolute;left:6px;bottom:4px;display:flex;gap:3px}
+table.cal td .dots i{width:8px;height:8px;border-radius:50%}
+.k{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.k.vac,.dots .vac{background:#60a5fa}.k.susp{background:#f87171}.k.jor{background:#a78bfa}.k.hito{background:var(--chalk)}
+.k.eval,.dots .eval{background:#16a34a}.k.tema,.dots .tema{background:#f97316}
+.cal-leg{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink2);margin:10px 0}
+.cal-list{list-style:none;padding:0;margin:8px 0 0;border-top:1px solid var(--line)}
+.cal-list li{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:15px}
+.cal-list li span{color:var(--ink2);font-variant-numeric:tabular-nums}
+.cal-src{font-size:13px;color:var(--ink2)}
 </style><style>
 .fbar{position:relative;display:flex;align-items:stretch;max-width:620px;margin-top:20px;border-radius:8px;overflow:hidden;background:#fff;color:#1b2340;font-family:var(--f-mono);font-size:16px;box-shadow:0 3px 0 rgba(0,0,0,.25)}
 .fbar .ref{padding:8px 14px;border-right:1px solid #cfd8d2;font-weight:700;color:#17603a}
@@ -280,6 +309,7 @@ header .tile{border:2px solid rgba(255,255,255,.28)}
     <button class="chip" id="f-guia" data-f="guia" aria-pressed="false">Guía</button>
     <button class="chip" id="f-prac" data-f="practica" aria-pressed="false">Prácticas</button>
     <button class="chip" id="f-auto" data-f="autoeval" aria-pressed="false">Autoevaluaciones</button>
+    <button class="chip" id="f-cal" data-f="calendario" aria-pressed="false">Calendario</button>
     <button class="chip" id="f-eval" data-f="evaluacion" aria-pressed="false">Evaluaciones</button>
   </div>
   <div class="feed">
@@ -298,6 +328,18 @@ header .tile{border:2px solid rgba(255,255,255,.28)}
       <button class="btn" id="reg-enviar" type="submit">Registrarme</button>
       <p class="reg-msg" id="reg-msg" aria-live="polite"></p>
     </form>
+  </article>
+
+  <article id="calendario" data-k="calendario">
+    <div class="meta"><span class="tag">2026-2027</span><span class="tag">calendario escolar</span></div>
+    <h2><a href="#calendario">Calendario escolar 2026-2027</a></h2>
+    <p>Calendario de Media Superior del Estado de México con los días sin clases, las vacaciones y las fechas de esta materia: evaluaciones y temas.</p>
+    <div class="cal-next" id="cal-next"></div>
+    <div class="cal-nav"><button type="button" class="calbtn" id="cal-prev" aria-label="Mes anterior">←</button><strong id="cal-title"></strong><button type="button" class="calbtn" id="cal-sig" aria-label="Mes siguiente">→</button></div>
+    <div class="cal-wrap"><table class="cal" id="cal-grid" aria-describedby="cal-title"></table></div>
+    <div class="cal-leg"><span><i class="k vac"></i>Vacaciones</span><span><i class="k susp"></i>Sin clases</span><span><i class="k jor"></i>Jornada docente</span><span><i class="k hito"></i>Inicio / fin</span><span><i class="k eval"></i>Evaluación</span><span><i class="k tema"></i>Tema en clase</span></div>
+    <ul class="cal-list" id="cal-list"></ul>
+    <p class="cal-src">Fuente: calendario de Media Superior 2026-2027 de la SECTI del Estado de México. Si la escuela anuncia un cambio, se actualizará aquí.</p>
   </article>
 
   <article id="evaluaciones" data-k="evaluacion" class="pinned">
@@ -648,6 +690,77 @@ header .tile{border:2px solid rgba(255,255,255,.28)}
   window.addEventListener('hashchange',porHash);
   chips.forEach(c=>{c.disabled=true;});
   fetch('avance.json',{cache:'no-store'}).then(r=>r.ok?r.json():{}).catch(()=>({})).then(aplicar);
+})();
+</script>
+
+<script>
+(function(){
+  const CAL=[{"a": "2026-08-31", "b": null, "t": "hito", "x": "Inicio del ciclo escolar 2026-2027"}, {"a": "2027-01-22", "b": null, "t": "hito", "x": "Fin del primer semestre"}, {"a": "2027-02-08", "b": null, "t": "hito", "x": "Inicio del segundo semestre"}, {"a": "2027-07-09", "b": null, "t": "hito", "x": "Fin del segundo semestre y del ciclo escolar"}, {"a": "2026-12-21", "b": "2027-01-08", "t": "vac", "x": "Vacaciones de invierno"}, {"a": "2027-03-22", "b": "2027-04-02", "t": "vac", "x": "Vacaciones de Semana Santa"}, {"a": "2027-07-12", "b": null, "t": "vac", "x": "Inicio del receso de verano"}, {"a": "2026-09-16", "b": null, "t": "susp", "x": "Día de la Independencia · suspensión de labores"}, {"a": "2026-11-02", "b": null, "t": "susp", "x": "Día de Muertos · suspensión de labores"}, {"a": "2026-11-16", "b": null, "t": "susp", "x": "Aniversario de la Revolución Mexicana · suspensión de labores"}, {"a": "2026-12-25", "b": null, "t": "susp", "x": "Navidad · suspensión de labores"}, {"a": "2027-01-01", "b": null, "t": "susp", "x": "Año Nuevo · suspensión de labores"}, {"a": "2027-02-01", "b": null, "t": "susp", "x": "Día de la Constitución · suspensión de labores"}, {"a": "2027-03-15", "b": null, "t": "susp", "x": "Natalicio de Benito Juárez · suspensión de labores"}, {"a": "2027-05-05", "b": null, "t": "susp", "x": "Batalla de Puebla · suspensión de labores"}, {"a": "2027-06-11", "b": null, "t": "susp", "x": "Suspensión programada · suspensión de labores"}, {"a": "2026-10-02", "b": null, "t": "jor", "x": "Jornada de Acompañamiento y Formación docente"}, {"a": "2027-01-22", "b": null, "t": "jor", "x": "Jornada de Acompañamiento y Formación docente"}, {"a": "2027-06-11", "b": null, "t": "jor", "x": "Jornada de Acompañamiento y Formación docente"}, {"a": "2027-01-25", "b": null, "t": "jor", "x": "Jornada de Formación Continua docente"}];
+  const MES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const DS=['L','M','M','J','V','S','D'];
+  const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const parse=s=>{const p=s.split('-').map(Number);return new Date(p[0],p[1]-1,p[2]);};
+  const fmt=s=>{const d=parse(s);return d.getDate()+' '+MES[d.getMonth()].slice(0,3);};
+  const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const hoy=iso(new Date());
+  let ev=CAL.slice();
+  const dia={};  // iso -> {cls, dots:Set, txt:[]}
+  function marcar(){
+    for(const k in dia) delete dia[k];
+    ev.forEach(e=>{
+      const a=parse(e.a), b=e.b?parse(e.b):a;
+      for(let d=new Date(a);d<=b;d.setDate(d.getDate()+1)){
+        const k=iso(d), o=dia[k]||(dia[k]={cls:'',dots:new Set(),txt:[]});
+        if(['vac','susp','jor','hito'].includes(e.t)){ if(!o.cls||e.t==='susp'||e.t==='vac') o.cls=e.t; }
+        else o.dots.add(e.t);
+        o.txt.push(e.x);
+      }
+    });
+  }
+  let ver=new Date(); ver.setDate(1);
+  const ini=new Date(2026,7,1), fin=new Date(2027,6,1);
+  if(ver<ini) ver=new Date(ini); if(ver>fin) ver=new Date(fin);
+  function pintar(){
+    document.getElementById('cal-title').textContent=MES[ver.getMonth()]+' '+ver.getFullYear();
+    const y=ver.getFullYear(), m=ver.getMonth(), first=(new Date(y,m,1).getDay()+6)%7, n=new Date(y,m+1,0).getDate();
+    let h='<thead><tr>'+DS.map(x=>'<th scope="col">'+x+'</th>').join('')+'</tr></thead><tbody><tr>';
+    for(let i=0;i<first;i++) h+='<td class="out"></td>';
+    for(let d=1;d<=n;d++){
+      const k=iso(new Date(y,m,d)), o=dia[k];
+      const cls=[(o&&o.cls)||'', k===hoy?'hoy':''].join(' ').trim();
+      const dots=o&&o.dots.size?'<span class="dots">'+[...o.dots].map(t=>'<i class="'+t+'"></i>').join('')+'</span>':'';
+      h+='<td'+(cls?' class="'+cls+'"':'')+(o?' title="'+esc(o.txt.join(' · '))+'"':'')+'>'+d+dots+'</td>';
+      if((first+d)%7===0&&d<n) h+='</tr><tr>';
+    }
+    const rest=(7-(first+n)%7)%7; for(let i=0;i<rest;i++) h+='<td class="out"></td>';
+    document.getElementById('cal-grid').innerHTML=h+'</tr></tbody>';
+    const mm=iso(new Date(y,m,1)).slice(0,7);
+    const lista=ev.filter(e=>e.a.slice(0,7)===mm||(e.b&&e.a.slice(0,7)<mm&&e.b.slice(0,7)>=mm)).sort((p,q)=>p.a<q.a?-1:1);
+    document.getElementById('cal-list').innerHTML=lista.length?lista.map(e=>'<li><span>'+fmt(e.a)+(e.b?' – '+fmt(e.b):'')+'</span><span style="color:inherit"><i class="k '+e.t+'"></i>'+esc(e.x)+'</span></li>').join(''):'<li><span></span><span>Sin fechas especiales este mes.</span></li>';
+    document.getElementById('cal-prev').disabled=ver<=ini; document.getElementById('cal-sig').disabled=ver>=fin;
+  }
+  function proximos(){
+    const sinc=ev.filter(e=>(e.t==='susp'||e.t==='vac')&&(e.b||e.a)>=hoy).sort((p,q)=>p.a<q.a?-1:1)[0];
+    const fe=ev.filter(e=>e.t==='hito'&&e.a>=hoy).sort((p,q)=>p.a<q.a?-1:1)[0];
+    let h='';
+    if(sinc) h+='<div><small>Próximo día sin clases</small><b>'+fmt(sinc.a)+(sinc.b?' – '+fmt(sinc.b):'')+'</b>'+esc(sinc.x.replace(' · suspensión de labores',''))+'</div>';
+    if(fe) h+='<div><small>Próxima fecha del ciclo</small><b>'+fmt(fe.a)+'</b>'+esc(fe.x)+'</div>';
+    document.getElementById('cal-next').innerHTML=h;
+  }
+  document.getElementById('cal-prev').addEventListener('click',()=>{ver.setMonth(ver.getMonth()-1);pintar();});
+  document.getElementById('cal-sig').addEventListener('click',()=>{ver.setMonth(ver.getMonth()+1);pintar();});
+  marcar(); pintar(); proximos();
+  // Se suman evaluaciones y temas de esta materia
+  Promise.all([
+    fetch('evaluaciones.json',{cache:'no-store'}).then(r=>r.ok?r.json():[]).catch(()=>[]),
+    fetch('avance.json',{cache:'no-store'}).then(r=>r.ok?r.json():{}).catch(()=>({}))
+  ]).then(([evs,av])=>{
+    (evs||[]).forEach(e=>{ if(e&&e.fecha) ev.push({a:e.fecha,b:null,t:'eval',x:e.titulo}); });
+    const nombres={pf1:'PF1 Lógica matemática',pf2:'PF2 Conteo',pf3:'PF3 Naturales y enteros',pf4:'PF4 Fracciones y porcentajes',pf5:'PF5 Potencias y raíces',pf6:'PF6 La medición',pf7:'PF7 Operaciones combinadas'};
+    const t=(av&&av.temas)||{};
+    Object.keys(t).forEach(k=>{ if(/^\d{4}-\d{2}-\d{2}$/.test(t[k]||'')) ev.push({a:t[k],b:null,t:'tema',x:'Inicia en clase: '+(nombres[k]||k)}); });
+    marcar(); pintar();
+  });
 })();
 </script>
 </body>
