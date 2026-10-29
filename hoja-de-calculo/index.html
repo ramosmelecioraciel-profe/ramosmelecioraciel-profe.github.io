@@ -242,6 +242,15 @@ table.cal td .dots i{width:8px;height:8px;border-radius:50%}
 .cal-list li{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:15px}
 .cal-list li span{color:var(--ink2);font-variant-numeric:tabular-nums}
 .cal-src{font-size:13px;color:var(--ink2)}
+
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 0 22px;padding:10px 0;background:var(--paper);border-bottom:2px solid var(--line)}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;font:inherit;font-size:15px;font-weight:700;color:var(--ink2);background:transparent;border:none;border-radius:999px;padding:8px 13px;cursor:pointer;white-space:nowrap}
+.tab:hover{background:var(--blue-soft);color:var(--ink)}
+.tab[aria-selected="true"]{background:var(--board);color:#fff}
+.tab:focus-visible{outline:3px solid var(--chalk);outline-offset:2px}
+.tab-intro{margin:-8px 0 18px;color:var(--ink2);font-size:15px}
+@media (max-width:480px){.tabs{flex-wrap:wrap;gap:4px;overflow:visible}.tab{font-size:14px;padding:7px 11px}}
 </style><style>
 .fbar{position:relative;display:flex;align-items:stretch;max-width:620px;margin-top:20px;border-radius:8px;overflow:hidden;background:#fff;color:#1b2340;font-family:var(--f-mono);font-size:16px;box-shadow:0 3px 0 rgba(0,0,0,.25)}
 .fbar .ref{padding:8px 14px;border-right:1px solid #cfd8d2;font-weight:700;color:#17603a}
@@ -304,14 +313,7 @@ header .tile{border:2px solid rgba(255,255,255,.28)}
 <p class="whoami" id="whoami" hidden>Entraste como <b id="whoami-n"></b> · <button type="button" id="whoami-x">No soy yo</button></p>
 <div class="wrap cols">
 <main>
-  <div class="filters" role="group" aria-label="Filtrar entradas">
-    <button class="chip" id="f-all" data-f="all" aria-pressed="true">Todas</button>
-    <button class="chip" id="f-guia" data-f="guia" aria-pressed="false">Guía</button>
-    <button class="chip" id="f-prac" data-f="practica" aria-pressed="false">Prácticas</button>
-    <button class="chip" id="f-auto" data-f="autoeval" aria-pressed="false">Autoevaluaciones</button>
-    <button class="chip" id="f-cal" data-f="calendario" aria-pressed="false">Calendario</button>
-    <button class="chip" id="f-eval" data-f="evaluacion" aria-pressed="false">Evaluaciones</button>
-  </div>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Secciones"><button type="button" role="tab" class="tab" id="tab-guia" data-tab="guia" aria-selected="false">Guía</button><button type="button" role="tab" class="tab" id="tab-practicas" data-tab="practicas" aria-selected="false">Prácticas</button><button type="button" role="tab" class="tab" id="tab-autoeval" data-tab="autoeval" aria-selected="false">Autoevaluación</button><button type="button" role="tab" class="tab" id="tab-fechas" data-tab="fechas" aria-selected="false">Fechas</button></nav>
   <div class="feed">
   <article id="avisos" data-k="evaluacion" class="pinned">
     <div class="meta"><span class="tag">fijo</span><span class="tag">avisos por correo</span></div>
@@ -761,6 +763,37 @@ header .tile{border:2px solid rgba(255,255,255,.28)}
     Object.keys(t).forEach(k=>{ if(/^\d{4}-\d{2}-\d{2}$/.test(t[k]||'')) ev.push({a:t[k],b:null,t:'tema',x:'Inicia en clase: '+(nombres[k]||k)}); });
     marcar(); pintar();
   });
+})();
+</script>
+
+<script>
+(function(){
+  const MAP={"guia": "guia", "practica": "practicas", "autoeval": "autoeval", "evaluacion": "fechas", "calendario": "fechas", "aviso": "guia"}, INTRO={"guia": "Conceptos, fórmulas y funciones con ejemplos. Cada guía tiene su autoevaluación al final.", "practicas": "Ejercicios para hacer en papel, con sus respuestas.", "autoeval": "Contesta 5 preguntas del tema que acabamos de ver. Se abren conforme avanzamos en clase.", "fechas": "Días sin clases, fechas de evaluación y registro para recibir recordatorios por correo."};
+  const tabs=[...document.querySelectorAll('.tab')], feed=document.querySelector('.feed');
+  const arts=[...feed.querySelectorAll(':scope > article')];
+  arts.forEach(a=>{ a.dataset.tab=MAP[a.dataset.k]||tabs[0].dataset.tab; });
+  // en "Fechas y avisos": calendario, evaluaciones y registro, en ese orden
+  ['calendario','evaluaciones','avisos'].forEach(id=>{ const a=document.getElementById(id); if(a) feed.appendChild(a); });
+  const p=document.createElement('p'); p.className='tab-intro'; p.id='tab-intro'; feed.parentNode.insertBefore(p,feed);
+  function show(t,scrollTo){
+    tabs.forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t?'true':'false'));
+    arts.forEach(a=>{ a.hidden=a.dataset.tab!==t; });
+    p.textContent=INTRO[t]||'';
+    try{ localStorage.setItem('tab_'+location.pathname,t); }catch(e){}
+    if(scrollTo){ const el=document.getElementById(scrollTo); if(el) setTimeout(()=>el.scrollIntoView({block:'start'}),30); }
+  }
+  function route(){
+    const h=decodeURIComponent(location.hash.slice(1));
+    if(!h){ let t=null; try{ t=localStorage.getItem('tab_'+location.pathname); }catch(e){} return show(tabs.some(b=>b.dataset.tab===t)?t:tabs[0].dataset.tab); }
+    if(tabs.some(b=>b.dataset.tab===h)) return show(h);
+    if(/^auto-/.test(h)) return show('autoeval');
+    const el=document.getElementById(h);
+    const art=el&&el.closest('.feed > article');
+    if(art) return show(art.dataset.tab,h);
+  }
+  tabs.forEach(b=>b.addEventListener('click',()=>{ history.replaceState(null,'','#'+b.dataset.tab); show(b.dataset.tab); window.scrollTo({top:document.getElementById('tabs').offsetTop-4}); }));
+  window.addEventListener('hashchange',route);
+  route();
 })();
 </script>
 </body>
