@@ -251,6 +251,7 @@ table.cal td .dots i{width:8px;height:8px;border-radius:50%}
 .tab:focus-visible{outline:3px solid var(--chalk);outline-offset:2px}
 .tab-intro{margin:-8px 0 18px;color:var(--ink2);font-size:15px}
 @media (max-width:480px){.tabs{flex-wrap:wrap;gap:4px;overflow:visible}.tab{font-size:14px;padding:7px 11px}}
+.reg-hint{font-weight:400;font-size:13px;color:var(--ink2);line-height:1.4}
 </style><style>
 .fbar{position:relative;display:flex;align-items:stretch;max-width:620px;margin-top:20px;border-radius:8px;overflow:hidden;background:#fff;color:#1b2340;font-family:var(--f-mono);font-size:16px;box-shadow:0 3px 0 rgba(0,0,0,.25)}
 .fbar .ref{padding:8px 14px;border-right:1px solid #cfd8d2;font-weight:700;color:#17603a}
@@ -325,7 +326,7 @@ header .tile{border:2px solid rgba(255,255,255,.28)}
         <label for="reg-nombre">Nombre completo<input id="reg-nombre" name="nombre" type="text" autocomplete="name" maxlength="80" required></label>
         <label for="reg-grupo" class="sm">Grupo<input id="reg-grupo" name="grupo" type="text" placeholder="ej. 1° 2" maxlength="20" required></label>
       </div>
-      <label for="reg-correo">Correo electrónico<input id="reg-correo" name="correo" type="email" autocomplete="email" maxlength="120" required></label>
+      <label for="reg-correo">Correo electrónico<input id="reg-correo" name="correo" type="email" autocomplete="email" maxlength="120" required><span class="reg-hint">Usa de preferencia un correo de <b>Gmail</b>. Los de Hotmail u Outlook a veces no reciben los avisos; si usas uno, revisa la carpeta de correo no deseado.</span></label>
       <label class="chk" for="reg-acepto"><input id="reg-acepto" name="acepto" type="checkbox" value="si" required><span>Acepto que mi nombre, grupo y correo se usen solo para enviarme avisos de esta clase. Los datos los guarda el profesor y no se comparten. Puedo darme de baja desde cualquier correo.</span></label>
       <button class="btn" id="reg-enviar" type="submit">Registrarme</button>
       <p class="reg-msg" id="reg-msg" aria-live="polite"></p>
