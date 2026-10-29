@@ -210,6 +210,9 @@ body.gated{overflow:hidden}
 .qmsg{font-size:15px;color:var(--ink2)}
 .qlink{margin:14px 0 0;font-weight:700}
 .qlink a{color:color-mix(in srgb,var(--c),#fff var(--tint))}
+.qchip.locked{opacity:.55;cursor:not-allowed;border-style:dashed}
+.qchip .lk{font-size:12px;font-weight:700;margin-left:4px}
+.qchip:disabled{cursor:not-allowed}
 </style><style>
 .fbar{position:relative;display:flex;align-items:stretch;max-width:620px;margin-top:20px;border-radius:8px;overflow:hidden;background:#fff;color:#1b2340;font-family:var(--f-mono);font-size:16px;box-shadow:0 3px 0 rgba(0,0,0,.25)}
 .fbar .ref{padding:8px 14px;border-right:1px solid #cfd8d2;font-weight:700;color:#17603a}
@@ -619,9 +622,32 @@ header .tile{border:2px solid rgba(255,255,255,.28)}
     });
     if(scroll) document.getElementById('autoevaluacion').scrollIntoView({behavior:'smooth',block:'start'});
   }
-  chips.forEach(c=>c.addEventListener('click',()=>abrir(c.dataset.q,false)));
-  function porHash(){ const m=location.hash.match(/^#auto-(\w+)$/); if(m){ const all=document.getElementById('f-all'); if(all) all.click(); abrir(m[1],true); } }
-  window.addEventListener('hashchange',porHash); porHash();
+  // AVANCE: estado de cada tema según avance.json ("abierto", "oculto" o fecha AAAA-MM-DD)
+  const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const estado={};
+  function hoyStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  function aplicar(av){
+    chips.forEach(c=>{
+      const id=c.dataset.q, v=av[id];
+      let st='cerrado', txt='Próximamente';
+      if(v==='abierto'||(typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&v<=hoyStr())) st='abierto';
+      else if(v==='oculto') st='oculto';
+      else if(typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)){const p=v.split('-');txt='Se abre el '+(+p[2])+' de '+MESES[+p[1]-1];}
+      estado[id]=st;
+      c.hidden=st==='oculto';
+      c.disabled=st!=='abierto';
+      c.classList.toggle('locked',st==='cerrado');
+      if(st==='cerrado'){ c.title=txt; if(!c.querySelector('.lk')) c.insertAdjacentHTML('beforeend',' <span class="lk">🔒 '+txt+'</span>'); }
+      document.querySelectorAll('a[href="#auto-'+id+'"]').forEach(a=>{ const p=a.closest('.qlink')||a; p.hidden=st!=='abierto'; });
+    });
+    if(!chips.some(c=>estado[c.dataset.q]==='abierto')) box.innerHTML='<p class="ev-empty">Las autoevaluaciones se abrirán conforme avancemos en clase.</p>';
+    porHash();
+  }
+  chips.forEach(c=>c.addEventListener('click',()=>{ if(estado[c.dataset.q]==='abierto') abrir(c.dataset.q,false); }));
+  function porHash(){ const m=location.hash.match(/^#auto-(\w+)$/); if(m&&estado[m[1]]==='abierto'){ const all=document.getElementById('f-all'); if(all) all.click(); abrir(m[1],true); } }
+  window.addEventListener('hashchange',porHash);
+  chips.forEach(c=>{c.disabled=true;});
+  fetch('avance.json',{cache:'no-store'}).then(r=>r.ok?r.json():{}).catch(()=>({})).then(aplicar);
 })();
 </script>
 </body>
