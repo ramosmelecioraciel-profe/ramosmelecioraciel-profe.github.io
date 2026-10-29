@@ -177,6 +177,19 @@ footer{border-top:6px solid var(--chalk);background:var(--board);color:var(--on-
 .reg-msg{margin:0;font-size:15px;min-height:1.4em}
 .reg-msg.ok{color:#1d7f40;font-weight:700}.reg-msg.err{color:var(--red);font-weight:700}
 .reg-side{justify-content:center;background:var(--board);color:#fff;text-decoration:none;border:2px solid var(--chalk)}
+
+.gate{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(10,16,40,.72);padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.gate-card{width:100%;max-width:440px;background:var(--card);color:var(--ink);border-radius:14px;border-top:6px solid var(--chalk);padding:24px;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.gate-card h2{font-family:var(--f-display);font-size:26px;margin:0}
+.gate-card p{margin:0}
+.gate-card label{display:flex;flex-direction:column;gap:4px;font-size:14px;font-weight:700;color:var(--ink2)}
+.gate-card input{font:inherit;font-size:16px;font-weight:400;color:var(--ink);background:var(--paper);border:1.5px solid var(--line);border-radius:8px;padding:10px 12px}
+.gate-card .btn{align-self:stretch;justify-content:center;background:var(--board);color:#fff;font-size:17px;padding:12px}
+.gate-note{font-size:13px;color:var(--ink2)}
+.whoami{max-width:1120px;margin:14px auto 0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));font-size:14px;color:var(--ink2)}
+.whoami button{font:inherit;font-size:14px;background:none;border:none;padding:0;color:var(--blue);text-decoration:underline;cursor:pointer}
+body.gated{overflow:hidden}
+[hidden]{display:none!important}
 </style><style>
 .fbar{position:relative;display:flex;align-items:stretch;max-width:620px;margin-top:20px;border-radius:8px;overflow:hidden;background:#fff;color:#1b2340;font-family:var(--f-mono);font-size:16px;box-shadow:0 3px 0 rgba(0,0,0,.25)}
 .fbar .ref{padding:8px 14px;border-right:1px solid #cfd8d2;font-weight:700;color:#17603a}
@@ -224,6 +237,19 @@ header .tile{border:2px solid rgba(255,255,255,.28)}
   </nav>
 </div></header>
 
+<div class="gate" id="who-gate" hidden>
+  <form class="gate-card" id="who-form" novalidate>
+    <p class="lbl">Antes de entrar</p>
+    <h2>¿Quién eres?</h2>
+    <p>Escribe tu nombre y tu grupo. Solo lo pedimos una vez en este celular o computadora.</p>
+    <label for="who-nombre">Nombre completo<input id="who-nombre" type="text" autocomplete="name" maxlength="80" required></label>
+    <label for="who-grupo">Grupo<input id="who-grupo" type="text" placeholder="ej. 1° 2" maxlength="20" required></label>
+    <p class="gate-note">El profesor registra qué días entras al blog y qué videos o archivos abres, para dar seguimiento a tu estudio. No se guarda nada más.</p>
+    <button class="btn" type="submit">Entrar</button>
+    <p class="reg-msg err" id="who-msg" aria-live="polite"></p>
+  </form>
+</div>
+<p class="whoami" id="whoami" hidden>Entraste como <b id="whoami-n"></b> · <button type="button" id="whoami-x">No soy yo</button></p>
 <div class="wrap cols">
 <main>
   <div class="filters" role="group" aria-label="Filtrar entradas">
@@ -442,7 +468,7 @@ header .tile{border:2px solid rgba(255,255,255,.28)}
 
 <script>
 (function(){
-  const URL='https://script.google.com/macros/s/AKfycbxhX15o07TLytf7o1uC5pOOo2jQVl_damUyNROBiiZmztgq6vMWQ7OOfqNNU6v7W5n8nw/exec';
+  const URL='https://script.google.com/macros/s/AKfycbwHqdoeheOWDYq9cho9NqCHgZV3_IqR1XM55QhPgdY1jZ782HI7Cm27zMWuopqCCfnC5w/exec';
   const f=document.getElementById('reg-form'); if(!f) return;
   const msg=document.getElementById('reg-msg'), btn=document.getElementById('reg-enviar');
   const say=(t,c)=>{msg.textContent=t;msg.className='reg-msg '+(c||'');};
@@ -461,6 +487,55 @@ header .tile{border:2px solid rgba(255,255,255,.28)}
     }catch(e){ say('No se pudo enviar. Revisa tu conexión a internet e inténtalo de nuevo.','err'); }
     finally{ btn.disabled=false; }
   });
+})();
+</script>
+
+<script>
+(function(){
+  const URL='https://script.google.com/macros/s/AKfycbwHqdoeheOWDYq9cho9NqCHgZV3_IqR1XM55QhPgdY1jZ782HI7Cm27zMWuopqCCfnC5w/exec', ASIG='HC', KEY='alumno_pm252';
+  const get=k=>{try{return JSON.parse(localStorage.getItem(k)||'null');}catch(e){return null;}};
+  const set=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
+  const gate=document.getElementById('who-gate'), form=document.getElementById('who-form'), msg=document.getElementById('who-msg');
+  const who=document.getElementById('whoami'), whoN=document.getElementById('whoami-n');
+  let yo=get(KEY);
+  function enviar(accion,detalle){
+    if(!yo) return;
+    const b=new URLSearchParams({tipo:'acceso',nombre:yo.nombre,grupo:yo.grupo,asignatura:ASIG,accion,detalle:detalle||''});
+    try{ if(navigator.sendBeacon&&navigator.sendBeacon(URL,b)) return; }catch(e){}
+    fetch(URL,{method:'POST',mode:'no-cors',body:b,keepalive:true}).catch(()=>{});
+  }
+  function entrada(){
+    const hoy=new Date().toDateString(), k='entrada_'+ASIG;
+    let ya=null; try{ya=sessionStorage.getItem(k);}catch(e){}
+    if(ya!==hoy){ enviar('Entró al blog',location.hash.replace('#','')); try{sessionStorage.setItem(k,hoy);}catch(e){} }
+  }
+  function mostrar(){
+    if(yo){ gate.hidden=true; document.body.classList.remove('gated'); who.hidden=false; whoN.textContent=yo.nombre+' ('+yo.grupo+')'; entrada(); }
+    else { gate.hidden=false; document.body.classList.add('gated'); who.hidden=true; setTimeout(()=>document.getElementById('who-nombre').focus(),50); }
+  }
+  form.addEventListener('submit',e=>{
+    e.preventDefault();
+    const n=document.getElementById('who-nombre').value.trim().replace(/\s+/g,' '), g=document.getElementById('who-grupo').value.trim();
+    if(n.split(' ').length<2){ msg.textContent='Escribe tu nombre y al menos un apellido.'; return; }
+    if(!g){ msg.textContent='Escribe tu grupo.'; return; }
+    msg.textContent=''; yo={nombre:n,grupo:g}; set(KEY,yo); mostrar();
+  });
+  document.getElementById('whoami-x').addEventListener('click',()=>{ try{localStorage.removeItem(KEY);sessionStorage.removeItem('entrada_'+ASIG);}catch(e){} yo=null; form.reset(); mostrar(); });
+  // Videos: un registro por video y por visita
+  const vistos=new Set();
+  document.querySelectorAll('article video').forEach(v=>v.addEventListener('play',()=>{
+    const t=(v.closest('article').querySelector('h2')||{}).textContent||v.src;
+    if(!vistos.has(t)){ vistos.add(t); enviar('Vio video',t.replace(/^Video:\s*/,'')); }
+  }));
+  // Descargas y enlaces a archivos
+  document.addEventListener('click',e=>{
+    const a=e.target.closest('a[href*="archivos/"]'); if(!a) return;
+    enviar('Abrió archivo',(a.getAttribute('download')||a.getAttribute('href')).split('/').pop());
+  });
+  // Registro a avisos: reutiliza nombre y grupo
+  const rn=document.getElementById('reg-nombre'), rg=document.getElementById('reg-grupo');
+  if(rn&&rg&&yo){ rn.value=rn.value||yo.nombre; rg.value=rg.value||yo.grupo; }
+  mostrar();
 })();
 </script>
 </body>
