@@ -449,11 +449,11 @@ function vCalif(g,head){
       '<td class="num sum">'+f1(r.escala)+'</td><td class="num">'+(r.exam==null?'—':f1(r.exam))+'</td><td class="num sum">'+f1(r.total)+'</td><td class="num"><input class="ninp" inputmode="decimal" data-ex="'+x.id+'" value="'+(r.extra||'')+'" aria-label="Décimas extra de '+esc(x.nombre)+'" style="width:56px"></td><td class="num" data-fin="'+x.id+'">'+calHtml(r.fin)+'</td><td class="num">'+fa+'</td></tr>';});
   h+='</tbody></table></div>';
 
-  const pen=al.map(x=>[x,calif(g,x.id,p).pend]).filter(z=>z[1].length);
-  h+='<div class="row" style="justify-content:space-between;margin-top:18px"><h3 style="margin:0">Actividades faltantes por alumno</h3>'+(pen.length?'<button class="btn sm sec" id="c-copen">Copiar para orientación</button>':'')+'</div>';
+  const pen=pendientesYTarde(g,p);
+  h+='<div class="row" style="justify-content:space-between;margin-top:18px"><h3 style="margin:0">Faltantes y entregas tardías</h3>'+(pen.length?'<span class="row"><button class="btn sm" id="c-wa" style="background:#128c4a">📲 Reporte a orientación (WhatsApp)</button><button class="btn sm sec" id="c-copen">Copiar</button></span>':'')+'</div>';
   if(!ac.length)h+='<p class="muted">Sin actividades todavía.</p>';
-  else if(!pen.length)h+='<p class="muted">Todos entregaron todo. 🎉</p>';
-  else{h+='<div class="tw"><table><tbody>'+pen.map(([x,pd])=>'<tr class="click" data-h="a/'+g.id+'/'+x.id+'"><td class="nm">'+esc(x.nombre)+'</td><td style="white-space:normal"><span class="chips">'+pd.map(a=>'<span class="chip pen">'+esc(a.nombre)+'</span>').join('')+'</span></td><td class="num">'+pd.length+'</td></tr>').join('')+'</tbody></table></div>';}
+  else if(!pen.length)h+='<p class="muted">Todos entregaron todo a tiempo. 🎉</p>';
+  else{h+='<div class="tw"><table><tbody>'+pen.map(([x,pd,td])=>'<tr class="click" data-h="a/'+g.id+'/'+x.id+'"><td class="nm">'+esc(x.nombre)+'</td><td style="white-space:normal"><span class="chips">'+pd.map(a=>'<span class="chip pen" title="'+esc(a.nombre)+'">Act '+(ac.indexOf(a)+1)+'</span>').join('')+td.map(a=>'<span class="chip" title="'+esc(a.nombre)+'" style="background:#fff1d6;color:#7a4b00">⏰ Act '+(ac.indexOf(a)+1)+'</span>').join('')+'</span></td><td class="num">'+pd.length+(td.length?' + '+td.length+'⏰':'')+'</td></tr>').join('')+'</tbody></table></div>';}
   app.innerHTML=h;wireCalifTabs(g);
   $('#c-add').onclick=()=>{const n=$('#c-new').value.trim();if(!n){toast('Escribe el nombre de la actividad');return;}
     const x={id:uid(),parcial:p,tipo:'act',nombre:n,fecha:$('#c-fecha').value||hoy(),notas:{}};g.acts.push(x);actSel=x.id;cambio();render();setTimeout(()=>{const i=app.querySelector('.ninp[data-a]');if(i)i.focus();},60);};
@@ -472,7 +472,8 @@ function vCalif(g,head){
     if(v==null){delete g.extra[p][aid];inp.classList.remove('bad');}else if(isNaN(v)||v<0||v>3){inp.classList.add('bad');toast('Escribe décimas, por ejemplo 0.4');return;}else{g.extra[p][aid]=v;inp.classList.remove('bad');}
     app.querySelector('[data-fin="'+aid+'"]').innerHTML=calHtml(calif(g,aid,p).fin);cambio();});
   $('#c-xls').onclick=()=>exportarFormato(g,p);
-  if($('#c-copen'))$('#c-copen').onclick=()=>copiar('ACTIVIDADES FALTANTES · '+matNom(g.materia)+' · Grupo '+g.nombre+' · Parcial '+p+'\n'+pen.map(([x,pd])=>'- '+x.nombre+': '+pd.map(a=>a.nombre).join(', ')).join('\n'),'Lista copiada');
+  if($('#c-copen'))$('#c-copen').onclick=()=>copiar(reporteOrientacion(g,p),'Reporte copiado');
+  if($('#c-wa'))$('#c-wa').onclick=()=>enviarWhatsApp(g,reporteOrientacion(g,p));
 }
 function wireCalifTabs(g){app.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{g.pActual=+b.dataset.p;actSel=null;cambio();render();});}
 function vCaptura(g,a,h){
@@ -514,6 +515,30 @@ function vCaptura(g,a,h){
       const tt=app.querySelector('[data-tt="'+inp.dataset.a+'"]');if(tt)tt.textContent=lineaT(al.find(x=>x.id===inp.dataset.a));cambio();};
     inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();inp.dispatchEvent(new Event('change'));const n=ins[i+1];if(n){n.focus();n.select();}else inp.blur();}};
   });
+}
+function pendientesYTarde(g,p){
+  return activos(g).map(x=>{const c=calif(g,x.id,p);return [x,c.pend,c.ac.filter(a=>esTarde(a,x.id))];}).filter(z=>z[1].length||z[2].length);
+}
+function reporteOrientacion(g,p){
+  const ac=actsP(g,p),pen=pendientesYTarde(g,p),total=activos(g).length;
+  const nP=pen.filter(z=>z[1].length).length,nT=pen.filter(z=>z[2].length).length;
+  const numAct=a=>'Act '+(ac.indexOf(a)+1);
+  let t='*Reporte para Orientación*\n'+matNom(g.materia)+' · Grupo '+g.nombre+(g.semestre?' · Semestre '+g.semestre:'')+'\nParcial '+p+' · '+fcorta(hoy())+'\n\n';
+  t+='_Actividades del parcial:_\n'+ac.map((a,i)=>'Act '+(i+1)+': '+a.nombre+(a.fecha?' ('+fcorta(a.fecha)+')':'')).join('\n')+'\n\n';
+  t+='Alumnos con actividades sin entregar: *'+nP+'* de '+total+'\nAlumnos con entregas a destiempo: *'+nT+'*\n';
+  pen.forEach(([x,pd,td],i)=>{
+    t+='\n'+(i+1)+'. *'+x.nombre+'*\n';
+    if(pd.length)t+='   ❌ No entregó: '+pd.map(numAct).join(', ')+'\n';
+    if(td.length)t+='   ⏰ A destiempo: '+td.map(a=>numAct(a)+' ('+fcorta(a.tarde[x.id])+')').join(', ')+'\n';
+  });
+  t+='\nGracias por su apoyo.';
+  return t;
+}
+function enviarWhatsApp(g,texto){
+  const num=String(g.waOrient||'').replace(/\D/g,'');
+  const url='https://wa.me/'+(num?(num.length===10?'52'+num:num):'')+'?text='+encodeURIComponent(texto);
+  const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();
+  toast(num?'Abriendo WhatsApp de orientación…':'Abriendo WhatsApp: elige el contacto de orientación');
 }
 async function copiar(t,ok){try{await navigator.clipboard.writeText(t);toast(ok);}catch(e){prompt('Copia el texto:',t);}}
 
@@ -585,6 +610,7 @@ function vFicha(g,aid){
 function vGrupoAjustes(g,head){
   const al=[...g.alumnos].sort(nombreCmp);
   let h=head+'<div class="card"><h3 style="margin-top:0">Datos del grupo</h3><div class="row"><div style="flex:1;min-width:120px"><label class="f" for="g-nom">Grupo</label><input class="in" id="g-nom" value="'+esc(g.nombre)+'"></div><div style="flex:1;min-width:120px"><label class="f" for="g-sem">Semestre</label><input class="in" id="g-sem" value="'+esc(g.semestre||'')+'"></div></div>'+
+    '<label class="f" for="g-wa">WhatsApp de orientación de este grupo (opcional)</label><input class="in" id="g-wa" inputmode="tel" placeholder="10 dígitos, ej. 7221234567" value="'+esc(g.waOrient||'')+'"><p class="muted" style="margin:4px 0 0">Si lo dejas vacío, WhatsApp te deja elegir el contacto al enviar el reporte.</p>'+
     '<h3>Periodo de cada parcial</h3><p class="muted">El pase de lista, las faltas y las alertas se cuentan según estas fechas.</p>';
   for(let p=1;p<=g.parciales;p++){const r=g.periodos[p]||{};h+='<div class="row" style="margin-bottom:6px"><b style="min-width:80px">Parcial '+p+'</b><span>del</span><input type="date" class="in" data-pi="'+p+'" value="'+esc(r.ini||'')+'" style="width:auto" aria-label="Inicio del parcial '+p+'"><span>al</span><input type="date" class="in" data-pf="'+p+'" value="'+esc(r.fin||'')+'" style="width:auto" aria-label="Fin del parcial '+p+'"></div>';}
   h+='</div>';
@@ -595,6 +621,7 @@ function vGrupoAjustes(g,head){
   app.innerHTML=h;
   $('#g-nom').onchange=e=>{const v=e.target.value.trim();if(v){g.nombre=v;cambio();titulo(g.materia+' · '+g.nombre,true);}};
   $('#g-sem').onchange=e=>{g.semestre=e.target.value.trim();cambio();};
+  $('#g-wa').onchange=e=>{const v=e.target.value.replace(/[^\d+]/g,'');if(v&&v.replace(/\D/g,'').length<10){toast('Escribe el número a 10 dígitos');return;}g.waOrient=v;if(!v)delete g.waOrient;cambio();toast(v?'Número de orientación guardado':'Número quitado');};
   app.querySelectorAll('[data-pi],[data-pf]').forEach(i=>i.onchange=()=>{const p=i.dataset.pi||i.dataset.pf;const r=g.periodos[p]=g.periodos[p]||{ini:'',fin:''};
     const ini=app.querySelector('[data-pi="'+p+'"]').value,fin=app.querySelector('[data-pf="'+p+'"]').value;
     if(ini&&fin&&ini>fin){toast('El inicio del parcial '+p+' debe ser antes del fin');return;}
