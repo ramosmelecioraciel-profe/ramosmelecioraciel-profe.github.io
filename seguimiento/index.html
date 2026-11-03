@@ -450,10 +450,10 @@ function vCalif(g,head){
   h+='</tbody></table></div>';
 
   const pen=pendientesYTarde(g,p);
-  h+='<div class="row" style="justify-content:space-between;margin-top:18px"><h3 style="margin:0">Faltantes y entregas tardías</h3>'+(pen.length?'<span class="row"><button class="btn sm" id="c-wa" style="background:#128c4a">📲 Reporte a orientación (WhatsApp)</button><button class="btn sm sec" id="c-copen">Copiar</button></span>':'')+'</div>';
-  if(!ac.length)h+='<p class="muted">Sin actividades todavía.</p>';
-  else if(!pen.length)h+='<p class="muted">Todos entregaron todo a tiempo. 🎉</p>';
-  else{h+='<div class="tw"><table><tbody>'+pen.map(([x,pd,td])=>'<tr class="click" data-h="a/'+g.id+'/'+x.id+'"><td class="nm">'+esc(x.nombre)+'</td><td style="white-space:normal"><span class="chips">'+pd.map(a=>'<span class="chip pen" title="'+esc(a.nombre)+'">Act '+(ac.indexOf(a)+1)+'</span>').join('')+td.map(a=>'<span class="chip" title="'+esc(a.nombre)+'" style="background:#fff1d6;color:#7a4b00">⏰ Act '+(ac.indexOf(a)+1)+'</span>').join('')+'</span></td><td class="num">'+pd.length+(td.length?' + '+td.length+'⏰':'')+'</td></tr>').join('')+'</tbody></table></div>';}
+  h+='<div class="row" style="justify-content:space-between;margin-top:18px"><h3 style="margin:0">Faltantes, entregas tardías y faltas</h3>'+(pen.length?'<span class="row"><button class="btn sm" id="c-wa" style="background:#128c4a">📲 Reporte a orientación (WhatsApp)</button><button class="btn sm sec" id="c-copen">Copiar</button></span>':'')+'</div>';
+  if(!ac.length&&!pen.length)h+='<p class="muted">Sin actividades ni faltas todavía.</p>';
+  else if(!pen.length)h+='<p class="muted">Todos entregaron todo a tiempo y sin faltas. 🎉</p>';
+  else{h+='<div class="tw"><table><tbody>'+pen.map(([x,pd,td,ff])=>'<tr class="click" data-h="a/'+g.id+'/'+x.id+'"><td class="nm">'+esc(x.nombre)+'</td><td style="white-space:normal"><span class="chips">'+pd.map(a=>'<span class="chip pen" title="'+esc(a.nombre)+'">Act '+(ac.indexOf(a)+1)+'</span>').join('')+td.map(a=>'<span class="chip" title="'+esc(a.nombre)+'" style="background:#fff1d6;color:#7a4b00">⏰ Act '+(ac.indexOf(a)+1)+'</span>').join('')+(ff.length?'<span class="chip inf" title="'+ff.map(fcorta).join(', ')+'">📅 '+ff.length+' falta'+(ff.length>1?'s':'')+'</span>':'')+'</span></td></tr>').join('')+'</tbody></table></div>';}
   app.innerHTML=h;wireCalifTabs(g);
   $('#c-add').onclick=()=>{const n=$('#c-new').value.trim();if(!n){toast('Escribe el nombre de la actividad');return;}
     const x={id:uid(),parcial:p,tipo:'act',nombre:n,fecha:$('#c-fecha').value||hoy(),notas:{}};g.acts.push(x);actSel=x.id;cambio();render();setTimeout(()=>{const i=app.querySelector('.ninp[data-a]');if(i)i.focus();},60);};
@@ -517,19 +517,23 @@ function vCaptura(g,a,h){
   });
 }
 function pendientesYTarde(g,p){
-  return activos(g).map(x=>{const c=calif(g,x.id,p);return [x,c.pend,c.ac.filter(a=>esTarde(a,x.id))];}).filter(z=>z[1].length||z[2].length);
+  const h=hoy(),dias=Object.keys(g.asis).filter(f=>parcialDe(g,f)===p&&f<=h).sort();
+  return activos(g).map(x=>{const c=calif(g,x.id,p);const ff=dias.filter(f=>g.asis[f].m[x.id]==='F'),rr=dias.filter(f=>g.asis[f].m[x.id]==='R');
+    return [x,c.pend,c.ac.filter(a=>esTarde(a,x.id)),ff,rr];}).filter(z=>z[1].length||z[2].length||z[3].length);
 }
 function reporteOrientacion(g,p){
   const ac=actsP(g,p),pen=pendientesYTarde(g,p),total=activos(g).length;
-  const nP=pen.filter(z=>z[1].length).length,nT=pen.filter(z=>z[2].length).length;
+  const nP=pen.filter(z=>z[1].length).length,nT=pen.filter(z=>z[2].length).length,nF=pen.filter(z=>z[3].length).length;
+  const dias=Object.keys(g.asis).filter(f=>parcialDe(g,f)===p&&f<=hoy()).length;
   const numAct=a=>'Act '+(ac.indexOf(a)+1);
   let t='*Reporte para Orientación*\n'+matNom(g.materia)+' · Grupo '+g.nombre+(g.semestre?' · Semestre '+g.semestre:'')+'\nParcial '+p+' · '+fcorta(hoy())+'\n\n';
   t+='_Actividades del parcial:_\n'+ac.map((a,i)=>'Act '+(i+1)+': '+a.nombre+(a.fecha?' ('+fcorta(a.fecha)+')':'')).join('\n')+'\n\n';
-  t+='Alumnos con actividades sin entregar: *'+nP+'* de '+total+'\nAlumnos con entregas a destiempo: *'+nT+'*\n';
-  pen.forEach(([x,pd,td],i)=>{
+  t+='Alumnos con actividades sin entregar: *'+nP+'* de '+total+'\nAlumnos con entregas a destiempo: *'+nT+'*\nAlumnos con faltas: *'+nF+'* (de '+dias+' clases registradas en el parcial hasta hoy)\n';
+  pen.forEach(([x,pd,td,ff,rr],i)=>{
     t+='\n'+(i+1)+'. *'+x.nombre+'*\n';
     if(pd.length)t+='   ❌ No entregó: '+pd.map(numAct).join(', ')+'\n';
     if(td.length)t+='   ⏰ A destiempo: '+td.map(a=>numAct(a)+' ('+fcorta(a.tarde[x.id])+')').join(', ')+'\n';
+    if(ff.length)t+='   📅 Faltas: *'+ff.length+'* ('+ff.map(fcorta).join(', ')+')'+(rr.length?' · Retardos: '+rr.length:'')+'\n';
   });
   t+='\nGracias por su apoyo.';
   return t;
