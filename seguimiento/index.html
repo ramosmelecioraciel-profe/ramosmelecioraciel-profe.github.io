@@ -441,7 +441,7 @@ function vCalif(g,head){
   if(ex){const n=al.filter(y=>esNum(ex.notas[y.id])).length;h+='<div class="act exam" data-act="'+ex.id+'"><span class="tag">Examen</span><div class="grow"><b>'+esc(ex.nombre)+'</b> <span class="muted">'+(pe>0?'sobre '+pe:'no cuenta (0 %)')+' · '+fcorta(ex.fecha)+'</span><div class="bar" style="margin-top:6px"><i style="width:'+(al.length?Math.round(100*n/al.length):0)+'%;background:#7c3aed"></i></div></div><span class="muted">'+n+'/'+al.length+'</span></div>';}
   else if(pe>0)h+='<p><button class="btn sm sec" id="c-exam">+ Capturar examen del parcial '+p+' (sobre '+pe+')</button></p>';
 
-  h+='<div class="row" style="justify-content:space-between;margin-top:18px"><h3 style="margin:0">Concentrado del parcial '+p+'</h3><button class="btn sm xl" id="c-xls">⬇ Descargar en mi formato de Excel</button></div>';
+  h+='<div class="row" style="justify-content:space-between;margin-top:18px"><h3 style="margin:0">Concentrado del parcial '+p+'</h3><button class="btn sm xl" id="c-xls">⬇ Descargar parcial '+p+' (Excel)</button></div>';
   h+='<p class="muted">Suma de escala = suma de (calificación ÷ escala × valor) de cada actividad, sin pasar de '+pa+'. Cal. final = total ÷ 10 redondeado; menos de 60 puntos = 5. Las actividades vacías cuentan como 0. "Extra" suma décimas (por ejemplo, insignias del blog).</p>';
   h+='<div class="tw"><table><thead><tr><th>N.P.</th><th>Alumno</th>'+ac.map((x,i)=>'<th class="num" title="'+esc(x.nombre)+'">Act '+(i+1)+'<br><span style="text-transform:none;font-weight:600">'+fpt(VV.v[x.id])+' pts</span></th>').join('')+'<th class="num">Escala /'+pa+'</th><th class="num">Examen /'+pe+'</th><th class="num">Total</th><th class="num">Extra</th><th class="num">Cal.</th><th class="num">Faltas</th></tr></thead><tbody>';
   al.forEach((x,i)=>{const r=calif(g,x.id,p),fa=asis(g,x.id,p).F;
@@ -471,7 +471,7 @@ function vCalif(g,head){
   app.querySelectorAll('[data-ex]').forEach(inp=>inp.onchange=()=>{const v=num(inp.value),aid=inp.dataset.ex;g.extra[p]=g.extra[p]||{};
     if(v==null){delete g.extra[p][aid];inp.classList.remove('bad');}else if(isNaN(v)||v<0||v>3){inp.classList.add('bad');toast('Escribe décimas, por ejemplo 0.4');return;}else{g.extra[p][aid]=v;inp.classList.remove('bad');}
     app.querySelector('[data-fin="'+aid+'"]').innerHTML=calHtml(calif(g,aid,p).fin);cambio();});
-  $('#c-xls').onclick=()=>exportarFormato(g);
+  $('#c-xls').onclick=()=>exportarFormato(g,p);
   if($('#c-copen'))$('#c-copen').onclick=()=>copiar('ACTIVIDADES FALTANTES · '+matNom(g.materia)+' · Grupo '+g.nombre+' · Parcial '+p+'\n'+pen.map(([x,pd])=>'- '+x.nombre+': '+pd.map(a=>a.nombre).join(', ')).join('\n'),'Lista copiada');
 }
 function wireCalifTabs(g){app.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{g.pActual=+b.dataset.p;actSel=null;cambio();render();});}
@@ -590,7 +590,7 @@ function vGrupoAjustes(g,head){
   h+='</div>';
   h+='<div class="card"><h3 style="margin-top:0">Alumnos ('+activos(g).length+')</h3>'+(activos(g).length>MAX_AL?'<p class="note">Tu formato de Excel tiene lugar para '+MAX_AL+' alumnos.</p>':'')+'<div class="lst">'+al.map(a=>'<div class="al"><input class="in" data-an="'+a.id+'" value="'+esc(a.nombre)+'" style="flex:1;padding:6px 10px'+(a.baja?';text-decoration:line-through;opacity:.6':'')+'" aria-label="Nombre"><button class="btn sm sec" data-ab="'+a.id+'">'+(a.baja?'Reactivar':'Dar de baja')+'</button></div>').join('')+'</div>'+
     '<label class="f" for="g-mas">Agregar alumnos (uno por renglón): importa tu Excel o pega la lista</label>'+'<div class="imp"><label class="btn sm sec" for="g-file" style="cursor:pointer">📄 Importar desde Excel</label><input type="file" id="g-file" accept=".xlsx,.csv,.txt" class="hidden"><span class="row hidden" id="g-sel" style="margin-top:8px"><select class="in" id="g-hoja" style="width:auto" aria-label="Hoja"></select><select class="in" id="g-col" style="width:auto" aria-label="Columna"></select></span><p class="muted" id="g-msg" style="margin:6px 0 0"></p></div>'+'<textarea class="in" id="g-mas" style="min-height:70px"></textarea><p><button class="btn sm" id="g-addal">Agregar</button></p></div>';
-  h+='<div class="card"><h3 style="margin-top:0">Exportar</h3><p class="muted"><b>Mi formato de Excel</b>: tu archivo de siempre (listas por mes, calificaciones de los 3 parciales, actividades faltantes, resumen y firmas) lleno con los datos de este grupo.</p><div class="row"><button class="btn xl" id="x-fmt">⬇ Mi formato de Excel</button><button class="btn sm sec" id="x-ob">Observaciones (CSV)</button></div></div>';
+  h+='<div class="card"><h3 style="margin-top:0">Exportar</h3><p class="muted">Hojas de calificaciones con tu formato (encabezados, logos y fórmulas), llenas con los datos de este grupo.</p><div class="row">'+[1,2,3].filter(q=>q<=g.parciales).map(q=>'<button class="btn sm xl" data-xp="'+q+'">⬇ Parcial '+q+'</button>').join('')+'<button class="btn xl" id="x-fmt">⬇ Los '+Math.min(3,g.parciales)+' parciales juntos</button></div><div class="row" style="margin-top:8px"><button class="btn sm sec" id="x-comp">Archivo completo (con listas por mes, faltantes y resumen)</button><button class="btn sm sec" id="x-ob">Observaciones (CSV)</button></div></div>';
   h+='<div class="card"><h3 style="margin-top:0">Eliminar grupo</h3><p class="muted">Borra el grupo con toda su información. Descarga un respaldo antes.</p><button class="btn sm danger" id="g-del">Eliminar este grupo</button></div>';
   app.innerHTML=h;
   $('#g-nom').onchange=e=>{const v=e.target.value.trim();if(v){g.nombre=v;cambio();titulo(g.materia+' · '+g.nombre,true);}};
@@ -606,7 +606,9 @@ function vGrupoAjustes(g,head){
   importador('g',$('#g-mas'),g);
   $('#g-addal').onclick=()=>{const ya=new Set(g.alumnos.map(a=>normal(a.nombre)));const n=limpiarNombres($('#g-mas').value).filter(x=>!ya.has(normal(x)));if(!n.length){toast('Esos alumnos ya están en el grupo');return;}n.forEach(x=>{g.alumnos.push({id:uid(),nombre:x.toUpperCase()});ya.add(normal(x));});cambio();toast(n.length+' alumnos agregados');render();};
   $('#g-del').onclick=()=>{if(confirm('¿Eliminar el grupo '+g.nombre+' con todos sus datos? No se puede deshacer.')){S.grupos=S.grupos.filter(x=>x!==g);cambio();location.hash='';}};
-  $('#x-fmt').onclick=()=>exportarFormato(g);
+  $('#x-fmt').onclick=()=>exportarFormato(g,'parciales');
+  $('#x-comp').onclick=()=>exportarFormato(g,'completo');
+  app.querySelectorAll('[data-xp]').forEach(b=>b.onclick=()=>exportarFormato(g,+b.dataset.xp));
   $('#x-ob').onclick=()=>{const rows=[['Fecha','Alumno','Tipo','Observación']];[...g.obs].sort((a,b)=>a.fecha.localeCompare(b.fecha)).forEach(o=>{const a=g.alumnos.find(x=>x.id===o.aid);rows.push([o.fecha,a?a.nombre:'',o.tipo,o.texto]);});descargar('Observaciones_'+archivoSeguro(g.materia+'_'+g.nombre)+'.csv',csv(rows));};
 }
 
@@ -615,18 +617,22 @@ function cargarJSZip(){
   if(window.JSZip)return Promise.resolve();
   return new Promise((ok,mal)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';s.onload=ok;s.onerror=()=>mal(new Error('jszip'));document.head.appendChild(s);});
 }
-async function exportarFormato(g){
+const HOJAS_P={1:'Calif. 1er Parcial',2:'Calif. 2do Parcial',3:'Calif. 3er Parcial'};
+async function exportarFormato(g,cual){   // cual: 1|2|3 = un parcial · 'parciales' = los 3 · 'completo' = todo el formato
   toast('Preparando tu archivo…');
   try{
     await cargarJSZip();
     const r=await fetch('formato252.xlsx',{cache:'no-cache'});if(!r.ok)throw new Error('formato');
-    const res=await llenarFormato(await r.arrayBuffer(),g);
-    descargar('Control_'+archivoSeguro(g.materia+'_Grupo_'+g.nombre)+'.xlsx',res.blob);
+    const hojasK=cual==='completo'?null:cual==='parciales'?[1,2,3].filter(q=>q<=g.parciales).map(q=>HOJAS_P[q]):[HOJAS_P[cual]];
+    const res=await llenarFormato(await r.arrayBuffer(),g,{hojas:hojasK});
+    const pre=cual==='completo'?'Control_':cual==='parciales'?'Calificaciones_':'Calif_Parcial'+cual+'_';
+    descargar(pre+archivoSeguro(g.materia+'_Grupo_'+g.nombre)+'.xlsx',res.blob);
     toast(res.avisos.length?res.avisos.join(' · '):'Listo: se descargó tu formato de Excel');
   }catch(e){console.error(e);toast('No se pudo crear el archivo. Revisa tu conexión a internet.');}
 }
 window.llenarFormato=llenarFormato;
-async function llenarFormato(buf,g){
+async function llenarFormato(buf,g,opts){
+  const keep=opts&&opts.hojas||null;
   const NS='http://schemas.openxmlformats.org/spreadsheetml/2006/main';
   const RNS='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
   const zip=await JSZip.loadAsync(buf),avisos=[];
@@ -721,12 +727,31 @@ async function llenarFormato(buf,g){
     }
   }
   const fuera=Object.keys(g.asis).filter(f=>!fechasUsadas.has(f)&&Object.keys(g.asis[f].m).length&&!/^2026-(09|10|11|12)/.test(f));
-  if(fuera.length)avisos.push(fuera.length+' días fuera de septiembre–diciembre no caben en el formato');
+  if(fuera.length&&!keep)avisos.push(fuera.length+' días fuera de septiembre–diciembre no caben en el formato');
   // fórmulas: quitar valores guardados para que Excel recalcule al abrir
   for(const p in docs){const d=docs[p];for(const c of [...d.getElementsByTagNameNS(NS,'c')]){if(c.getElementsByTagNameNS(NS,'f').length){const v=c.getElementsByTagNameNS(NS,'v')[0];if(v)c.removeChild(v);const t=c.getAttribute('t');if(t==='str'||t==='e'||t==='b')c.removeAttribute('t');}}}
   // hojas que no tocamos también llevan valores guardados de fórmulas (nombres): se limpian igual
   for(const nombre in hojas)await hoja(nombre);
   for(const p in docs){const d=docs[p];for(const c of [...d.getElementsByTagNameNS(NS,'c')]){if(c.getElementsByTagNameNS(NS,'f').length){const v=c.getElementsByTagNameNS(NS,'v')[0];if(v)c.removeChild(v);const t=c.getAttribute('t');if(t==='str'||t==='e'||t==='b')c.removeAttribute('t');}}}
+  // dejar solo las hojas pedidas
+  if(keep){
+    const todas=[...wb.getElementsByTagNameNS(NS,'sheet')],nombres=todas.map(x=>x.getAttribute('name'));
+    const fuera2=nombres.filter(n=>!keep.includes(n));
+    for(const sh of todas){const n=sh.getAttribute('name');if(keep.includes(n))continue;
+      const id=sh.getAttributeNS(RNS,'id');[...rels.getElementsByTagName('Relationship')].forEach(r=>{if(r.getAttribute('Id')===id)r.parentNode.removeChild(r);});
+      sh.parentNode.removeChild(sh);delete docs[hojas[n]];}
+    const quedan=[...wb.getElementsByTagNameNS(NS,'sheet')].map(x=>x.getAttribute('name'));
+    for(const dn of [...wb.getElementsByTagNameNS(NS,'definedName')]){const ls=dn.getAttribute('localSheetId');let tirar=fuera2.some(n=>dn.textContent.includes(n));
+      if(ls!=null){const n=nombres[+ls];if(!quedan.includes(n))tirar=true;else dn.setAttribute('localSheetId',quedan.indexOf(n));}
+      if(tirar)dn.parentNode.removeChild(dn);}
+    const dns=wb.getElementsByTagNameNS(NS,'definedNames')[0];if(dns&&!dns.getElementsByTagNameNS(NS,'definedName').length)dns.parentNode.removeChild(dns);
+    for(const v of [...wb.getElementsByTagNameNS(NS,'workbookView')]){v.setAttribute('activeTab','0');v.removeAttribute('firstSheet');}
+    const esc2=n=>n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    const refFuera=new RegExp("('?)("+fuera2.map(esc2).join('|')+")\\1!");
+    quedan.forEach((n,i)=>{const d=docs[hojas[n]];if(!d)return;
+      for(const f of [...d.getElementsByTagNameNS(NS,'f')])if(refFuera.test(f.textContent)){const c=f.parentNode;while(c.firstChild)c.removeChild(c.firstChild);c.removeAttribute('t');}
+      for(const sv of [...d.getElementsByTagNameNS(NS,'sheetView')]){if(i===0)sv.setAttribute('tabSelected','1');else sv.removeAttribute('tabSelected');}});
+  }
   // textos compartidos: conservar solo los que se usan (quita nombres de otros grupos)
   if(sstF){
     const sst=parse(await sstF.async('string'));const sis=[...sst.getElementsByTagNameNS(NS,'si')];
@@ -753,6 +778,22 @@ async function llenarFormato(buf,g){
     zip.file('[Content_Types].xml',ser(ct));}
   const cp=wb.getElementsByTagNameNS(NS,'calcPr')[0];if(cp)cp.setAttribute('fullCalcOnLoad','1');
   zip.file('xl/workbook.xml',ser(wb));
+  if(keep){   // quitar del archivo todo lo que ya no usa ninguna hoja (gráficas, tablas, imágenes de otras hojas)
+    zip.file('xl/_rels/workbook.xml.rels',ser(rels));
+    const usa=new Set(['[Content_Types].xml']),cola=[''];
+    const relDe=q=>q===''?'_rels/.rels':q.replace(/([^/]+)$/,'_rels/$1.rels');
+    const norm=x=>{const o=[];x.split('/').forEach(seg=>{if(seg==='..')o.pop();else if(seg&&seg!=='.')o.push(seg);});return o.join('/');};
+    while(cola.length){const q=cola.shift(),rp=relDe(q);if(!zip.file(rp))continue;usa.add(rp);
+      const base=q.includes('/')?q.slice(0,q.lastIndexOf('/')+1):'';
+      for(const r of [...parse(await zip.file(rp).async('string')).getElementsByTagName('Relationship')]){
+        if(r.getAttribute('TargetMode')==='External')continue;const t=r.getAttribute('Target');const pth=t.startsWith('/')?t.slice(1):norm(base+t);
+        if(!usa.has(pth)&&zip.file(pth)){usa.add(pth);cola.push(pth);}}}
+    Object.keys(zip.files).forEach(k=>{if(!zip.files[k].dir&&!usa.has(k))zip.remove(k);});
+    const ct=parse(await zip.file('[Content_Types].xml').async('string'));
+    [...ct.getElementsByTagName('Override')].forEach(o=>{if(!zip.file(o.getAttribute('PartName').replace(/^\//,'')))o.parentNode.removeChild(o);});
+    zip.file('[Content_Types].xml',ser(ct));
+    const ap=zip.file('docProps/app.xml');if(ap){const t=(await ap.async('string')).replace(/<HeadingPairs>[\s\S]*?<\/HeadingPairs>/,'').replace(/<TitlesOfParts>[\s\S]*?<\/TitlesOfParts>/,'');zip.file('docProps/app.xml',t);}
+  }
   const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   return {blob,avisos};
   async function textoCelda(c){
