@@ -590,7 +590,7 @@ function vGrupoAjustes(g,head){
   h+='</div>';
   h+='<div class="card"><h3 style="margin-top:0">Alumnos ('+activos(g).length+')</h3>'+(activos(g).length>MAX_AL?'<p class="note">Tu formato de Excel tiene lugar para '+MAX_AL+' alumnos.</p>':'')+'<div class="lst">'+al.map(a=>'<div class="al"><input class="in" data-an="'+a.id+'" value="'+esc(a.nombre)+'" style="flex:1;padding:6px 10px'+(a.baja?';text-decoration:line-through;opacity:.6':'')+'" aria-label="Nombre"><button class="btn sm sec" data-ab="'+a.id+'">'+(a.baja?'Reactivar':'Dar de baja')+'</button></div>').join('')+'</div>'+
     '<label class="f" for="g-mas">Agregar alumnos (uno por renglón): importa tu Excel o pega la lista</label>'+'<div class="imp"><label class="btn sm sec" for="g-file" style="cursor:pointer">📄 Importar desde Excel</label><input type="file" id="g-file" accept=".xlsx,.csv,.txt" class="hidden"><span class="row hidden" id="g-sel" style="margin-top:8px"><select class="in" id="g-hoja" style="width:auto" aria-label="Hoja"></select><select class="in" id="g-col" style="width:auto" aria-label="Columna"></select></span><p class="muted" id="g-msg" style="margin:6px 0 0"></p></div>'+'<textarea class="in" id="g-mas" style="min-height:70px"></textarea><p><button class="btn sm" id="g-addal">Agregar</button></p></div>';
-  h+='<div class="card"><h3 style="margin-top:0">Exportar</h3><p class="muted">Hojas de calificaciones con tu formato (encabezados, logos y fórmulas), llenas con los datos de este grupo.</p><div class="row">'+[1,2,3].filter(q=>q<=g.parciales).map(q=>'<button class="btn sm xl" data-xp="'+q+'">⬇ Parcial '+q+'</button>').join('')+'<button class="btn xl" id="x-fmt">⬇ Los '+Math.min(3,g.parciales)+' parciales juntos</button></div><div class="row" style="margin-top:8px"><button class="btn sm sec" id="x-comp">Archivo completo (con listas por mes, faltantes y resumen)</button><button class="btn sm sec" id="x-ob">Observaciones (CSV)</button></div></div>';
+  h+='<div class="card"><h3 style="margin-top:0">Exportar</h3><p class="muted">Hojas de calificaciones con tu formato (encabezados, logos y fórmulas), llenas con los datos de este grupo.</p><div class="row">'+[1,2,3].filter(q=>q<=g.parciales).map(q=>'<button class="btn sm xl" data-xp="'+q+'">⬇ Parcial '+q+'</button>').join('')+'<button class="btn xl" id="x-fmt">⬇ Los '+Math.min(3,g.parciales)+' parciales juntos</button></div><div class="row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)"><span class="muted" style="flex:1;min-width:200px">Formato que se usa: <b id="x-fnom">'+esc((formatoGuardado()||{}).nombre||'Formato Prepa 252 (original)')+'</b></span><label class="btn sm sec" for="x-up" style="cursor:pointer">⬆ Subir mi formato</label><input type="file" id="x-up" accept=".xlsx" class="hidden">'+(formatoGuardado()?'<button class="btn sm sec" id="x-orig">Volver al original</button>':'')+'</div><p class="muted" id="x-fmsg" style="margin:4px 0 0">Si cambias el encabezado, los logos o las filas de tu Excel, súbelo aquí. Debe conservar las hojas "Calif. 1er/2do/3er Parcial" con las mismas columnas.</p><div class="row" style="margin-top:8px"><button class="btn sm sec" id="x-comp">Archivo completo (con listas por mes, faltantes y resumen)</button><button class="btn sm sec" id="x-ob">Observaciones (CSV)</button></div></div>';
   h+='<div class="card"><h3 style="margin-top:0">Eliminar grupo</h3><p class="muted">Borra el grupo con toda su información. Descarga un respaldo antes.</p><button class="btn sm danger" id="g-del">Eliminar este grupo</button></div>';
   app.innerHTML=h;
   $('#g-nom').onchange=e=>{const v=e.target.value.trim();if(v){g.nombre=v;cambio();titulo(g.materia+' · '+g.nombre,true);}};
@@ -608,6 +608,13 @@ function vGrupoAjustes(g,head){
   $('#g-del').onclick=()=>{if(confirm('¿Eliminar el grupo '+g.nombre+' con todos sus datos? No se puede deshacer.')){S.grupos=S.grupos.filter(x=>x!==g);cambio();location.hash='';}};
   $('#x-fmt').onclick=()=>exportarFormato(g,'parciales');
   $('#x-comp').onclick=()=>exportarFormato(g,'completo');
+  $('#x-up').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;$('#x-fmsg').textContent='Revisando '+f.name+'…';
+    try{const buf=await f.arrayBuffer();const rv=await revisarFormato(buf);if(!rv.ok){$('#x-fmsg').textContent=rv.msg;return;}
+      if(buf.byteLength>3e6){$('#x-fmsg').textContent='El archivo pesa más de 3 MB; reduce el tamaño de las imágenes e intenta de nuevo.';return;}
+      localStorage.setItem(LSF,JSON.stringify({nombre:f.name,fecha:hoy(),b64:bufAb64(buf)}));
+      toast('Formato guardado. Las descargas usarán '+f.name);render();setTimeout(()=>{const m=$('#x-fmsg');if(m)m.textContent=rv.msg+' Haz una descarga de prueba para revisarlo.';},50);
+    }catch(x){console.error(x);$('#x-fmsg').textContent='No pude leer ese archivo o no cabe en este equipo.';}};
+  if($('#x-orig'))$('#x-orig').onclick=()=>{try{localStorage.removeItem(LSF);}catch(e){}toast('Se usará el formato original');render();};
   app.querySelectorAll('[data-xp]').forEach(b=>b.onclick=()=>exportarFormato(g,+b.dataset.xp));
   $('#x-ob').onclick=()=>{const rows=[['Fecha','Alumno','Tipo','Observación']];[...g.obs].sort((a,b)=>a.fecha.localeCompare(b.fecha)).forEach(o=>{const a=g.alumnos.find(x=>x.id===o.aid);rows.push([o.fecha,a?a.nombre:'',o.tipo,o.texto]);});descargar('Observaciones_'+archivoSeguro(g.materia+'_'+g.nombre)+'.csv',csv(rows));};
 }
@@ -622,17 +629,32 @@ async function exportarFormato(g,cual){   // cual: 1|2|3 = un parcial · 'parcia
   toast('Preparando tu archivo…');
   try{
     await cargarJSZip();
-    const r=await fetch('formato252.xlsx',{cache:'no-cache'});if(!r.ok)throw new Error('formato');
-    const hojasK=cual==='completo'?null:cual==='parciales'?[1,2,3].filter(q=>q<=g.parciales).map(q=>HOJAS_P[q]):[HOJAS_P[cual]];
-    const res=await llenarFormato(await r.arrayBuffer(),g,{hojas:hojasK});
+    const parc=cual==='completo'?null:cual==='parciales'?[1,2,3].filter(q=>q<=g.parciales):[cual];
+    const res=await llenarFormato(await formatoActual(),g,{parciales:parc});
     const pre=cual==='completo'?'Control_':cual==='parciales'?'Calificaciones_':'Calif_Parcial'+cual+'_';
     descargar(pre+archivoSeguro(g.materia+'_Grupo_'+g.nombre)+'.xlsx',res.blob);
     toast(res.avisos.length?res.avisos.join(' · '):'Listo: se descargó tu formato de Excel');
-  }catch(e){console.error(e);toast('No se pudo crear el archivo. Revisa tu conexión a internet.');}
+  }catch(e){console.error(e);toast(e.message==='sinhojas'?'Tu formato no tiene hojas de calificaciones ("Calif. 1er Parcial"…).':'No se pudo crear el archivo. Revisa tu conexión a internet.');}
+}
+/* formato propio subido por el profesor (se guarda en este equipo y en tu Hoja de Google) */
+const LSF='seg_rrm_formato';
+function b64aBuf(b){const s=atob(b),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u.buffer;}
+function bufAb64(buf){const u=new Uint8Array(buf);let s='';for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return btoa(s);}
+function formatoGuardado(){try{const j=JSON.parse(localStorage.getItem(LSF)||'null');return j&&j.b64?j:null;}catch(e){return null;}}
+async function formatoActual(){
+  const f=formatoGuardado();if(f)return b64aBuf(f.b64);
+  const r=await fetch('formato252.xlsx',{cache:'no-cache'});if(!r.ok)throw new Error('formato');return r.arrayBuffer();
+}
+async function revisarFormato(buf){   // → {ok, hojas:[…], msg}
+  await cargarJSZip();
+  const zip=await JSZip.loadAsync(buf);const wb=zip.file('xl/workbook.xml');if(!wb)return {ok:false,msg:'Ese archivo no es un Excel (.xlsx).'};
+  const nombres=[...new DOMParser().parseFromString(await wb.async('string'),'application/xml').getElementsByTagName('sheet')].map(x=>x.getAttribute('name'));
+  const cal=nombres.filter(n=>/CALIF|CAL\.|^CAL /.test(normal(n)));
+  if(!cal.length)return {ok:false,msg:'No encontré hojas de calificaciones. Las hojas deben llamarse como "Calif. 1er Parcial", "Calif. 2do Parcial", "Calif. 3er Parcial".'};
+  return {ok:true,hojas:cal,msg:'Encontré: '+cal.join(', ')+'.'};
 }
 window.llenarFormato=llenarFormato;
 async function llenarFormato(buf,g,opts){
-  const keep=opts&&opts.hojas||null;
   const NS='http://schemas.openxmlformats.org/spreadsheetml/2006/main';
   const RNS='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
   const zip=await JSZip.loadAsync(buf),avisos=[];
@@ -644,6 +666,11 @@ async function llenarFormato(buf,g,opts){
   const relMap={};[...rels.getElementsByTagName('Relationship')].forEach(r=>relMap[r.getAttribute('Id')]=r.getAttribute('Target'));
   const hojas={};[...wb.getElementsByTagNameNS(NS,'sheet')].forEach(s=>{let t=relMap[s.getAttributeNS(RNS,'id')];t=t.replace(/^\/?xl\//,'');hojas[s.getAttribute('name')]='xl/'+t;});
   const docs={};
+  const NOMP={};   // hoja de calificaciones de cada parcial (aunque cambie un poco el nombre)
+  const PAT={1:/(^|\D)1(\D|$)|PRIMER/,2:/(^|\D)2(\D|$)|SEGUND/,3:/(^|\D)3(\D|$)|TERCER/};
+  for(let q=1;q<=3;q++){const ex=HOJAS_P[q];NOMP[q]=hojas[ex]?ex:Object.keys(hojas).find(n=>{const t=normal(n);return /CALIF|CAL\.|^CAL /.test(t)&&PAT[q].test(t);})||null;}
+  const keep=opts&&opts.parciales?opts.parciales.map(q=>NOMP[q]).filter(Boolean):null;
+  if(keep&&!keep.length)throw new Error('sinhojas');
   async function hoja(nombre){const p=hojas[nombre];if(!p)return null;if(!docs[p])docs[p]=parse(await zip.file(p).async('string'));return docs[p];}
   const colNum=c=>{let n=0;for(const ch of c)n=n*26+ch.charCodeAt(0)-64;return n;};
   const colLet=n=>{let s='';while(n){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=(n-m-1)/26;}return s;};
@@ -675,36 +702,59 @@ async function llenarFormato(buf,g,opts){
   const hA=await hoja('Alumnos');
   if(hA){poner(hA,'A1','LISTADO DE ALUMNOS - GRUPO '+g.nombre+' (ORDEN ALFABETICO)');
     for(let i=0;i<MAX_AL;i++){poner(hA,'B'+(4+i),lista[i]?lista[i].nombre:null);poner(hA,'C'+(4+i),null);}}
-  // Calificaciones de cada parcial
-  const ACOL=['D','G','J','M','P','S','V','Y','AB'];
-  const NOM={1:'Calif. 1er Parcial',2:'Calif. 2do Parcial',3:'Calif. 3er Parcial'};
+  // Calificaciones de cada parcial: se localizan encabezados, filas y columnas en la hoja (sirve aunque cambies tu formato)
+  const ACOL0=['D','G','J','M','P','S','V','Y','AB'];
   const RO={1:'R.O 1ER Parc.',2:'R.O 2DO Parc.',3:'R.O 3ER Parc.'};
+  async function textos(d){const m={};for(const c of [...d.getElementsByTagNameNS(NS,'c')]){const ref=c.getAttribute('r');const rn=+ref.replace(/[A-Z]+/,'');if(rn>150)continue;const t=c.getAttribute('t');
+      if(t==='s'||t==='inlineStr'){const x=(await textoCelda(c)).trim();if(x)m[ref]=x;}else if(t==='str'){const v=c.getElementsByTagNameNS(NS,'v')[0];if(v&&v.textContent.trim())m[ref]=v.textContent.trim();}}return m;}
+  async function plano(d){
+    const T=await textos(d),busca=re=>Object.keys(T).filter(k=>re.test(normal(T[k]))).sort((a,b)=>split(a)[1]-split(b)[1]||colNum(split(a)[0])-colNum(split(b)[0]));
+    const L={hdr:{}};const nom=busca(/NOMBRE/)[0];
+    const [cN,rN]=nom?split(nom):['C',11];L.cN=cN;L.rH=rN;
+    const acts=Object.keys(T).filter(k=>/^ACT\.?\s*\d+$/.test(normal(T[k]))&&split(k)[1]>=rN&&split(k)[1]<=rN+2).sort((a,b)=>+normal(T[a]).replace(/\D/g,'')-+normal(T[b]).replace(/\D/g,''));
+    L.rLab=acts.length?split(acts[0])[1]:rN+1;
+    L.acol=acts.length?acts.map(k=>split(k)[0]):ACOL0.slice();
+    L.r0=Math.max(rN,L.rLab)+1;
+    const ra=busca(/^ACTIVIDADES$/).find(k=>split(k)[0]===cN);L.rAct=ra?split(ra)[1]:L.r0+45;
+    const rf=busca(/^FECHAS?$/).find(k=>split(k)[0]===cN);L.rFec=rf?split(rf)[1]:L.rAct+1;
+    L.n=Math.max(0,Math.min(200,L.rAct-L.r0));
+    const col=re=>{const k=busca(re).find(k=>Math.abs(split(k)[1]-rN)<=1);return k?split(k)[0]:null;};
+    L.cE=col(/SUMA DE ESCALA/)||'AE';L.cF=col(/CAL\.? DE ESCALA/);L.cG=col(/CAL\.? DE EXAMEN|EXAMEN/)||'AG';L.cH=col(/FALTAS/);L.cI=col(/CAL\.? FINAL|CALIFICACION FINAL/)||'AI';
+    L.cL=col(/GUIA/);L.cM=col(/CORRECCION/);L.cK=L.cE==='AE'&&L.cI==='AI'?'AK':null;
+    for(const k of Object.keys(T)){if(split(k)[1]>=rN)continue;const t=normal(T[k]);
+      if(/^SEMESTRE\b/.test(t))L.hdr.sem=k;else if(/^GRUPO\b/.test(t))L.hdr.grp=k;else if(/^ASIGNATURA\b/.test(t))L.hdr.asig=k;}
+    return L;
+  }
   for(let p=1;p<=3;p++){
-    const d=await hoja(NOM[p]);if(!d)continue;
+    if(!NOMP[p])continue;const d=await hoja(NOMP[p]);if(!d)continue;
+    const L=await plano(d),AC=L.acol,MA=AC.length;
     const ac=p<=g.parciales?actsP(g,p):[],ex=p<=g.parciales?examP(g,p):null;
-    if(ac.length>MAX_ACT)avisos.push('Parcial '+p+': solo caben '+MAX_ACT+' actividades');
-    const ua=ac.slice(0,MAX_ACT),n=ua.length;
-    poner(d,'A6','SEMESTRE: '+(g.semestre||''));poner(d,'A7','GRUPO: '+g.nombre);poner(d,'A9','ASIGNATURA: '+MATX);
-    for(let k=0;k<MAX_ACT;k++){poner(d,ACOL[k]+'12','Act '+(k+1));poner(d,ACOL[k]+'58',ua[k]?ua[k].nombre:null);poner(d,ACOL[k]+'59',ua[k]&&ua[k].fecha?serial(ua[k].fecha):null);}
-    for(let i=0;i<MAX_AL;i++){
-      const r=13+i,x=lista[i];
-      poner(d,'C'+r,x?x.nombre:null);
-      for(let k=0;k<MAX_ACT;k++){const v=x&&ua[k]?notaEf(g,ua[k],x.id):null;poner(d,ACOL[k]+r,esNum(v)?v:null);}
-      for(let c=colNum('D');c<=colNum('AD');c++){const L=colLet(c);if(!ACOL.includes(L))poner(d,L+r,null);}
-      if(!x){['AE','AF','AG','AI','AL','AM'].forEach(L=>poner(d,L+r,null));continue;}
+    if(ac.length>MA)avisos.push('Parcial '+p+': solo caben '+MA+' actividades');
+    if(al.length>L.n)avisos.push('Parcial '+p+': solo caben '+L.n+' alumnos');
+    const ua=ac.slice(0,MA),n=ua.length,lst=al.slice(0,L.n);
+    if(L.hdr.sem)poner(d,L.hdr.sem,'SEMESTRE: '+(g.semestre||''));if(L.hdr.grp)poner(d,L.hdr.grp,'GRUPO: '+g.nombre);if(L.hdr.asig)poner(d,L.hdr.asig,'ASIGNATURA: '+MATX);
+    for(let k=0;k<MA;k++){poner(d,AC[k]+L.rLab,'Act '+(k+1));poner(d,AC[k]+L.rAct,ua[k]?ua[k].nombre:null);poner(d,AC[k]+L.rFec,ua[k]&&ua[k].fecha?serial(ua[k].fecha):null);}
+    const c1=colNum(AC[0]),cE=colNum(L.cE);
+    for(let i=0;i<L.n;i++){
+      const r=L.r0+i,x=lst[i];
+      poner(d,L.cN+r,x?x.nombre:null);
+      for(let k=0;k<MA;k++){const v=x&&ua[k]?notaEf(g,ua[k],x.id):null;poner(d,AC[k]+r,esNum(v)?v:null);}
+      for(let c=c1;c<cE;c++){const Lt=colLet(c);if(!AC.includes(Lt))poner(d,Lt+r,null);}
+      if(!x){[L.cE,L.cF,L.cG,L.cH,L.cI,L.cK,L.cL,L.cM].filter(Boolean).forEach(Lt=>poner(d,Lt+r,null));continue;}
       const pa=pondA(g,p);
       const VV=valores(g,p),simple=ac.length===n&&ac.every(a=>!esNum(a.valor)&&actMax(a)===10);
       const coef=a=>esNum(a.valor)?a.valor+'/'+actMax(a):'('+fpt(VV.resto)+'/'+VV.nAut+')/'+actMax(a);
-      poner(d,'AE'+r,n?{f:simple?'(('+ua.map((_,k)=>ACOL[k]+r).join('+')+')*'+pa+')/'+(n*10):ua.map((a,k)=>ACOL[k]+r+'*'+coef(a)).join('+')}:0);
-      poner(d,'AF'+r,{f:'AE'+r+'+AG'+r});
-      poner(d,'AH'+r,p<=g.parciales?asis(g,x.id,p).F:null);
-      const cx=calif(g,x.id,p);poner(d,'AG'+r,cx.exam==null?null:Math.round(cx.exam*100)/100);
+      const E=L.cE+r,G=L.cG+r;
+      poner(d,E,n?{f:simple?'(('+ua.map((_,k)=>AC[k]+r).join('+')+')*'+pa+')/'+(n*10):ua.map((a,k)=>AC[k]+r+'*'+coef(a)).join('+')}:0);
+      if(L.cF)poner(d,L.cF+r,{f:E+'+'+G});
+      if(L.cH)poner(d,L.cH+r,p<=g.parciales?asis(g,x.id,p).F:null);
+      const cx=calif(g,x.id,p);poner(d,G,cx.exam==null?null:Math.round(cx.exam*100)/100);
       const xt=+((g.extra[p]||{})[x.id])||0;
-      const base='ROUND(AE'+r+'+AG'+r+(xt?'+'+(Math.round(xt*100)/10):'')+',0)';
-      poner(d,'AI'+r,(n||cx.hayExam)?{f:'IF('+base+'<60,5,MIN(10,ROUND('+base+'/10,0)))'}:null);
-      poner(d,'AL'+r,null);poner(d,'AM'+r,null);
+      const base='ROUND('+E+'+'+G+(xt?'+'+(Math.round(xt*100)/10):'')+',0)';
+      poner(d,L.cI+r,(n||cx.hayExam)?{f:'IF('+base+'<60,5,MIN(10,ROUND('+base+'/10,0)))'}:null);
+      if(L.cL)poner(d,L.cL+r,null);if(L.cM)poner(d,L.cM+r,null);
     }
-    for(const sv of [...d.getElementsByTagNameNS(NS,'sheetView')]){sv.setAttribute('topLeftCell','A1');[...sv.getElementsByTagNameNS(NS,'pane')].forEach(x=>x.parentNode.removeChild(x));[...sv.getElementsByTagNameNS(NS,'selection')].forEach(x=>{x.setAttribute('activeCell','C13');x.setAttribute('sqref','C13');x.removeAttribute('pane');});}   // abrir mostrando el logo
+    for(const sv of [...d.getElementsByTagNameNS(NS,'sheetView')]){sv.setAttribute('topLeftCell','A1');[...sv.getElementsByTagNameNS(NS,'pane')].forEach(x=>x.parentNode.removeChild(x));[...sv.getElementsByTagNameNS(NS,'selection')].forEach(x=>{x.setAttribute('activeCell',L.cN+L.r0);x.setAttribute('sqref',L.cN+L.r0);x.removeAttribute('pane');});}   // abrir mostrando el logo
     const ro=await hoja(RO[p]);if(ro)poner(ro,'A2','Grupo  '+g.nombre+'  -  Reporte para Orientacion y padres de familia');
   }
   // Asistencia por mes (A = P en tu formato)
