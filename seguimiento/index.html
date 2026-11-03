@@ -18,7 +18,9 @@ body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.45 var(--f-bo
 button,input,select,textarea{font:inherit;color:inherit}
 a{color:#1d4ed8}
 .top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;background:var(--board);color:var(--chalk);padding:10px 12px;box-shadow:0 2px 0 rgba(0,0,0,.15)}
-.top h1{flex:1;margin:0;font-size:18px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.subt{max-width:1000px;margin:0 auto;padding:12px 16px 0;font-size:20px;font-weight:800}
+.subt:empty{display:none}
+.top h1{flex:1;min-width:0;margin:0;font-size:17px;line-height:1.2;font-weight:800;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .iconbtn{background:transparent;border:0;color:var(--chalk);font-size:20px;width:40px;height:40px;border-radius:10px;cursor:pointer;flex:none}
 .iconbtn:hover{background:rgba(255,255,255,.12)}
 .sync{font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;background:rgba(255,255,255,.14);white-space:nowrap}
@@ -112,6 +114,7 @@ summary{font-weight:800;cursor:pointer}
   <button id="cfg" class="iconbtn" aria-label="Conexión y respaldo">⚙</button>
 </header>
 <div id="banner"></div>
+<div id="subt" class="subt"></div>
 <main id="app"></main>
 <div id="toast" role="status" aria-live="polite"></div>
 
@@ -127,7 +130,17 @@ const hoy=()=>iso(new Date());
 const DIAS=['dom','lun','mar','mié','jue','vie','sáb'], MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const fcorta=f=>{if(!f)return '';const [y,m,d]=f.split('-').map(Number);const D=new Date(y,m-1,d);return DIAS[D.getDay()]+' '+d+' '+MESES[m-1];};
 const MAT={PM1:{n:'Pensamiento Matemático I',c:'#2563eb'},HC:{n:'Hoja de Cálculo Aplicada',c:'#15803d'}};
-const matNom=m=>MAT[m]?MAT[m].n:m, matCol=m=>MAT[m]?MAT[m].c:'#7c3aed';
+const PALETA=['#2563eb','#15803d','#7c3aed','#c2410c','#0e7490','#be185d','#4d7c0f','#a16207'];
+const matNom=m=>MAT[m]?MAT[m].n:m;
+const matCol=m=>{if(MAT[m])return MAT[m].c;let h=0;for(const ch of String(m))h=(h*31+ch.charCodeAt(0))>>>0;return PALETA[h%PALETA.length];};
+const matCorto=m=>{const n=matNom(m),ws=n.split(/\s+/).filter(w=>w.length>3||/^[IVX]+$/.test(w));if(n.length<=18)return n;
+  return ws.map(w=>/^[IVX]+$/.test(w)?' '+w:w[0].toUpperCase()).join('').trim();};
+const claveGrupo=g=>normal(g.nombre)+'|'+normal(g.semestre||'');
+const hermanos=g=>S.grupos.filter(x=>x!==g&&claveGrupo(x)===claveGrupo(g));
+function asignaturasUsadas(){const v=new Set(['Pensamiento Matemático I','Hoja de Cálculo Aplicada']);(S.grupos||[]).forEach(g=>v.add(matNom(g.materia)));return [...v].sort((a,b)=>a.localeCompare(b,'es'));}
+function alumnoEnHermanos(g,fn){   // aplica un cambio de la lista de alumnos a las demás asignaturas del mismo grupo
+  for(const h of hermanos(g))fn(h);
+}
 const TIPOS={Académica:'#2563eb',Conducta:'#c62828',Positiva:'#15803d','Padres / tutoría':'#7c3aed',Otra:'#64748b'};
 const f1=x=>x==null?'—':(Math.round(x*10)/10).toFixed(1);
 const nombreCmp=(a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'});
@@ -306,7 +319,9 @@ const calHtml=v=>v==null?'—':'<span class="cal'+(v<6?' rep':'')+'">'+v+'</span
 
 /* ---------- utilidades de interfaz ---------- */
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2800);}
-function titulo(t,back){$('#ttl').textContent=t;$('#back').hidden=!back;}
+function titulo(t,back){   // la barra de arriba solo lleva el nombre del docente; la sección va debajo
+  const d=(S.perfil&&S.perfil.docente)||'';$('#ttl').textContent=d||'Seguimiento de alumnos';
+  $('#subt').textContent=back?t:'';$('#back').hidden=!back;document.title=(back?t+' · ':'')+(d||'Seguimiento de alumnos');}
 $('#back').onclick=()=>{const r=ruta();if(r[0]==='a')location.hash='g/'+r[1]+'/alumnos';else location.hash='';};
 $('#cfg').onclick=()=>{location.hash='ajustes';};
 const ruta=()=>decodeURIComponent(location.hash.slice(1)).split('/');
@@ -328,48 +343,64 @@ function render(){
   if(r[0]==='g'&&grupo(r[1]))return vGrupo(grupo(r[1]),r[2]||'lista');
   if(r[0]==='a'&&grupo(r[1]))return vFicha(grupo(r[1]),r[2]);
   if(r[0]==='ajustes')return vAjustes();
-  if(r[0]==='nuevo')return vNuevo();
+  if(r[0]==='nuevo')return vNuevo(r[1]&&grupo(r[1]));
   vInicio();
 }
 
 function vInicio(){
-  titulo('Seguimiento de alumnos',false);
+  titulo('',false);
   let h='';
+  if(!(S.perfil&&S.perfil.docente))h+='<div class="card"><label class="f" for="i-doc" style="margin-top:0">Escribe tu nombre para que aparezca arriba</label><div class="row"><input class="in" id="i-doc" placeholder="Ej. Prof. Raciel Ramos Melecio" style="flex:1;min-width:200px"><button class="btn" id="i-docok">Guardar</button></div></div>';
   if(!C.url)h+='<div class="card" style="background:var(--warn)"><b>Tus datos se guardan solo en este equipo.</b> Conecta tu Hoja de Google para verlos también en el celular y la computadora. <a href="#ajustes">Conectar</a></div>';
-  h+='<div class="row" style="justify-content:space-between"><h2>Mis grupos</h2><a class="btn sm" href="#nuevo">+ Nuevo grupo</a></div>';
+  h+='<div class="row" style="justify-content:space-between"><h2>Mis grupos</h2><a class="btn sm" href="#nuevo">+ Nuevo grupo o asignatura</a></div>';
   if(!S.grupos.length){app.innerHTML=h+'<div class="card empty-st"><p><b>Todavía no tienes grupos.</b></p><p>Crea uno y pega la lista de tus alumnos.</p><a class="btn" href="#nuevo">Crear mi primer grupo</a></div>';return;}
-  const orden=[...S.grupos].sort((a,b)=>(a.materia+a.nombre).localeCompare(b.materia+b.nombre,'es',{numeric:true}));
-  h+='<div class="grid">';const riesgo=[];
+  const orden=[...S.grupos].sort((a,b)=>(a.nombre+'|'+(a.semestre||'')).localeCompare(b.nombre+'|'+(b.semestre||''),'es',{numeric:true})||matNom(a.materia).localeCompare(matNom(b.materia),'es'));
+  const riesgo=[];let clave=null;
   for(const g of orden){
+    if(claveGrupo(g)!==clave){if(clave!==null)h+='</div>';clave=claveGrupo(g);
+      h+='<h3 style="margin:18px 0 8px">Grupo '+esc(g.nombre)+(g.semestre?' <span class="muted">· Semestre '+esc(g.semestre)+'</span>':'')+' <a class="btn sm sec" style="margin-left:6px;padding:3px 10px" href="#nuevo/'+g.id+'">+ Asignatura</a></h3><div class="grid">';}
     const al=activos(g);let sp=0,np=0,nr=0;
     for(const a of al){const x=asis(g,a.id);if(x.pct!=null){sp+=x.pct;np++;}const z=alertas(g,a.id);if(z.length){nr++;riesgo.push([g,a,z]);}}
     const ult=Object.keys(g.asis).sort().pop();
-    h+='<a class="gcard" style="--c:'+matCol(g.materia)+'" href="#g/'+g.id+'/lista"><div class="mat">'+esc(matNom(g.materia))+'</div><div class="nom">'+esc(g.nombre)+'</div><div class="kv"><span><b>'+al.length+'</b> alumnos</span><span>Asistencia <b>'+(np?Math.round(sp/np)+'%':'—')+'</b></span><span>Parcial <b>'+pHoy(g)+'</b></span>'+(nr?'<span class="chip">'+nr+' con alertas</span>':'<span class="chip ok">Sin alertas</span>')+'</div><div class="muted" style="margin-top:6px">'+(ult?'Último pase de lista: '+fcorta(ult):'Sin pase de lista aún')+'</div></a>';
+    h+='<a class="gcard" style="--c:'+matCol(g.materia)+'" href="#g/'+g.id+'/lista"><div class="mat">Grupo '+esc(g.nombre)+'</div><div class="nom" style="font-size:19px">'+esc(matNom(g.materia))+'</div><div class="kv"><span><b>'+al.length+'</b> alumnos</span><span>Asistencia <b>'+(np?Math.round(sp/np)+'%':'—')+'</b></span><span>Parcial <b>'+pHoy(g)+'</b></span>'+(nr?'<span class="chip">'+nr+' con alertas</span>':'<span class="chip ok">Sin alertas</span>')+'</div><div class="muted" style="margin-top:6px">'+(ult?'Último pase de lista: '+fcorta(ult):'Sin pase de lista aún')+'</div></a>';
   }
   h+='</div><h2>Alumnos que necesitan atención</h2>';
   if(!riesgo.length)h+='<p class="muted">Nadie con alertas por ahora. Aparecen con asistencia menor a 80%, 3 faltas seguidas, 2 o más actividades pendientes en el parcial, o calificación reprobatoria cuando ya capturaste el examen.</p>';
   else{h+='<div class="tw"><table><thead><tr><th>Alumno</th><th>Grupo</th><th>Motivo</th></tr></thead><tbody>';
-    riesgo.sort((a,b)=>b[2].length-a[2].length||nombreCmp(a[1],b[1])).forEach(([g,a,z])=>{h+='<tr class="click" data-h="a/'+g.id+'/'+a.id+'"><td class="nm">'+esc(a.nombre)+'</td><td>'+esc(g.materia)+' '+esc(g.nombre)+'</td><td>'+chips(z)+'</td></tr>';});
+    riesgo.sort((a,b)=>b[2].length-a[2].length||nombreCmp(a[1],b[1])).forEach(([g,a,z])=>{h+='<tr class="click" data-h="a/'+g.id+'/'+a.id+'"><td class="nm">'+esc(a.nombre)+'</td><td>'+esc(matCorto(g.materia))+' · '+esc(g.nombre)+'</td><td>'+chips(z)+'</td></tr>';});
     h+='</tbody></table></div>';}
   app.innerHTML=h;
   app.querySelectorAll('tr[data-h]').forEach(t=>t.onclick=()=>location.hash=t.dataset.h);
+  if($('#i-docok'))$('#i-docok').onclick=()=>{const v=$('#i-doc').value.trim();if(!v){toast('Escribe tu nombre');return;}S.perfil=Object.assign({},S.perfil,{docente:v});cambio();render();toast('Listo');};
 }
 
-function vNuevo(){
-  titulo('Nuevo grupo',true);
-  app.innerHTML='<div class="card"><label class="f" for="n-mat">Asignatura</label><select class="in" id="n-mat"><option value="PM1">Pensamiento Matemático I</option><option value="HC">Hoja de Cálculo Aplicada</option><option value="otra">Otra…</option></select>'+
-  '<div id="n-otra-w" class="hidden"><label class="f" for="n-otra">Nombre de la asignatura</label><input class="in" id="n-otra"></div>'+
-  '<div class="row"><div style="flex:1;min-width:120px"><label class="f" for="n-nom">Grupo</label><input class="in" id="n-nom" placeholder="Ej. 1-2"></div><div style="flex:1;min-width:120px"><label class="f" for="n-sem">Semestre</label><input class="in" id="n-sem" placeholder="Ej. 1" inputmode="numeric"></div></div>'+
+function vNuevo(base){
+  titulo(base?'Nueva asignatura':'Nuevo grupo',true);
+  const grupos=[];const vis=new Set();S.grupos.forEach(g=>{const k=claveGrupo(g);if(!vis.has(k)){vis.add(k);grupos.push(g);}});
+  app.innerHTML='<div class="card"><label class="f" for="n-mat">Asignatura</label><input class="in" id="n-mat" list="n-mats" placeholder="Escribe o elige, ej. Pensamiento Matemático I" autocomplete="off"><datalist id="n-mats">'+asignaturasUsadas().map(m=>'<option value="'+esc(m)+'">').join('')+'</datalist>'+
+  (grupos.length?'<label class="f" for="n-base">¿Para qué grupo?</label><select class="in" id="n-base"><option value="">Grupo nuevo (con su lista de alumnos)</option>'+grupos.map(g=>'<option value="'+g.id+'"'+(base&&claveGrupo(base)===claveGrupo(g)?' selected':'')+'>Grupo '+esc(g.nombre)+(g.semestre?' · Sem. '+esc(g.semestre):'')+' — usa sus '+activos(g).length+' alumnos</option>').join('')+'</select>':'')+
+  '<div id="n-nuevo"><div class="row"><div style="flex:1;min-width:120px"><label class="f" for="n-nom">Grupo</label><input class="in" id="n-nom" placeholder="Ej. 1-2"></div><div style="flex:1;min-width:120px"><label class="f" for="n-sem">Semestre</label><input class="in" id="n-sem" placeholder="Ej. 1" inputmode="numeric"></div></div>'+
   '<label class="f" for="n-al">Lista de alumnos (uno por renglón): importa tu Excel o pega la lista</label>'+'<div class="imp"><label class="btn sm sec" for="n-file" style="cursor:pointer">📄 Importar desde Excel</label><input type="file" id="n-file" accept=".xlsx,.csv,.txt" class="hidden"><span class="row hidden" id="n-sel" style="margin-top:8px"><select class="in" id="n-hoja" style="width:auto" aria-label="Hoja"></select><select class="in" id="n-col" style="width:auto" aria-label="Columna"></select></span><p class="muted" id="n-msg" style="margin:6px 0 0"></p></div>'+'<textarea class="in" id="n-al" placeholder="APELLIDO APELLIDO NOMBRE&#10;APELLIDO APELLIDO NOMBRE"></textarea>'+
-  '<p class="muted" id="n-cuenta"></p><button class="btn" id="n-ok">Crear grupo</button></div>';
-  $('#n-mat').onchange=()=>$('#n-otra-w').classList.toggle('hidden',$('#n-mat').value!=='otra');
+  '<p class="muted" id="n-cuenta"></p></div><p class="muted hidden" id="n-info">La nueva asignatura tendrá la misma lista de alumnos; su pase de lista, calificaciones y observaciones son aparte.</p><button class="btn" id="n-ok">Crear</button></div>';
+  const tog=()=>{const b=$('#n-base')&&$('#n-base').value;$('#n-nuevo').classList.toggle('hidden',!!b);$('#n-info').classList.toggle('hidden',!b);$('#n-ok').textContent=b?'Agregar asignatura al grupo':'Crear grupo';};
+  if($('#n-base'))$('#n-base').onchange=tog;tog();
   importador('n',$('#n-al'));
   $('#n-al').oninput=()=>{const n=limpiarNombres($('#n-al').value).length;$('#n-cuenta').textContent=n?n+' alumnos'+(n>MAX_AL?' (tu formato de Excel tiene lugar para '+MAX_AL+')':''):'';};
   $('#n-ok').onclick=()=>{
-    let m=$('#n-mat').value;if(m==='otra')m=$('#n-otra').value.trim();
-    const nom=$('#n-nom').value.trim();if(!m||!nom){toast('Escribe la asignatura y el grupo');return;}
+    let m=$('#n-mat').value.trim().replace(/\s+/g,' ');if(!m){toast('Escribe la asignatura');return;}
+    for(const k in MAT)if(normal(MAT[k].n)===normal(m))m=k;
+    const bid=$('#n-base')&&$('#n-base').value,b=bid&&grupo(bid);
+    if(b){
+      if([b,...hermanos(b)].some(x=>normal(matNom(x.materia))===normal(matNom(m)))){toast('Ese grupo ya tiene esa asignatura');return;}
+      const g={id:uid(),materia:m,nombre:b.nombre,semestre:b.semestre||'',parciales:b.parciales,periodos:JSON.parse(JSON.stringify(b.periodos)),pen:{},
+        alumnos:b.alumnos.map(a=>Object.assign({},a)),asis:{},acts:[],extra:{},obs:[]};
+      if(b.waOrient)g.waOrient=b.waOrient;
+      S.grupos.push(g);cambio();toast('Asignatura agregada al grupo '+b.nombre);location.hash='g/'+g.id+'/lista';return;
+    }
+    const nom=$('#n-nom').value.trim();if(!nom){toast('Escribe el grupo');return;}
     const g={id:uid(),materia:m,nombre:nom,semestre:$('#n-sem').value.trim(),parciales:3,periodos:nuevosPeriodos(),pen:{},
       alumnos:limpiarNombres($('#n-al').value).map(n=>({id:uid(),nombre:n.toUpperCase()})),asis:{},acts:[],extra:{},obs:[]};
+    if(hermanos(g).some(x=>normal(matNom(x.materia))===normal(matNom(m)))){toast('Ya existe ese grupo con esa asignatura');return;}
     S.grupos.push(g);cambio();toast('Grupo creado');location.hash='g/'+g.id+'/lista';
   };
 }
@@ -379,8 +410,9 @@ function tabsGrupo(g,t){
   return '<nav class="tabs" aria-label="Secciones del grupo">'+T.map(x=>'<a class="tab" href="#g/'+g.id+'/'+x[0]+'"'+(x[0]===t?' aria-current="page"':'')+'>'+x[1]+'</a>').join('')+'</nav>';
 }
 function vGrupo(g,t){
-  titulo(g.materia+' · '+g.nombre,true);
-  const head='<div class="muted" style="margin-top:-4px">'+esc(matNom(g.materia))+(g.semestre?' · Semestre '+esc(g.semestre):'')+'</div>'+tabsGrupo(g,t);
+  titulo('Grupo '+g.nombre+(g.semestre?' · Semestre '+g.semestre:''),true);
+  const hs=[g,...hermanos(g)].sort((a,b)=>matNom(a.materia).localeCompare(matNom(b.materia),'es'));
+  const head='<div class="chips" style="margin:0 0 10px;gap:6px">'+hs.map(x=>x===g?'<span class="chip" style="background:'+matCol(x.materia)+';color:#fff;font-size:13px;padding:4px 10px">'+esc(matNom(x.materia))+'</span>':'<a class="chip inf" style="font-size:13px;padding:4px 10px;text-decoration:none" href="#g/'+x.id+'/'+t+'">'+esc(matNom(x.materia))+'</a>').join('')+'<a class="chip ok" style="font-size:13px;padding:4px 10px;text-decoration:none" href="#nuevo/'+g.id+'">+ asignatura</a></div>'+tabsGrupo(g,t);
   if(t==='calif')return vCalif(g,head);
   if(t==='alumnos')return vAlumnos(g,head);
   if(t==='notas')return vNotas(g,head);
@@ -621,10 +653,10 @@ function vGrupoAjustes(g,head){
   h+='<div class="card"><h3 style="margin-top:0">Alumnos ('+activos(g).length+')</h3>'+(activos(g).length>MAX_AL?'<p class="note">Tu formato de Excel tiene lugar para '+MAX_AL+' alumnos.</p>':'')+'<div class="lst">'+al.map(a=>'<div class="al"><input class="in" data-an="'+a.id+'" value="'+esc(a.nombre)+'" style="flex:1;padding:6px 10px'+(a.baja?';text-decoration:line-through;opacity:.6':'')+'" aria-label="Nombre"><button class="btn sm sec" data-ab="'+a.id+'">'+(a.baja?'Reactivar':'Dar de baja')+'</button></div>').join('')+'</div>'+
     '<label class="f" for="g-mas">Agregar alumnos (uno por renglón): importa tu Excel o pega la lista</label>'+'<div class="imp"><label class="btn sm sec" for="g-file" style="cursor:pointer">📄 Importar desde Excel</label><input type="file" id="g-file" accept=".xlsx,.csv,.txt" class="hidden"><span class="row hidden" id="g-sel" style="margin-top:8px"><select class="in" id="g-hoja" style="width:auto" aria-label="Hoja"></select><select class="in" id="g-col" style="width:auto" aria-label="Columna"></select></span><p class="muted" id="g-msg" style="margin:6px 0 0"></p></div>'+'<textarea class="in" id="g-mas" style="min-height:70px"></textarea><p><button class="btn sm" id="g-addal">Agregar</button></p></div>';
   h+='<div class="card"><h3 style="margin-top:0">Exportar</h3><p class="muted">Hojas de calificaciones con tu formato (encabezados, logos y fórmulas), llenas con los datos de este grupo.</p><div class="row">'+[1,2,3].filter(q=>q<=g.parciales).map(q=>'<button class="btn sm xl" data-xp="'+q+'">⬇ Parcial '+q+'</button>').join('')+'<button class="btn xl" id="x-fmt">⬇ Los '+Math.min(3,g.parciales)+' parciales juntos</button></div><div class="row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)"><span class="muted" style="flex:1;min-width:200px">Formato que se usa: <b id="x-fnom">'+esc((formatoGuardado()||{}).nombre||'Formato Prepa 252 (original)')+'</b></span><label class="btn sm sec" for="x-up" style="cursor:pointer">⬆ Subir mi formato</label><input type="file" id="x-up" accept=".xlsx" class="hidden">'+(formatoGuardado()?'<button class="btn sm sec" id="x-orig">Volver al original</button>':'')+'</div><p class="muted" id="x-fmsg" style="margin:4px 0 0">Si cambias el encabezado, los logos o las filas de tu Excel, súbelo aquí. Debe conservar las hojas "Calif. 1er/2do/3er Parcial" con las mismas columnas.</p><div class="row" style="margin-top:8px"><button class="btn sm sec" id="x-comp">Archivo completo (con listas por mes, faltantes y resumen)</button><button class="btn sm sec" id="x-ob">Observaciones (CSV)</button></div></div>';
-  h+='<div class="card"><h3 style="margin-top:0">Eliminar grupo</h3><p class="muted">Borra el grupo con toda su información. Descarga un respaldo antes.</p><button class="btn sm danger" id="g-del">Eliminar este grupo</button></div>';
+  h+='<div class="card"><h3 style="margin-top:0">Eliminar esta asignatura</h3><p class="muted">Borra '+esc(matNom(g.materia))+' de este grupo con toda su información'+(hermanos(g).length?'; las demás asignaturas del grupo no se tocan':'')+'. Descarga un respaldo antes.</p><button class="btn sm danger" id="g-del">Eliminar</button></div>';
   app.innerHTML=h;
-  $('#g-nom').onchange=e=>{const v=e.target.value.trim();if(v){g.nombre=v;cambio();titulo(g.materia+' · '+g.nombre,true);}};
-  $('#g-sem').onchange=e=>{g.semestre=e.target.value.trim();cambio();};
+  $('#g-nom').onchange=e=>{const v=e.target.value.trim();if(v){hermanos(g).forEach(h=>h.nombre=v);g.nombre=v;cambio();titulo('Grupo '+g.nombre+(g.semestre?' · Semestre '+g.semestre:''),true);}};
+  $('#g-sem').onchange=e=>{const v=e.target.value.trim();hermanos(g).forEach(h=>h.semestre=v);g.semestre=v;cambio();};
   $('#g-wa').onchange=e=>{const v=e.target.value.replace(/[^\d+]/g,'');if(v&&v.replace(/\D/g,'').length<10){toast('Escribe el número a 10 dígitos');return;}g.waOrient=v;if(!v)delete g.waOrient;cambio();toast(v?'Número de orientación guardado':'Número quitado');};
   app.querySelectorAll('[data-pi],[data-pf]').forEach(i=>i.onchange=()=>{const p=i.dataset.pi||i.dataset.pf;const r=g.periodos[p]=g.periodos[p]||{ini:'',fin:''};
     const ini=app.querySelector('[data-pi="'+p+'"]').value,fin=app.querySelector('[data-pf="'+p+'"]').value;
@@ -632,11 +664,16 @@ function vGrupoAjustes(g,head){
     r.ini=ini;r.fin=fin;cambio();
     const ch=[];for(let q=1;q<=g.parciales;q++)for(let w=q+1;w<=g.parciales;w++){const A=g.periodos[q],B=g.periodos[w];if(A&&B&&A.ini&&A.fin&&B.ini&&B.fin&&A.ini<=B.fin&&B.ini<=A.fin)ch.push(q+' y '+w);}
     toast(ch.length?'Ojo: se enciman los parciales '+ch.join(', '):'Periodo del parcial '+p+' actualizado');});
-  app.querySelectorAll('[data-an]').forEach(i=>i.onchange=()=>{const a=g.alumnos.find(k=>k.id===i.dataset.an);if(i.value.trim()){a.nombre=i.value.trim();cambio();}});
-  app.querySelectorAll('[data-ab]').forEach(b=>b.onclick=()=>{const a=g.alumnos.find(k=>k.id===b.dataset.ab);a.baja=!a.baja;if(!a.baja)delete a.baja;cambio();render();});
+  const igual=(h,a)=>h.alumnos.find(k=>k.id===a.id)||h.alumnos.find(k=>normal(k.nombre)===normal(a.nombre));
+  app.querySelectorAll('[data-an]').forEach(i=>i.onchange=()=>{const a=g.alumnos.find(k=>k.id===i.dataset.an);const v=i.value.trim();if(!v)return;
+    alumnoEnHermanos(g,h=>{const o=igual(h,a);if(o)o.nombre=v;});a.nombre=v;cambio();});
+  app.querySelectorAll('[data-ab]').forEach(b=>b.onclick=()=>{const a=g.alumnos.find(k=>k.id===b.dataset.ab);
+    alumnoEnHermanos(g,h=>{const o=igual(h,a);if(o){if(a.baja)delete o.baja;else o.baja=true;}});a.baja=!a.baja;if(!a.baja)delete a.baja;cambio();render();});
   importador('g',$('#g-mas'),g);
-  $('#g-addal').onclick=()=>{const ya=new Set(g.alumnos.map(a=>normal(a.nombre)));const n=limpiarNombres($('#g-mas').value).filter(x=>!ya.has(normal(x)));if(!n.length){toast('Esos alumnos ya están en el grupo');return;}n.forEach(x=>{g.alumnos.push({id:uid(),nombre:x.toUpperCase()});ya.add(normal(x));});cambio();toast(n.length+' alumnos agregados');render();};
-  $('#g-del').onclick=()=>{if(confirm('¿Eliminar el grupo '+g.nombre+' con todos sus datos? No se puede deshacer.')){S.grupos=S.grupos.filter(x=>x!==g);cambio();location.hash='';}};
+  $('#g-addal').onclick=()=>{const ya=new Set(g.alumnos.map(a=>normal(a.nombre)));const n=limpiarNombres($('#g-mas').value).filter(x=>!ya.has(normal(x)));if(!n.length){toast('Esos alumnos ya están en el grupo');return;}n.forEach(x=>{const nu={id:uid(),nombre:x.toUpperCase()};g.alumnos.push(nu);ya.add(normal(x));
+    alumnoEnHermanos(g,h=>{if(!h.alumnos.some(k=>normal(k.nombre)===normal(x)))h.alumnos.push(Object.assign({},nu));});});
+    cambio();toast(n.length+' alumnos agregados'+(hermanos(g).length?' en todas las asignaturas del grupo':''));render();};
+  $('#g-del').onclick=()=>{if(confirm('¿Eliminar '+matNom(g.materia)+' del grupo '+g.nombre+' con todos sus datos (lista, calificaciones y observaciones de esa asignatura)? No se puede deshacer.')){S.grupos=S.grupos.filter(x=>x!==g);cambio();location.hash='';}};
   $('#x-fmt').onclick=()=>exportarFormato(g,'parciales');
   $('#x-comp').onclick=()=>exportarFormato(g,'completo');
   $('#x-up').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;$('#x-fmsg').textContent='Revisando '+f.name+'…';
@@ -663,7 +700,7 @@ async function exportarFormato(g,cual){   // cual: 1|2|3 = un parcial · 'parcia
     const parc=cual==='completo'?null:cual==='parciales'?[1,2,3].filter(q=>q<=g.parciales):[cual];
     const res=await llenarFormato(await formatoActual(),g,{parciales:parc});
     const pre=cual==='completo'?'Control_':cual==='parciales'?'Calificaciones_':'Calif_Parcial'+cual+'_';
-    descargar(pre+archivoSeguro(g.materia+'_Grupo_'+g.nombre)+'.xlsx',res.blob);
+    descargar(pre+archivoSeguro(matCorto(g.materia)+'_Grupo_'+g.nombre)+'.xlsx',res.blob);
     toast(res.avisos.length?res.avisos.join(' · '):'Listo: se descargó tu formato de Excel');
   }catch(e){console.error(e);toast(e.message==='sinhojas'?'Tu formato no tiene hojas de calificaciones ("Calif. 1er Parcial"…).':'No se pudo crear el archivo. Revisa tu conexión a internet.');}
 }
@@ -753,7 +790,7 @@ async function llenarFormato(buf,g,opts){
     L.cE=col(/SUMA DE ESCALA/)||'AE';L.cF=col(/CAL\.? DE ESCALA/);L.cG=col(/CAL\.? DE EXAMEN|EXAMEN/)||'AG';L.cH=col(/FALTAS/);L.cI=col(/CAL\.? FINAL|CALIFICACION FINAL/)||'AI';
     L.cL=col(/GUIA/);L.cM=col(/CORRECCION/);L.cK=L.cE==='AE'&&L.cI==='AI'?'AK':null;
     for(const k of Object.keys(T)){if(split(k)[1]>=rN)continue;const t=normal(T[k]);
-      if(/^SEMESTRE\b/.test(t))L.hdr.sem=k;else if(/^GRUPO\b/.test(t))L.hdr.grp=k;else if(/^ASIGNATURA\b/.test(t))L.hdr.asig=k;}
+      if(/^SEMESTRE\b/.test(t))L.hdr.sem=k;else if(/^GRUPO\b/.test(t))L.hdr.grp=k;else if(/^ASIGNATURA\b/.test(t))L.hdr.asig=k;else if(/^(PROFESOR|DOCENTE)/.test(t))L.hdr.prof=k;else if(/^ESCUELA\b|PREPARATORIA|BACHILLERATO/.test(t)&&!L.hdr.esc)L.hdr.esc=k;}
     return L;
   }
   for(let p=1;p<=3;p++){
@@ -764,6 +801,7 @@ async function llenarFormato(buf,g,opts){
     if(al.length>L.n)avisos.push('Parcial '+p+': solo caben '+L.n+' alumnos');
     const ua=ac.slice(0,MA),n=ua.length,lst=al.slice(0,L.n);
     if(L.hdr.sem)poner(d,L.hdr.sem,'SEMESTRE: '+(g.semestre||''));if(L.hdr.grp)poner(d,L.hdr.grp,'GRUPO: '+g.nombre);if(L.hdr.asig)poner(d,L.hdr.asig,'ASIGNATURA: '+MATX);
+    const PF=S.perfil||{};if(L.hdr.prof&&PF.docente)poner(d,L.hdr.prof,'PROFESOR: '+(PF.docente||'').replace(/^\s*(prof(a|r|ra)?|mtr[oa]|maestr[oa]|lic|ing|dr|dra)\.?\s+/i,'').toUpperCase());if(L.hdr.esc&&PF.escuela)poner(d,L.hdr.esc,PF.escuela.toUpperCase());
     for(let k=0;k<MA;k++){poner(d,AC[k]+L.rLab,'Act '+(k+1));poner(d,AC[k]+L.rAct,ua[k]?ua[k].nombre:null);poner(d,AC[k]+L.rFec,ua[k]&&ua[k].fecha?serial(ua[k].fecha):null);}
     const c1=colNum(AC[0]),cE=colNum(L.cE);
     for(let i=0;i<L.n;i++){
@@ -942,14 +980,17 @@ function importador(id,area,g){
 
 /* --- conexión y respaldo --- */
 function vAjustes(){
-  titulo('Conexión y respaldo',true);
-  let h='<div class="card"><h3 style="margin-top:0">Tu Hoja de Google</h3><p class="muted">Pega la dirección de la aplicación web de Apps Script y la clave que escribiste en el código. Así tus datos se guardan en tu Google Drive y aparecen en todos tus dispositivos.</p>'+
+  titulo('Ajustes',true);
+  const PF=S.perfil||{};
+  let h='<div class="card"><h3 style="margin-top:0">Docente</h3><label class="f" for="p-doc">Nombre del docente (aparece arriba en la aplicación)</label><input class="in" id="p-doc" value="'+esc(PF.docente||'')+'" placeholder="Ej. Juan Pérez López"><label class="f" for="p-esc">Escuela para el encabezado del Excel (opcional; vacío = la de tu formato)</label><input class="in" id="p-esc" value="'+esc(PF.escuela||'')+'" placeholder="Ej. Escuela Preparatoria Oficial Núm. 252"></div>'+'<div class="card"><h3 style="margin-top:0">Tu Hoja de Google</h3><p class="muted">Pega la dirección de la aplicación web de Apps Script y la clave que escribiste en el código. Así tus datos se guardan en tu Google Drive y aparecen en todos tus dispositivos.</p>'+
     '<label class="f" for="s-url">Dirección (termina en /exec)</label><input class="in" id="s-url" value="'+esc(C.url||'')+'" placeholder="https://script.google.com/macros/s/…/exec">'+
     '<label class="f" for="s-cl">Clave</label><input class="in" id="s-cl" type="password" value="'+esc(C.clave||'')+'" autocomplete="off">'+
     '<p class="row" style="margin-top:12px"><button class="btn" id="s-ok">Conectar</button>'+(C.url?'<button class="btn sec" id="s-des">Desconectar este equipo</button>':'')+'</p><p id="s-msg" class="muted"></p></div>';
   h+='<div class="card"><h3 style="margin-top:0">Respaldo</h3><p class="muted">Descarga una copia completa de todo (grupos, listas, calificaciones y observaciones). Guárdala de vez en cuando.</p><div class="row"><button class="btn sm sec" id="r-dl">Descargar respaldo</button><label class="btn sm sec" for="r-up" style="cursor:pointer">Restaurar respaldo</label><input type="file" id="r-up" accept=".json,application/json" class="hidden"></div></div>';
   h+='<p class="muted">Los datos de tus alumnos no se guardan en esta página: viven en este equipo y en tu Hoja de Google. Sin la clave nadie puede verlos.</p>';
   app.innerHTML=h;
+  const guardaPerfil=()=>{S.perfil={docente:$('#p-doc').value.trim(),escuela:$('#p-esc').value.trim()};if(!S.perfil.escuela)delete S.perfil.escuela;cambio();titulo('Ajustes',true);toast('Datos guardados');};
+  $('#p-doc').onchange=guardaPerfil;$('#p-esc').onchange=guardaPerfil;
   $('#s-ok').onclick=async()=>{
     const url=$('#s-url').value.trim(),cl=$('#s-cl').value;
     if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(url)){$('#s-msg').textContent='La dirección debe empezar con https://script.google.com/ y terminar en /exec';return;}
