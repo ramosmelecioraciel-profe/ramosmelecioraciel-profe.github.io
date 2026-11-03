@@ -79,6 +79,8 @@ tr.click{cursor:pointer}tr.click:hover td{background:#f8f5ee}
 .cal{display:inline-block;min-width:30px;text-align:center;border-radius:6px;padding:1px 6px;font-weight:800}
 .cal.rep{background:#fde047}
 .ninp{width:70px;padding:6px 8px;border:1.5px solid var(--line);border-radius:8px;text-align:right;font-family:var(--f-mono);background:var(--paper)}
+.tbtn{width:40px;height:38px;border-radius:9px;border:1.5px solid var(--line);background:var(--paper);cursor:pointer;flex:none;filter:grayscale(1);opacity:.55}
+.tbtn.on{background:#fde68a;border-color:#d97706;filter:none;opacity:1}
 .ninp.bad{border-color:#b42318;background:#fff1f1}
 .act{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);margin-bottom:6px;cursor:pointer}
 .act .grow{flex:1;min-width:0}
@@ -130,7 +132,10 @@ const TIPOS={Académica:'#2563eb',Conducta:'#c62828',Positiva:'#15803d','Padres 
 const f1=x=>x==null?'—':(Math.round(x*10)/10).toFixed(1);
 const nombreCmp=(a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'});
 const MAX_ACT=9, MAX_AL=45;   // espacios de tu formato de Excel
-const INICIOS={2:'2026-10-05',3:'2026-11-09'};
+const PERIODOS={1:{ini:'2026-09-01',fin:'2026-10-04'},2:{ini:'2026-10-05',fin:'2026-11-08'},3:{ini:'2026-11-09',fin:'2026-12-18'}};
+const nuevosPeriodos=()=>JSON.parse(JSON.stringify(PERIODOS));
+const diaAntes=f=>{const [y,m,d]=f.split('-').map(Number);return iso(new Date(y,m-1,d-1));};
+const PEN0={tipo:'pct',v:80};
 
 /* ---------- estado ---------- */
 let S,C,seq=0,ocupado=false,conflicto=null,red=null;
@@ -140,7 +145,11 @@ try{C=JSON.parse(localStorage.getItem(LSC))||{};}catch(e){C={};}
 C.rev=C.rev||0;
 function migrar(d){
   (d.grupos||[]).forEach(g=>{
-    g.inicios=g.inicios||Object.assign({},INICIOS);
+    if(!g.periodos){g.periodos=nuevosPeriodos();const I=g.inicios||{};
+      if(I[2]){g.periodos[1].fin=diaAntes(I[2]);g.periodos[2].ini=I[2];}
+      if(I[3]){g.periodos[2].fin=diaAntes(I[3]);g.periodos[3].ini=I[3];}}
+    for(let q=1;q<=4;q++)g.periodos[q]=g.periodos[q]||{ini:'',fin:''};
+    delete g.inicios;g.pen=g.pen||{};
     if(g.semestre==null)g.semestre='';
     g.acts=(g.acts||[]).map(a=>Object.assign({tipo:'act'},a));
     g.extra=g.extra||{};g.obs=g.obs||[];g.asis=g.asis||{};g.pond=g.pond||{};
@@ -212,8 +221,10 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 /* ---------- cálculos (mismas reglas que tu formato de Excel) ---------- */
 const grupo=id=>S.grupos.find(g=>g.id===id);
 const activos=g=>g.alumnos.filter(a=>!a.baja).sort(nombreCmp);
-function parcialDe(g,f){let p=1;for(let q=2;q<=g.parciales;q++)if(g.inicios[q]&&f>=g.inicios[q])p=q;return p;}
-function rango(g,p){const ini=p>1?g.inicios[p]:null,fin=p<g.parciales&&g.inicios[p+1]?g.inicios[p+1]:null;return {ini,fin};}
+function parcialDe(g,f){let p=1;
+  for(let q=1;q<=g.parciales;q++){const r=g.periodos[q]||{};if(r.ini&&r.fin&&f>=r.ini&&f<=r.fin)return q;}
+  for(let q=1;q<=g.parciales;q++){const r=g.periodos[q]||{};if(r.ini&&f>=r.ini)p=q;}return p;}
+function rango(g,p){return g.periodos[p]||{ini:'',fin:''};}
 const pHoy=g=>parcialDe(g,hoy());
 function asis(g,aid,p){
   let A=0,F=0,R=0,J=0;
@@ -235,6 +246,29 @@ function valores(g,p){   // puntos que vale cada actividad (las "automáticas" s
   return {v,pa,sumF,resto,nAut:aut.length,total:sumF+cada*aut.length};
 }
 const fpt=x=>{const r=Math.round(x*100)/100;return String(r);};
+const penParcial=(g,p)=>(g.pen||{})[p]||PEN0;
+const reglaDe=(g,a)=>a.pen||penParcial(g,a.parcial);
+const REGLAS={pct:'Vale el % de su calificación',max:'Calificación máxima (sobre 10)',resta:'Restar puntos (sobre 10)',nada:'Sin penalización (solo registrar)'};
+function reglaTxt(r){return r.tipo==='pct'?'vale el '+r.v+' %':r.tipo==='max'?'máximo '+r.v+' de 10':r.tipo==='resta'?'menos '+r.v+' de 10':'sin penalización';}
+function reglaHtml(id,r,heredable){
+  return '<div class="row">'+'<select class="in" id="'+id+'-t" style="width:auto">'+(heredable?'<option value="">Igual que el parcial</option>':'')+Object.keys(REGLAS).map(k=>'<option value="'+k+'"'+(r&&r.tipo===k?' selected':'')+'>'+REGLAS[k]+'</option>').join('')+'</select>'+
+    '<input class="ninp" id="'+id+'-v" inputmode="decimal" value="'+(r&&r.tipo!=='nada'?r.v:'')+'" aria-label="Valor de la regla"'+(!r||r.tipo==='nada'?' disabled':'')+'><span class="muted" id="'+id+'-u">'+(r&&r.tipo==='pct'?'%':'')+'</span></div>';
+}
+function wireRegla(id,guardar){
+  const t=$('#'+id+'-t'),v=$('#'+id+'-v');
+  const fin=()=>{const k=t.value;if(!k){guardar(null);return;}if(k==='nada'){guardar({tipo:'nada',v:0});return;}
+    const n=num(v.value);if(n==null||isNaN(n)||n<0||(k==='pct'&&n>100)||(k!=='pct'&&n>10)){v.classList.add('bad');toast(k==='pct'?'Escribe un porcentaje de 0 a 100':'Escribe un número de 0 a 10');return;}guardar({tipo:k,v:n});};
+  t.onchange=()=>{const k=t.value;v.disabled=!k||k==='nada';$('#'+id+'-u').textContent=k==='pct'?'%':'';if(k&&k!=='nada'&&v.value===''){v.value=k==='pct'?80:k==='max'?8:2;}fin();};
+  v.onchange=fin;
+}
+function notaEf(g,a,aid){   // calificación que cuenta (con penalización si entregó tarde)
+  const v=a.notas[aid];if(!esNum(v))return null;
+  if(a.tipo==='exam'||!a.tarde||!a.tarde[aid])return v;
+  const r=reglaDe(g,a),m=actMax(a);let x=v;
+  if(r.tipo==='pct')x=v*r.v/100;else if(r.tipo==='max')x=Math.min(v,r.v/10*m);else if(r.tipo==='resta')x=Math.max(0,v-r.v/10*m);
+  return Math.round(x*100)/100;
+}
+const esTarde=(a,aid)=>!!(a.tarde&&a.tarde[aid]);
 function setPond(g,p,v){
   g.pond=g.pond||{};g.pond[p]=v;const pe=100-v,ex=examP(g,p);
   if(ex&&pe>0&&exMax(ex)!==pe){const old=exMax(ex);
@@ -245,12 +279,12 @@ function setPond(g,p,v){
 function calFinal(total){const r=Math.round(total);return r<60?5:Math.min(10,Math.round(r/10));}
 function calif(g,aid,p){
   const ac=actsP(g,p),ex=examP(g,p);
-  const notas=ac.map(a=>a.notas[aid]);
+  const notas=ac.map(a=>notaEf(g,a,aid));
   const pend=ac.filter(a=>!esNum(a.notas[aid]));
   const n=ac.length,suma=notas.reduce((s,v)=>s+(esNum(v)?v:0),0);
   const pa=pondA(g,p),pe=100-pa;
   const V=valores(g,p).v;
-  const escala=ac.reduce((s,a)=>s+(esNum(a.notas[aid])?a.notas[aid]/actMax(a)*V[a.id]:0),0);   // Σ calificación/escala × valor
+  const escala=ac.reduce((s,a)=>{const v=notaEf(g,a,aid);return s+(esNum(v)?v/actMax(a)*V[a.id]:0);},0);   // Σ calificación/escala × valor
   const exam=ex&&esNum(ex.notas[aid])?(exMax(ex)>0?ex.notas[aid]/exMax(ex)*pe:0):null;
   const extra=+((g.extra[p]||{})[aid])||0;
   const hay=n>0||(ex&&pe>0);
@@ -334,7 +368,7 @@ function vNuevo(){
   $('#n-ok').onclick=()=>{
     let m=$('#n-mat').value;if(m==='otra')m=$('#n-otra').value.trim();
     const nom=$('#n-nom').value.trim();if(!m||!nom){toast('Escribe la asignatura y el grupo');return;}
-    const g={id:uid(),materia:m,nombre:nom,semestre:$('#n-sem').value.trim(),parciales:3,inicios:Object.assign({},INICIOS),
+    const g={id:uid(),materia:m,nombre:nom,semestre:$('#n-sem').value.trim(),parciales:3,periodos:nuevosPeriodos(),pen:{},
       alumnos:limpiarNombres($('#n-al').value).map(n=>({id:uid(),nombre:n.toUpperCase()})),asis:{},acts:[],extra:{},obs:[]};
     S.grupos.push(g);cambio();toast('Grupo creado');location.hash='g/'+g.id+'/lista';
   };
@@ -392,9 +426,10 @@ function vCalif(g,head){
   const a=actSel&&g.acts.find(x=>x.id===actSel);
   if(a)return vCaptura(g,a,h);
   const ac=actsP(g,p),ex=examP(g,p);
-  h+='<p class="muted" style="margin-top:-6px">'+(rg.ini?'Del '+fcorta(rg.ini):'Desde el inicio del semestre')+(rg.fin?' hasta antes del '+fcorta(rg.fin):' al fin del semestre')+'.</p>';
   const pa=pondA(g,p),pe=100-pa;
-  h+='<div class="card"><h3 style="margin-top:0">Ponderación del parcial '+p+'</h3><div class="row"><label for="c-pa" style="font-weight:700">Actividades</label><input class="ninp" id="c-pa" inputmode="numeric" value="'+pa+'" style="width:70px"> %<input type="range" id="c-par" min="0" max="100" step="5" value="'+pa+'" style="flex:1;min-width:140px" aria-label="Porcentaje de actividades"><b id="c-pe">Examen '+pe+' %</b></div><p class="muted" style="margin:6px 0 0">Cada actividad se califica de 0 a 10; entre todas valen '+pa+' puntos. El examen se captura sobre '+pe+' puntos.</p></div>';
+  h+='<div class="card"><h3 style="margin-top:0">Parcial '+p+'</h3><div class="row"><span style="font-weight:700">Periodo</span><span>del</span><input type="date" class="in" id="c-pi" value="'+esc(rg.ini||'')+'" style="width:auto"><span>al</span><input type="date" class="in" id="c-pf" value="'+esc(rg.fin||'')+'" style="width:auto"></div>'+
+    '<p class="muted" style="margin:4px 0 10px">El pase de lista y las faltas se cuentan dentro de este periodo.</p><div class="row"><label for="c-pa" style="font-weight:700">Actividades</label><input class="ninp" id="c-pa" inputmode="numeric" value="'+pa+'" style="width:70px"> %<input type="range" id="c-par" min="0" max="100" step="5" value="'+pa+'" style="flex:1;min-width:140px" aria-label="Porcentaje de actividades"><b id="c-pe">Examen '+pe+' %</b></div><p class="muted" style="margin:6px 0 0">Cada actividad se califica de 0 a 10; entre todas valen '+pa+' puntos. El examen se captura sobre '+pe+' puntos.</p>'+
+    '<h3>Entregas tardías</h3>'+reglaHtml('c-pen',penParcial(g,p),false)+'<p class="muted" style="margin:4px 0 0">Se aplica al alumno que marques con ⏰ al calificar. Cada actividad puede tener su propia regla.</p></div>';
   h+='<div class="card"><h3 style="margin-top:0">Nueva actividad</h3><div class="row"><input class="in" id="c-new" placeholder="Ej. MCM y MCD" style="flex:2;min-width:180px"><input type="date" class="in" id="c-fecha" value="'+hoy()+'" style="flex:1;min-width:140px"><button class="btn" id="c-add">Agregar y calificar</button></div>'+
     (ac.length>=MAX_ACT?'<p class="note">Tu formato de Excel tiene lugar para '+MAX_ACT+' actividades por parcial.</p>':'')+'</div>';
   h+='<h3>Actividades del parcial '+p+'</h3>';
@@ -410,7 +445,7 @@ function vCalif(g,head){
   h+='<p class="muted">Suma de escala = suma de (calificación ÷ escala × valor) de cada actividad, sin pasar de '+pa+'. Cal. final = total ÷ 10 redondeado; menos de 60 puntos = 5. Las actividades vacías cuentan como 0. "Extra" suma décimas (por ejemplo, insignias del blog).</p>';
   h+='<div class="tw"><table><thead><tr><th>N.P.</th><th>Alumno</th>'+ac.map((x,i)=>'<th class="num" title="'+esc(x.nombre)+'">Act '+(i+1)+'<br><span style="text-transform:none;font-weight:600">'+fpt(VV.v[x.id])+' pts</span></th>').join('')+'<th class="num">Escala /'+pa+'</th><th class="num">Examen /'+pe+'</th><th class="num">Total</th><th class="num">Extra</th><th class="num">Cal.</th><th class="num">Faltas</th></tr></thead><tbody>';
   al.forEach((x,i)=>{const r=calif(g,x.id,p),fa=asis(g,x.id,p).F;
-    h+='<tr><td class="num">'+(i+1)+'</td><td class="nm">'+esc(x.nombre)+'</td>'+r.notas.map(v=>esNum(v)?'<td class="num">'+v+'</td>':'<td class="num empty"></td>').join('')+
+    h+='<tr><td class="num">'+(i+1)+'</td><td class="nm">'+esc(x.nombre)+'</td>'+r.notas.map((v,k)=>esNum(v)?'<td class="num"'+(esTarde(r.ac[k],x.id)?' title="Entregó tarde: '+r.ac[k].notas[x.id]+' → '+v+'" style="background:#fff4d6"':'')+'>'+fpt(v)+(esTarde(r.ac[k],x.id)?' ⏰':'')+'</td>':'<td class="num empty"></td>').join('')+
       '<td class="num sum">'+f1(r.escala)+'</td><td class="num">'+(r.exam==null?'—':f1(r.exam))+'</td><td class="num sum">'+f1(r.total)+'</td><td class="num"><input class="ninp" inputmode="decimal" data-ex="'+x.id+'" value="'+(r.extra||'')+'" aria-label="Décimas extra de '+esc(x.nombre)+'" style="width:56px"></td><td class="num" data-fin="'+x.id+'">'+calHtml(r.fin)+'</td><td class="num">'+fa+'</td></tr>';});
   h+='</tbody></table></div>';
 
@@ -421,10 +456,13 @@ function vCalif(g,head){
   else{h+='<div class="tw"><table><tbody>'+pen.map(([x,pd])=>'<tr class="click" data-h="a/'+g.id+'/'+x.id+'"><td class="nm">'+esc(x.nombre)+'</td><td style="white-space:normal"><span class="chips">'+pd.map(a=>'<span class="chip pen">'+esc(a.nombre)+'</span>').join('')+'</span></td><td class="num">'+pd.length+'</td></tr>').join('')+'</tbody></table></div>';}
   app.innerHTML=h;wireCalifTabs(g);
   $('#c-add').onclick=()=>{const n=$('#c-new').value.trim();if(!n){toast('Escribe el nombre de la actividad');return;}
-    const x={id:uid(),parcial:p,tipo:'act',nombre:n,fecha:$('#c-fecha').value||hoy(),notas:{}};g.acts.push(x);actSel=x.id;cambio();render();setTimeout(()=>{const i=app.querySelector('.ninp');if(i)i.focus();},60);};
+    const x={id:uid(),parcial:p,tipo:'act',nombre:n,fecha:$('#c-fecha').value||hoy(),notas:{}};g.acts.push(x);actSel=x.id;cambio();render();setTimeout(()=>{const i=app.querySelector('.ninp[data-a]');if(i)i.focus();},60);};
   $('#c-new').onkeydown=e=>{if(e.key==='Enter')$('#c-add').click();};
   const cambiaPond=v=>{v=Math.round(v);if(!(v>=0&&v<=100)){toast('Escribe un porcentaje de 0 a 100');return;}const aj=setPond(g,p,v);cambio();render();toast(aj?'Ponderación '+v+'/'+(100-v)+'. Las calificaciones del examen se ajustaron a la nueva escala.':'Ponderación '+v+'/'+(100-v));};
   $('#c-pa').onchange=e=>cambiaPond(num(e.target.value));
+  const cambiaPer=()=>{const i=$('#c-pi').value,f=$('#c-pf').value;if(i&&f&&i>f){toast('La fecha de inicio debe ser antes del fin');return;}g.periodos[p]={ini:i,fin:f};cambio();render();toast('Periodo del parcial '+p+' actualizado');};
+  $('#c-pi').onchange=cambiaPer;$('#c-pf').onchange=cambiaPer;
+  wireRegla('c-pen',r=>{g.pen[p]=r;cambio();render();toast('Regla de entregas tardías actualizada');});
   $('#c-par').oninput=e=>{$('#c-pa').value=e.target.value;$('#c-pe').textContent='Examen '+(100-e.target.value)+' %';};
   $('#c-par').onchange=e=>cambiaPond(+e.target.value);
   if($('#c-exam'))$('#c-exam').onclick=()=>{const x={id:uid(),parcial:p,tipo:'exam',nombre:'Examen parcial '+p,fecha:hoy(),max:pe,notas:{}};g.acts.push(x);actSel=x.id;cambio();render();};
@@ -444,9 +482,11 @@ function vCaptura(g,a,h){
   h+='<div class="card"><div class="row" style="justify-content:space-between"><button class="btn sm sec" id="c-volver">← Concentrado</button><button class="btn sm danger" id="c-del">Eliminar</button></div>'+
     '<p style="margin:10px 0 0"><span class="act" style="display:inline-flex;cursor:default;margin:0;padding:3px 8px"><span class="tag">'+(a.tipo==='exam'?'Examen · sobre '+max:'Act '+(pos+1)+' · sobre '+max+' · vale '+fpt(VV.v[a.id])+' pts')+'</span></span></p>'+
     (a.tipo==='exam'?'':'<div class="row"><div style="flex:1;min-width:140px"><label class="f" for="c-max">Calificar sobre</label><input class="in" id="c-max" inputmode="decimal" value="'+max+'"></div><div style="flex:1;min-width:140px"><label class="f" for="c-val">Vale (puntos de '+VV.pa+')</label><input class="in" id="c-val" inputmode="decimal" value="'+(esNum(a.valor)?a.valor:'')+'" placeholder="Automático ('+fpt(VV.v[a.id])+')"></div></div><p class="muted" style="margin:4px 0 0">Vacío = automático: reparte en partes iguales los puntos que no asignaste. Puedes asignar hasta '+fpt(VV.pa-(VV.sumF-(esNum(a.valor)?a.valor:0)))+' puntos a esta actividad.</p>')+
+    (a.tipo==='exam'?'':'<label class="f">Entrega tardía en esta actividad</label>'+reglaHtml('c-apen',a.pen||null,true)+'<p class="muted" style="margin:4px 0 0">Regla del parcial: '+reglaTxt(penParcial(g,a.parcial))+'. Toca ⏰ junto al alumno que entregó tarde.</p>')+
     '<div class="row"><div style="flex:2;min-width:180px"><label class="f" for="c-nom">Nombre</label><input class="in" id="c-nom" value="'+esc(a.nombre)+'"></div><div style="flex:1;min-width:140px"><label class="f" for="c-fe">Fecha</label><input type="date" class="in" id="c-fe" value="'+esc(a.fecha||'')+'"></div></div>'+
     '<p class="muted"><span id="c-n">'+cuentaTxt()+'</span> Escribe de 0 a '+max+' y pulsa Enter para pasar al siguiente. Deja vacío si no la ha entregado (cuenta como 0 y aparece en faltantes).</p></div><div class="lst">';
-  al.forEach((x,i)=>{const v=a.notas[x.id];h+='<div class="al"><span class="n">'+(i+1)+'</span><span class="nm">'+esc(x.nombre)+'</span><input class="ninp'+(esNum(v)&&v>max?' bad':'')+'" inputmode="decimal" data-a="'+x.id+'" value="'+(esNum(v)?v:'')+'" aria-label="Calificación de '+esc(x.nombre)+'"></div>';});
+  const lineaT=x=>{if(!esTarde(a,x.id))return '';const v=a.notas[x.id],e=notaEf(g,a,x.id);return 'Tarde ('+fcorta(a.tarde[x.id])+')'+(esNum(v)?': '+v+' → cuenta '+fpt(e):'');};
+  al.forEach((x,i)=>{const v=a.notas[x.id],t=esTarde(a,x.id);h+='<div class="al"><span class="n">'+(i+1)+'</span><span class="nm">'+esc(x.nombre)+'<span class="muted" style="display:block;font-weight:700;color:#9a5b00" data-tt="'+x.id+'">'+lineaT(x)+'</span></span>'+(a.tipo==='exam'?'':'<button type="button" class="tbtn'+(t?' on':'')+'" data-t="'+x.id+'" aria-pressed="'+t+'" title="Entregó tarde" aria-label="'+esc(x.nombre)+' entregó tarde">⏰</button>')+'<input class="ninp'+(esNum(v)&&v>max?' bad':'')+'" inputmode="decimal" data-a="'+x.id+'" value="'+(esNum(v)?v:'')+'" aria-label="Calificación de '+esc(x.nombre)+'"></div>';});
   app.innerHTML=h+'</div>';wireCalifTabs(g);
   $('#c-volver').onclick=()=>{actSel=null;render();};
   $('#c-del').onclick=()=>{if(confirm('¿Eliminar "'+a.nombre+'" y sus calificaciones?')){g.acts=g.acts.filter(x=>x!==a);actSel=null;cambio();render();}};
@@ -460,11 +500,18 @@ function vCaptura(g,a,h){
     if(isNaN(v)||v<0){toast('Escribe un número de puntos');return;}
     if(v>lim+1e-9){toast('Máximo '+fpt(lim)+' puntos: las actividades no pueden pasar de '+VV.pa);e.target.value=esNum(a.valor)?a.valor:'';return;}
     a.valor=v;cambio();render();toast('Esta actividad vale '+fpt(v)+' puntos');};
-  const ins=[...app.querySelectorAll('.ninp')];
+  if($('#c-apen-t'))wireRegla('c-apen',r=>{if(r)a.pen=r;else delete a.pen;cambio();render();toast('Regla de esta actividad: '+reglaTxt(reglaDe(g,a)));});
+  app.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{const aid=b.dataset.t;a.tarde=a.tarde||{};
+    if(a.tarde[aid])delete a.tarde[aid];else a.tarde[aid]=hoy();
+    const on=!!a.tarde[aid];b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);
+    app.querySelector('[data-tt="'+aid+'"]').textContent=lineaT(al.find(x=>x.id===aid));cambio();
+    toast(on?'Marcado como entrega tardía ('+reglaTxt(reglaDe(g,a))+')':'Ya no está marcado como tarde');});
+  const ins=[...app.querySelectorAll('.ninp[data-a]')];
   ins.forEach((inp,i)=>{
     inp.onchange=()=>{const v=num(inp.value);if(v==null){delete a.notas[inp.dataset.a];inp.classList.remove('bad');}
       else if(isNaN(v)||v<0||v>max){inp.classList.add('bad');toast('Escribe un número del 0 al '+max);return;}
-      else{a.notas[inp.dataset.a]=v;inp.classList.remove('bad');}$('#c-n').textContent=cuentaTxt();cambio();};
+      else{a.notas[inp.dataset.a]=v;inp.classList.remove('bad');}$('#c-n').textContent=cuentaTxt();
+      const tt=app.querySelector('[data-tt="'+inp.dataset.a+'"]');if(tt)tt.textContent=lineaT(al.find(x=>x.id===inp.dataset.a));cambio();};
     inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();inp.dispatchEvent(new Event('change'));const n=ins[i+1];if(n){n.focus();n.select();}else inp.blur();}};
   });
 }
@@ -517,7 +564,7 @@ function vFicha(g,aid){
   for(let p=1;p<=g.parciales;p++){const c=calif(g,aid,p);h+='<tr><td>Parcial '+p+' <span class="muted">('+c.pa+'/'+c.pe+')</span></td><td class="num">'+(c.escala==null?'—':f1(c.escala)+' / '+c.pa)+'</td><td class="num">'+(c.exam==null?'—':f1(c.exam)+' / '+c.pe)+'</td><td class="num">'+f1(c.total)+'</td><td class="num">'+(c.extra?'+'+c.extra:'—')+'</td><td class="num">'+(c.hayExam?calHtml(c.fin):'—')+'</td><td class="num">'+asis(g,aid,p).F+'</td><td>'+(c.pend.length?'<span class="chip">'+c.pend.length+'</span>':'')+'</td></tr>';}
   h+='</tbody></table></div>';
   for(let p=1;p<=g.parciales;p++){const ac=actsP(g,p),ex=examP(g,p);if(!ac.length&&!ex)continue;
-    h+='<details'+(p===pHoy(g)?' open':'')+'><summary>Actividades del parcial '+p+'</summary><table style="margin-top:6px"><tbody>'+ac.map((z2,i)=>{const v=z2.notas[aid];return '<tr><td class="num" style="width:60px">Act '+(i+1)+'</td><td class="nm">'+esc(z2.nombre)+'</td><td class="num'+(esNum(v)?(v/actMax(z2)<0.6?' low':''):' empty')+'">'+(esNum(v)?v+(actMax(z2)!==10?' / '+actMax(z2):''):'No entregó')+'</td></tr>';}).join('')+
+    h+='<details'+(p===pHoy(g)?' open':'')+'><summary>Actividades del parcial '+p+'</summary><table style="margin-top:6px"><tbody>'+ac.map((z2,i)=>{const v=notaEf(g,z2,aid),tt=esTarde(z2,aid);return '<tr><td class="num" style="width:60px">Act '+(i+1)+'</td><td class="nm">'+esc(z2.nombre)+(tt?'<div class="muted" style="color:#9a5b00;font-weight:700">⏰ Entregó tarde ('+fcorta(z2.tarde[aid])+')'+(esNum(z2.notas[aid])&&z2.notas[aid]!==v?': '+z2.notas[aid]+' → '+fpt(v):'')+'</div>':'')+'</td><td class="num'+(esNum(v)?(v/actMax(z2)<0.6?' low':''):' empty')+'">'+(esNum(v)?fpt(v)+(actMax(z2)!==10?' / '+actMax(z2):''):'No entregó')+'</td></tr>';}).join('')+
     (ex?'<tr><td class="num">Examen</td><td class="nm">'+esc(ex.nombre)+'</td><td class="num">'+(esNum(ex.notas[aid])?ex.notas[aid]+' / '+exMax(ex):'—')+'</td></tr>':'')+'</tbody></table></details>';}
   const marcadas=Object.keys(g.asis).sort().reverse().filter(f=>{const c=g.asis[f].m[aid];return c&&c!=='A';});
   h+='<h3>Faltas, retardos y justificadas</h3>'+(marcadas.length?'<div class="chips">'+marcadas.map(f=>{const c=g.asis[f].m[aid];return '<span class="chip" style="background:'+({F:'#fde2e2',R:'#fff1d6',J:'#e0ecff'})[c]+';color:var(--ink)">'+c+' · '+fcorta(f)+'</span>';}).join('')+'</div>':'<p class="muted">Ninguna.</p>');
@@ -528,7 +575,8 @@ function vFicha(g,aid){
     let t=x.nombre+'\n'+matNom(g.materia)+' · Grupo '+g.nombre+'\nAsistencia: '+(a.pct==null?'sin registro':Math.round(a.pct)+'%')+' ('+a.F+' faltas, '+a.R+' retardos)\n';
     for(let p=1;p<=g.parciales;p++){const c=calif(g,aid,p);if(c.fin==null)continue;
       t+='Parcial '+p+': '+(c.hayExam?'calificación '+c.fin:f1(c.total)+' puntos acumulados (sin examen aún)')+'\n';
-      if(c.pend.length)t+='  Actividades pendientes: '+c.pend.map(q=>q.nombre).join(', ')+'\n';}
+      if(c.pend.length)t+='  Actividades pendientes: '+c.pend.map(q=>q.nombre).join(', ')+'\n';
+      const tard=c.ac.filter(q=>esTarde(q,aid));if(tard.length)t+='  Entregó tarde: '+tard.map(q=>q.nombre).join(', ')+'\n';}
     copiar(t,'Resumen copiado. Pégalo en WhatsApp o correo.');
   };
 }
@@ -537,9 +585,9 @@ function vFicha(g,aid){
 function vGrupoAjustes(g,head){
   const al=[...g.alumnos].sort(nombreCmp);
   let h=head+'<div class="card"><h3 style="margin-top:0">Datos del grupo</h3><div class="row"><div style="flex:1;min-width:120px"><label class="f" for="g-nom">Grupo</label><input class="in" id="g-nom" value="'+esc(g.nombre)+'"></div><div style="flex:1;min-width:120px"><label class="f" for="g-sem">Semestre</label><input class="in" id="g-sem" value="'+esc(g.semestre||'')+'"></div></div>'+
-    '<h3>Fechas de los parciales</h3><p class="muted">El pase de lista se asigna al parcial según la fecha.</p><div class="row">';
-  for(let p=2;p<=g.parciales;p++)h+='<div style="flex:1;min-width:150px"><label class="f" for="g-i'+p+'">Inicia el parcial '+p+'</label><input type="date" class="in" id="g-i'+p+'" data-ini="'+p+'" value="'+esc(g.inicios[p]||'')+'"></div>';
-  h+='</div></div>';
+    '<h3>Periodo de cada parcial</h3><p class="muted">El pase de lista, las faltas y las alertas se cuentan según estas fechas.</p>';
+  for(let p=1;p<=g.parciales;p++){const r=g.periodos[p]||{};h+='<div class="row" style="margin-bottom:6px"><b style="min-width:80px">Parcial '+p+'</b><span>del</span><input type="date" class="in" data-pi="'+p+'" value="'+esc(r.ini||'')+'" style="width:auto" aria-label="Inicio del parcial '+p+'"><span>al</span><input type="date" class="in" data-pf="'+p+'" value="'+esc(r.fin||'')+'" style="width:auto" aria-label="Fin del parcial '+p+'"></div>';}
+  h+='</div>';
   h+='<div class="card"><h3 style="margin-top:0">Alumnos ('+activos(g).length+')</h3>'+(activos(g).length>MAX_AL?'<p class="note">Tu formato de Excel tiene lugar para '+MAX_AL+' alumnos.</p>':'')+'<div class="lst">'+al.map(a=>'<div class="al"><input class="in" data-an="'+a.id+'" value="'+esc(a.nombre)+'" style="flex:1;padding:6px 10px'+(a.baja?';text-decoration:line-through;opacity:.6':'')+'" aria-label="Nombre"><button class="btn sm sec" data-ab="'+a.id+'">'+(a.baja?'Reactivar':'Dar de baja')+'</button></div>').join('')+'</div>'+
     '<label class="f" for="g-mas">Agregar alumnos (uno por renglón): importa tu Excel o pega la lista</label>'+'<div class="imp"><label class="btn sm sec" for="g-file" style="cursor:pointer">📄 Importar desde Excel</label><input type="file" id="g-file" accept=".xlsx,.csv,.txt" class="hidden"><span class="row hidden" id="g-sel" style="margin-top:8px"><select class="in" id="g-hoja" style="width:auto" aria-label="Hoja"></select><select class="in" id="g-col" style="width:auto" aria-label="Columna"></select></span><p class="muted" id="g-msg" style="margin:6px 0 0"></p></div>'+'<textarea class="in" id="g-mas" style="min-height:70px"></textarea><p><button class="btn sm" id="g-addal">Agregar</button></p></div>';
   h+='<div class="card"><h3 style="margin-top:0">Exportar</h3><p class="muted"><b>Mi formato de Excel</b>: tu archivo de siempre (listas por mes, calificaciones de los 3 parciales, actividades faltantes, resumen y firmas) lleno con los datos de este grupo.</p><div class="row"><button class="btn xl" id="x-fmt">⬇ Mi formato de Excel</button><button class="btn sm sec" id="x-ob">Observaciones (CSV)</button></div></div>';
@@ -547,7 +595,12 @@ function vGrupoAjustes(g,head){
   app.innerHTML=h;
   $('#g-nom').onchange=e=>{const v=e.target.value.trim();if(v){g.nombre=v;cambio();titulo(g.materia+' · '+g.nombre,true);}};
   $('#g-sem').onchange=e=>{g.semestre=e.target.value.trim();cambio();};
-  app.querySelectorAll('[data-ini]').forEach(i=>i.onchange=()=>{if(i.value){g.inicios[i.dataset.ini]=i.value;cambio();toast('Fechas actualizadas');}});
+  app.querySelectorAll('[data-pi],[data-pf]').forEach(i=>i.onchange=()=>{const p=i.dataset.pi||i.dataset.pf;const r=g.periodos[p]=g.periodos[p]||{ini:'',fin:''};
+    const ini=app.querySelector('[data-pi="'+p+'"]').value,fin=app.querySelector('[data-pf="'+p+'"]').value;
+    if(ini&&fin&&ini>fin){toast('El inicio del parcial '+p+' debe ser antes del fin');return;}
+    r.ini=ini;r.fin=fin;cambio();
+    const ch=[];for(let q=1;q<=g.parciales;q++)for(let w=q+1;w<=g.parciales;w++){const A=g.periodos[q],B=g.periodos[w];if(A&&B&&A.ini&&A.fin&&B.ini&&B.fin&&A.ini<=B.fin&&B.ini<=A.fin)ch.push(q+' y '+w);}
+    toast(ch.length?'Ojo: se enciman los parciales '+ch.join(', '):'Periodo del parcial '+p+' actualizado');});
   app.querySelectorAll('[data-an]').forEach(i=>i.onchange=()=>{const a=g.alumnos.find(k=>k.id===i.dataset.an);if(i.value.trim()){a.nombre=i.value.trim();cambio();}});
   app.querySelectorAll('[data-ab]').forEach(b=>b.onclick=()=>{const a=g.alumnos.find(k=>k.id===b.dataset.ab);a.baja=!a.baja;if(!a.baja)delete a.baja;cambio();render();});
   importador('g',$('#g-mas'),g);
@@ -630,7 +683,7 @@ async function llenarFormato(buf,g){
     for(let i=0;i<MAX_AL;i++){
       const r=13+i,x=lista[i];
       poner(d,'C'+r,x?x.nombre:null);
-      for(let k=0;k<MAX_ACT;k++){const v=x&&ua[k]?ua[k].notas[x.id]:null;poner(d,ACOL[k]+r,esNum(v)?v:null);}
+      for(let k=0;k<MAX_ACT;k++){const v=x&&ua[k]?notaEf(g,ua[k],x.id):null;poner(d,ACOL[k]+r,esNum(v)?v:null);}
       for(let c=colNum('D');c<=colNum('AD');c++){const L=colLet(c);if(!ACOL.includes(L))poner(d,L+r,null);}
       if(!x){['AE','AF','AG','AI','AL','AM'].forEach(L=>poner(d,L+r,null));continue;}
       const pa=pondA(g,p);
@@ -638,6 +691,7 @@ async function llenarFormato(buf,g){
       const coef=a=>esNum(a.valor)?a.valor+'/'+actMax(a):'('+fpt(VV.resto)+'/'+VV.nAut+')/'+actMax(a);
       poner(d,'AE'+r,n?{f:simple?'(('+ua.map((_,k)=>ACOL[k]+r).join('+')+')*'+pa+')/'+(n*10):ua.map((a,k)=>ACOL[k]+r+'*'+coef(a)).join('+')}:0);
       poner(d,'AF'+r,{f:'AE'+r+'+AG'+r});
+      poner(d,'AH'+r,p<=g.parciales?asis(g,x.id,p).F:null);
       const cx=calif(g,x.id,p);poner(d,'AG'+r,cx.exam==null?null:Math.round(cx.exam*100)/100);
       const xt=+((g.extra[p]||{})[x.id])||0;
       const base='ROUND(AE'+r+'+AG'+r+(xt?'+'+(Math.round(xt*100)/10):'')+',0)';
