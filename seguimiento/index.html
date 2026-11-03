@@ -704,6 +704,7 @@ async function llenarFormato(buf,g,opts){
       poner(d,'AI'+r,(n||cx.hayExam)?{f:'IF('+base+'<60,5,MIN(10,ROUND('+base+'/10,0)))'}:null);
       poner(d,'AL'+r,null);poner(d,'AM'+r,null);
     }
+    for(const sv of [...d.getElementsByTagNameNS(NS,'sheetView')]){sv.setAttribute('topLeftCell','A1');[...sv.getElementsByTagNameNS(NS,'pane')].forEach(x=>x.parentNode.removeChild(x));[...sv.getElementsByTagNameNS(NS,'selection')].forEach(x=>{x.setAttribute('activeCell','C13');x.setAttribute('sqref','C13');x.removeAttribute('pane');});}   // abrir mostrando el logo
     const ro=await hoja(RO[p]);if(ro)poner(ro,'A2','Grupo  '+g.nombre+'  -  Reporte para Orientacion y padres de familia');
   }
   // Asistencia por mes (A = P en tu formato)
