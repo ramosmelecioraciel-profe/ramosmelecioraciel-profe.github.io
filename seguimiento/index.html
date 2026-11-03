@@ -317,9 +317,10 @@ function vNuevo(){
   app.innerHTML='<div class="card"><label class="f" for="n-mat">Asignatura</label><select class="in" id="n-mat"><option value="PM1">Pensamiento Matemático I</option><option value="HC">Hoja de Cálculo Aplicada</option><option value="otra">Otra…</option></select>'+
   '<div id="n-otra-w" class="hidden"><label class="f" for="n-otra">Nombre de la asignatura</label><input class="in" id="n-otra"></div>'+
   '<div class="row"><div style="flex:1;min-width:120px"><label class="f" for="n-nom">Grupo</label><input class="in" id="n-nom" placeholder="Ej. 1-2"></div><div style="flex:1;min-width:120px"><label class="f" for="n-sem">Semestre</label><input class="in" id="n-sem" placeholder="Ej. 1" inputmode="numeric"></div></div>'+
-  '<label class="f" for="n-al">Lista de alumnos (uno por renglón; puedes copiarla de tu Excel)</label><textarea class="in" id="n-al" placeholder="APELLIDO APELLIDO NOMBRE&#10;APELLIDO APELLIDO NOMBRE"></textarea>'+
+  '<label class="f" for="n-al">Lista de alumnos (uno por renglón): importa tu Excel o pega la lista</label>'+'<div class="imp"><label class="btn sm sec" for="n-file" style="cursor:pointer">📄 Importar desde Excel</label><input type="file" id="n-file" accept=".xlsx,.csv,.txt" class="hidden"><span class="row hidden" id="n-sel" style="margin-top:8px"><select class="in" id="n-hoja" style="width:auto" aria-label="Hoja"></select><select class="in" id="n-col" style="width:auto" aria-label="Columna"></select></span><p class="muted" id="n-msg" style="margin:6px 0 0"></p></div>'+'<textarea class="in" id="n-al" placeholder="APELLIDO APELLIDO NOMBRE&#10;APELLIDO APELLIDO NOMBRE"></textarea>'+
   '<p class="muted" id="n-cuenta"></p><button class="btn" id="n-ok">Crear grupo</button></div>';
   $('#n-mat').onchange=()=>$('#n-otra-w').classList.toggle('hidden',$('#n-mat').value!=='otra');
+  importador('n',$('#n-al'));
   $('#n-al').oninput=()=>{const n=limpiarNombres($('#n-al').value).length;$('#n-cuenta').textContent=n?n+' alumnos'+(n>MAX_AL?' (tu formato de Excel tiene lugar para '+MAX_AL+')':''):'';};
   $('#n-ok').onclick=()=>{
     let m=$('#n-mat').value;if(m==='otra')m=$('#n-otra').value.trim();
@@ -520,7 +521,7 @@ function vGrupoAjustes(g,head){
   for(let p=2;p<=g.parciales;p++)h+='<div style="flex:1;min-width:150px"><label class="f" for="g-i'+p+'">Inicia el parcial '+p+'</label><input type="date" class="in" id="g-i'+p+'" data-ini="'+p+'" value="'+esc(g.inicios[p]||'')+'"></div>';
   h+='</div></div>';
   h+='<div class="card"><h3 style="margin-top:0">Alumnos ('+activos(g).length+')</h3>'+(activos(g).length>MAX_AL?'<p class="note">Tu formato de Excel tiene lugar para '+MAX_AL+' alumnos.</p>':'')+'<div class="lst">'+al.map(a=>'<div class="al"><input class="in" data-an="'+a.id+'" value="'+esc(a.nombre)+'" style="flex:1;padding:6px 10px'+(a.baja?';text-decoration:line-through;opacity:.6':'')+'" aria-label="Nombre"><button class="btn sm sec" data-ab="'+a.id+'">'+(a.baja?'Reactivar':'Dar de baja')+'</button></div>').join('')+'</div>'+
-    '<label class="f" for="g-mas">Agregar alumnos (uno por renglón)</label><textarea class="in" id="g-mas" style="min-height:70px"></textarea><p><button class="btn sm" id="g-addal">Agregar</button></p></div>';
+    '<label class="f" for="g-mas">Agregar alumnos (uno por renglón): importa tu Excel o pega la lista</label>'+'<div class="imp"><label class="btn sm sec" for="g-file" style="cursor:pointer">📄 Importar desde Excel</label><input type="file" id="g-file" accept=".xlsx,.csv,.txt" class="hidden"><span class="row hidden" id="g-sel" style="margin-top:8px"><select class="in" id="g-hoja" style="width:auto" aria-label="Hoja"></select><select class="in" id="g-col" style="width:auto" aria-label="Columna"></select></span><p class="muted" id="g-msg" style="margin:6px 0 0"></p></div>'+'<textarea class="in" id="g-mas" style="min-height:70px"></textarea><p><button class="btn sm" id="g-addal">Agregar</button></p></div>';
   h+='<div class="card"><h3 style="margin-top:0">Exportar</h3><p class="muted"><b>Mi formato de Excel</b>: tu archivo de siempre (listas por mes, calificaciones de los 3 parciales, actividades faltantes, resumen y firmas) lleno con los datos de este grupo.</p><div class="row"><button class="btn xl" id="x-fmt">⬇ Mi formato de Excel</button><button class="btn sm sec" id="x-ob">Observaciones (CSV)</button></div></div>';
   h+='<div class="card"><h3 style="margin-top:0">Eliminar grupo</h3><p class="muted">Borra el grupo con toda su información. Descarga un respaldo antes.</p><button class="btn sm danger" id="g-del">Eliminar este grupo</button></div>';
   app.innerHTML=h;
@@ -529,7 +530,8 @@ function vGrupoAjustes(g,head){
   app.querySelectorAll('[data-ini]').forEach(i=>i.onchange=()=>{if(i.value){g.inicios[i.dataset.ini]=i.value;cambio();toast('Fechas actualizadas');}});
   app.querySelectorAll('[data-an]').forEach(i=>i.onchange=()=>{const a=g.alumnos.find(k=>k.id===i.dataset.an);if(i.value.trim()){a.nombre=i.value.trim();cambio();}});
   app.querySelectorAll('[data-ab]').forEach(b=>b.onclick=()=>{const a=g.alumnos.find(k=>k.id===b.dataset.ab);a.baja=!a.baja;if(!a.baja)delete a.baja;cambio();render();});
-  $('#g-addal').onclick=()=>{const n=limpiarNombres($('#g-mas').value);if(!n.length)return;n.forEach(x=>g.alumnos.push({id:uid(),nombre:x.toUpperCase()}));cambio();toast(n.length+' alumnos agregados');render();};
+  importador('g',$('#g-mas'),g);
+  $('#g-addal').onclick=()=>{const ya=new Set(g.alumnos.map(a=>normal(a.nombre)));const n=limpiarNombres($('#g-mas').value).filter(x=>!ya.has(normal(x)));if(!n.length){toast('Esos alumnos ya están en el grupo');return;}n.forEach(x=>{g.alumnos.push({id:uid(),nombre:x.toUpperCase()});ya.add(normal(x));});cambio();toast(n.length+' alumnos agregados');render();};
   $('#g-del').onclick=()=>{if(confirm('¿Eliminar el grupo '+g.nombre+' con todos sus datos? No se puede deshacer.')){S.grupos=S.grupos.filter(x=>x!==g);cambio();location.hash='';}};
   $('#x-fmt').onclick=()=>exportarFormato(g);
   $('#x-ob').onclick=()=>{const rows=[['Fecha','Alumno','Tipo','Observación']];[...g.obs].sort((a,b)=>a.fecha.localeCompare(b.fecha)).forEach(o=>{const a=g.alumnos.find(x=>x.id===o.aid);rows.push([o.fecha,a?a.nombre:'',o.tipo,o.texto]);});descargar('Observaciones_'+archivoSeguro(g.materia+'_'+g.nombre)+'.csv',csv(rows));};
@@ -683,6 +685,60 @@ async function llenarFormato(buf,g){
     if(!textoCelda.sis){const sst=parse(await sstF.async('string'));textoCelda.sis=[...sst.getElementsByTagNameNS(NS,'si')].map(s=>s.textContent);}
     return textoCelda.sis[k]||'';
   }
+}
+
+/* --- importar lista de alumnos desde Excel --- */
+const normal=t=>String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().toUpperCase();
+const ENCAB=/^(N\.?P\.?|NO\.?|NUM|NOMBRE|NOMBRES|ALUMNO|ALUMNOS|NOMBRE COMPLETO.*|NOMBRE DEL ALUMNO|APELLIDOS?.*|ACTIVIDADES|FECHA|GENERO|SEXO|GRUPO.*|TOTAL.*)$/;
+const esNombre=t=>{t=String(t).trim();return t.length>=6&&t.length<=80&&!/\d/.test(t)&&/^[A-Za-zÁÉÍÓÚÑÜáéíóúñü][A-Za-zÁÉÍÓÚÑÜáéíóúñü .'-]+$/.test(t)&&t.split(/\s+/).length>=2&&!ENCAB.test(normal(t))&&!/[=:]/.test(t);};
+async function leerTabla(file){   // → [{nombre, cols:{A:[textos…]}}]
+  if(/\.(csv|txt)$/i.test(file.name)){
+    const txt=await file.text();const sep=(txt.split('\n')[0].match(/;/g)||[]).length>(txt.split('\n')[0].match(/,/g)||[]).length?';':(txt.includes('\t')?'\t':',');
+    const cols={};txt.split(/\r?\n/).forEach(l=>l.split(sep).forEach((v,i)=>{const L=String.fromCharCode(65+Math.min(i,25));(cols[L]=cols[L]||[]).push(v.replace(/^"|"$/g,'').trim());}));
+    return [{nombre:file.name,cols}];
+  }
+  await cargarJSZip();
+  const zip=await JSZip.loadAsync(await file.arrayBuffer());
+  const parse=t=>new DOMParser().parseFromString(t,'application/xml');
+  const NS='http://schemas.openxmlformats.org/spreadsheetml/2006/main',RNS='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+  let sst=[];const sf=zip.file('xl/sharedStrings.xml');
+  if(sf)sst=[...parse(await sf.async('string')).getElementsByTagNameNS(NS,'si')].map(x=>[...x.getElementsByTagNameNS(NS,'t')].map(t=>t.textContent).join(''));
+  const wb=parse(await zip.file('xl/workbook.xml').async('string'));
+  const rels=parse(await zip.file('xl/_rels/workbook.xml.rels').async('string'));const rm={};
+  [...rels.getElementsByTagName('Relationship')].forEach(r=>rm[r.getAttribute('Id')]=r.getAttribute('Target'));
+  const out=[];
+  for(const sh of [...wb.getElementsByTagNameNS(NS,'sheet')]){
+    const t=(rm[sh.getAttributeNS(RNS,'id')]||'').replace(/^\/?xl\//,'');const f=zip.file('xl/'+t);if(!f)continue;
+    const d=parse(await f.async('string'));const cols={};
+    for(const c of [...d.getElementsByTagNameNS(NS,'c')]){
+      const L=(c.getAttribute('r')||'').replace(/\d+/g,'');const ty=c.getAttribute('t');let v='';
+      if(ty==='s'){const x=c.getElementsByTagNameNS(NS,'v')[0];v=x?sst[+x.textContent]||'':'';}
+      else if(ty==='inlineStr')v=c.textContent;
+      else if(ty==='str'){const x=c.getElementsByTagNameNS(NS,'v')[0];v=x?x.textContent:'';}
+      if(v)(cols[L]=cols[L]||[]).push(v);
+    }
+    out.push({nombre:sh.getAttribute('name'),cols});
+  }
+  return out;
+}
+function mejorColumna(h){let best=null,bn=0;for(const L in h.cols){const n=h.cols[L].filter(esNombre).length;if(n>bn){bn=n;best=L;}}return [best,bn];}
+function nombresDe(h,L){const vis=new Set(),r=[];for(const t of (h.cols[L]||[]))if(esNombre(t)){const k=normal(t);if(!vis.has(k)){vis.add(k);r.push(t.replace(/\s+/g,' ').trim().toUpperCase());}}return r;}
+function importador(id,area,g){
+  const fi=$('#'+id+'-file'),selW=$('#'+id+'-sel'),hs=$('#'+id+'-hoja'),cs=$('#'+id+'-col'),msg=$('#'+id+'-msg');let hojas=[];
+  const ya=g?new Set(g.alumnos.map(a=>normal(a.nombre))):null;
+  const poner=()=>{const h=hojas[+hs.value];let n=nombresDe(h,cs.value);let rep=0;if(ya){const k=n.length;n=n.filter(x=>!ya.has(normal(x)));rep=k-n.length;}
+    area.value=n.join('\n');area.dispatchEvent(new Event('input'));
+    msg.textContent=n.length?n.length+' alumnos encontrados'+(rep?' ('+rep+' ya estaban en el grupo)':'')+'. Revisa la lista y pulsa '+(g?'"Agregar"':'"Crear grupo"')+'.':(rep?'Los '+rep+' alumnos de esa lista ya están en el grupo.':'No encontré nombres en esa columna. Prueba con otra hoja o columna.');};
+  const llenarCols=()=>{const h=hojas[+hs.value];const [b]=mejorColumna(h);cs.innerHTML=Object.keys(h.cols).sort((a,b2)=>a.length-b2.length||a.localeCompare(b2)).map(L=>'<option value="'+L+'"'+(L===b?' selected':'')+'>Columna '+L+' ('+h.cols[L].filter(esNombre).length+' nombres)</option>').join('');poner();};
+  fi.onchange=async()=>{const f=fi.files[0];if(!f)return;msg.textContent='Leyendo '+f.name+'…';
+    try{hojas=await leerTabla(f);
+      if(!hojas.length)throw 0;
+      let bi=0,bs=-1;hojas.forEach((h,i)=>{let [,n]=mejorColumna(h);if(/alumn|lista/i.test(h.nombre))n+=1000;if(n>bs){bs=n;bi=i;}});
+      hs.innerHTML=hojas.map((h,i)=>'<option value="'+i+'"'+(i===bi?' selected':'')+'>Hoja: '+esc(h.nombre)+'</option>').join('');
+      selW.classList.remove('hidden');llenarCols();
+    }catch(e){console.error(e);msg.textContent='No pude leer ese archivo. Usa un Excel .xlsx o un .csv.';}
+    fi.value='';};
+  hs.onchange=llenarCols;cs.onchange=poner;
 }
 
 /* --- conexión y respaldo --- */
