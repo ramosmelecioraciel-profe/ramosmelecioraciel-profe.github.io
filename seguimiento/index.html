@@ -144,6 +144,7 @@ function alumnoEnHermanos(g,fn){   // aplica un cambio de la lista de alumnos a 
 const TIPOS={Académica:'#2563eb',Conducta:'#c62828',Positiva:'#15803d','Padres / tutoría':'#7c3aed',Otra:'#64748b'};
 const f1=x=>x==null?'—':(Math.round(x*10)/10).toFixed(1);
 const nombreCmp=(a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'});
+const PLANTILLA_URL='';   // enlace "Hacer una copia" de la Hoja de Google plantilla
 const MAX_ACT=9, MAX_AL=45;   // espacios de tu formato de Excel
 const PERIODOS={1:{ini:'2026-09-01',fin:'2026-10-04'},2:{ini:'2026-10-05',fin:'2026-11-08'},3:{ini:'2026-11-09',fin:'2026-12-18'}};
 const nuevosPeriodos=()=>JSON.parse(JSON.stringify(PERIODOS));
@@ -198,7 +199,7 @@ async function bajar(){
   try{
     const r=await api({accion:'cargar'});
     ocupado=false;
-    if(!r.ok){red=r.error==='clave'?'clave':'off';estado();return;}
+    if(!r.ok){red=r.error==='clave'||r.error==='sinclave'?'clave':'off';estado();return;}
     red=null;const srev=r.rev||0;
     if(C.dirty){
       if(srev===C.rev)subir();else if(srev>C.rev){conflicto=r;mostrarConflicto();}
@@ -217,7 +218,7 @@ async function subir(forzar){
     red=null;
     if(r.ok){C.rev=r.rev;if(seq===mio)C.dirty=false;conflicto=null;$('#banner').innerHTML='';persist();}
     else if(r.error==='conflicto'){conflicto=r;mostrarConflicto();}
-    else red=r.error==='clave'?'clave':'off';
+    else red=r.error==='clave'||r.error==='sinclave'?'clave':'off';
   }catch(e){red='off';}
   ocupado=false;estado();
   if(C.dirty&&!conflicto&&red!=='clave'){clearTimeout(tSub);tSub=setTimeout(subir,red==='off'?30000:1500);}
@@ -353,7 +354,7 @@ function vInicio(){
   if(!(S.perfil&&S.perfil.docente))h+='<div class="card"><label class="f" for="i-doc" style="margin-top:0">Escribe tu nombre para que aparezca arriba</label><div class="row"><input class="in" id="i-doc" placeholder="Ej. Prof. Raciel Ramos Melecio" style="flex:1;min-width:200px"><button class="btn" id="i-docok">Guardar</button></div></div>';
   if(!C.url)h+='<div class="card" style="background:var(--warn)"><b>Tus datos se guardan solo en este equipo.</b> Conecta tu Hoja de Google para verlos también en el celular y la computadora. <a href="#ajustes">Conectar</a></div>';
   h+='<div class="row" style="justify-content:space-between"><h2>Mis grupos</h2><a class="btn sm" href="#nuevo">+ Nuevo grupo o asignatura</a></div>';
-  if(!S.grupos.length){app.innerHTML=h+'<div class="card empty-st"><p><b>Todavía no tienes grupos.</b></p><p>Crea uno y pega la lista de tus alumnos.</p><a class="btn" href="#nuevo">Crear mi primer grupo</a></div>';return;}
+  if(!S.grupos.length){app.innerHTML=h+'<div class="card empty-st"><p><b>Todavía no tienes grupos.</b></p><p>Crea uno, elige su asignatura e importa o pega la lista de tus alumnos.</p><p class="muted">¿Es tu primera vez? Revisa <a href="#ajustes">⚙ Primeros pasos</a> para guardar tus datos en tu propia Hoja de Google.</p><a class="btn" href="#nuevo">Crear mi primer grupo</a></div>';return;}
   const orden=[...S.grupos].sort((a,b)=>(a.nombre+'|'+(a.semestre||'')).localeCompare(b.nombre+'|'+(b.semestre||''),'es',{numeric:true})||matNom(a.materia).localeCompare(matNom(b.materia),'es'));
   const riesgo=[];let clave=null;
   for(const g of orden){
@@ -652,7 +653,7 @@ function vGrupoAjustes(g,head){
   h+='</div>';
   h+='<div class="card"><h3 style="margin-top:0">Alumnos ('+activos(g).length+')</h3>'+(activos(g).length>MAX_AL?'<p class="note">Tu formato de Excel tiene lugar para '+MAX_AL+' alumnos.</p>':'')+'<div class="lst">'+al.map(a=>'<div class="al"><input class="in" data-an="'+a.id+'" value="'+esc(a.nombre)+'" style="flex:1;padding:6px 10px'+(a.baja?';text-decoration:line-through;opacity:.6':'')+'" aria-label="Nombre"><button class="btn sm sec" data-ab="'+a.id+'">'+(a.baja?'Reactivar':'Dar de baja')+'</button></div>').join('')+'</div>'+
     '<label class="f" for="g-mas">Agregar alumnos (uno por renglón): importa tu Excel o pega la lista</label>'+'<div class="imp"><label class="btn sm sec" for="g-file" style="cursor:pointer">📄 Importar desde Excel</label><input type="file" id="g-file" accept=".xlsx,.csv,.txt" class="hidden"><span class="row hidden" id="g-sel" style="margin-top:8px"><select class="in" id="g-hoja" style="width:auto" aria-label="Hoja"></select><select class="in" id="g-col" style="width:auto" aria-label="Columna"></select></span><p class="muted" id="g-msg" style="margin:6px 0 0"></p></div>'+'<textarea class="in" id="g-mas" style="min-height:70px"></textarea><p><button class="btn sm" id="g-addal">Agregar</button></p></div>';
-  h+='<div class="card"><h3 style="margin-top:0">Exportar</h3><p class="muted">Hojas de calificaciones con tu formato (encabezados, logos y fórmulas), llenas con los datos de este grupo.</p><div class="row">'+[1,2,3].filter(q=>q<=g.parciales).map(q=>'<button class="btn sm xl" data-xp="'+q+'">⬇ Parcial '+q+'</button>').join('')+'<button class="btn xl" id="x-fmt">⬇ Los '+Math.min(3,g.parciales)+' parciales juntos</button></div><div class="row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)"><span class="muted" style="flex:1;min-width:200px">Formato que se usa: <b id="x-fnom">'+esc((formatoGuardado()||{}).nombre||'Formato Prepa 252 (original)')+'</b></span><label class="btn sm sec" for="x-up" style="cursor:pointer">⬆ Subir mi formato</label><input type="file" id="x-up" accept=".xlsx" class="hidden">'+(formatoGuardado()?'<button class="btn sm sec" id="x-orig">Volver al original</button>':'')+'</div><p class="muted" id="x-fmsg" style="margin:4px 0 0">Si cambias el encabezado, los logos o las filas de tu Excel, súbelo aquí. Debe conservar las hojas "Calif. 1er/2do/3er Parcial" con las mismas columnas.</p><div class="row" style="margin-top:8px"><button class="btn sm sec" id="x-comp">Archivo completo (con listas por mes, faltantes y resumen)</button><button class="btn sm sec" id="x-ob">Observaciones (CSV)</button></div></div>';
+  h+='<div class="card"><h3 style="margin-top:0">Exportar</h3><p class="muted">Hojas de calificaciones con tu formato (encabezados, logos y fórmulas), llenas con los datos de este grupo.</p><div class="row">'+[1,2,3].filter(q=>q<=g.parciales).map(q=>'<button class="btn sm xl" data-xp="'+q+'">⬇ Parcial '+q+'</button>').join('')+'<button class="btn xl" id="x-fmt">⬇ Los '+Math.min(3,g.parciales)+' parciales juntos</button></div><div class="row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)"><span class="muted" style="flex:1;min-width:200px">Formato que se usa: <b id="x-fnom">'+esc((formatoGuardado()||{}).nombre||'Formato de ejemplo (Prepa 252)')+'</b></span><label class="btn sm sec" for="x-up" style="cursor:pointer">⬆ Subir mi formato</label><input type="file" id="x-up" accept=".xlsx" class="hidden">'+(formatoGuardado()?'<button class="btn sm sec" id="x-orig">Volver al original</button>':'')+'</div><p class="muted" id="x-fmsg" style="margin:4px 0 0">Si cambias el encabezado, los logos o las filas de tu Excel, súbelo aquí. Debe conservar las hojas "Calif. 1er/2do/3er Parcial" con las mismas columnas.</p><div class="row" style="margin-top:8px"><button class="btn sm sec" id="x-comp">Archivo completo (con listas por mes, faltantes y resumen)</button><button class="btn sm sec" id="x-ob">Observaciones (CSV)</button></div></div>';
   h+='<div class="card"><h3 style="margin-top:0">Eliminar esta asignatura</h3><p class="muted">Borra '+esc(matNom(g.materia))+' de este grupo con toda su información'+(hermanos(g).length?'; las demás asignaturas del grupo no se tocan':'')+'. Descarga un respaldo antes.</p><button class="btn sm danger" id="g-del">Eliminar</button></div>';
   app.innerHTML=h;
   $('#g-nom').onchange=e=>{const v=e.target.value.trim();if(v){hermanos(g).forEach(h=>h.nombre=v);g.nombre=v;cambio();titulo('Grupo '+g.nombre+(g.semestre?' · Semestre '+g.semestre:''),true);}};
@@ -982,11 +983,19 @@ function importador(id,area,g){
 function vAjustes(){
   titulo('Ajustes',true);
   const PF=S.perfil||{};
-  let h='<div class="card"><h3 style="margin-top:0">Docente</h3><label class="f" for="p-doc">Nombre del docente (aparece arriba en la aplicación)</label><input class="in" id="p-doc" value="'+esc(PF.docente||'')+'" placeholder="Ej. Juan Pérez López"><label class="f" for="p-esc">Escuela para el encabezado del Excel (opcional; vacío = la de tu formato)</label><input class="in" id="p-esc" value="'+esc(PF.escuela||'')+'" placeholder="Ej. Escuela Preparatoria Oficial Núm. 252"></div>'+'<div class="card"><h3 style="margin-top:0">Tu Hoja de Google</h3><p class="muted">Pega la dirección de la aplicación web de Apps Script y la clave que escribiste en el código. Así tus datos se guardan en tu Google Drive y aparecen en todos tus dispositivos.</p>'+
+  let h='';
+  h+='<div class="card"><h3 style="margin-top:0">Primeros pasos (una sola vez por maestro)</h3><ol style="padding-left:20px;margin:6px 0">'+
+    '<li><b>Copia la hoja plantilla</b> a tu Google Drive'+(PLANTILLA_URL?': <a class="btn sm xl" href="'+PLANTILLA_URL+'" target="_blank" rel="noopener">Hacer una copia</a>':' (pídele el enlace a quien te compartió la app) o crea una hoja nueva y pega <a href="codigo-hoja-google.txt" target="_blank" rel="noopener">este código</a> en Extensiones → Apps Script.')+'</li>'+
+    '<li>En tu copia, menú <b>Seguimiento → Configurar mi clave</b> y acepta los permisos.</li>'+
+    '<li>En <b>Extensiones → Apps Script</b>: <b>Implementar → Nueva implementación → Aplicación web</b>, "Quién tiene acceso: <b>Cualquier usuario</b>". Copia la dirección que termina en <b>/exec</b>.</li>'+
+    '<li>Pégala abajo con tu clave y pulsa <b>Conectar</b>. Haz lo mismo en tu celular.</li></ol>'+
+    '<p class="muted" style="margin:0">Tus datos quedan solo en tu Google Drive. Nadie más, ni quien te compartió la app, puede verlos.</p></div>';
+  h+='<div class="card"><h3 style="margin-top:0">Docente</h3><label class="f" for="p-doc">Nombre del docente (aparece arriba en la aplicación)</label><input class="in" id="p-doc" value="'+esc(PF.docente||'')+'" placeholder="Ej. Juan Pérez López"><label class="f" for="p-esc">Escuela para el encabezado del Excel (opcional; vacío = la de tu formato)</label><input class="in" id="p-esc" value="'+esc(PF.escuela||'')+'" placeholder="Ej. Escuela Preparatoria Oficial Núm. 252"></div>'+'<div class="card"><h3 style="margin-top:0">Tu Hoja de Google</h3><p class="muted">Pega la dirección /exec de tu hoja y la clave que configuraste en ella. Así tus datos se guardan en tu Google Drive y aparecen en todos tus dispositivos.</p>'+
     '<label class="f" for="s-url">Dirección (termina en /exec)</label><input class="in" id="s-url" value="'+esc(C.url||'')+'" placeholder="https://script.google.com/macros/s/…/exec">'+
     '<label class="f" for="s-cl">Clave</label><input class="in" id="s-cl" type="password" value="'+esc(C.clave||'')+'" autocomplete="off">'+
     '<p class="row" style="margin-top:12px"><button class="btn" id="s-ok">Conectar</button>'+(C.url?'<button class="btn sec" id="s-des">Desconectar este equipo</button>':'')+'</p><p id="s-msg" class="muted"></p></div>';
   h+='<div class="card"><h3 style="margin-top:0">Respaldo</h3><p class="muted">Descarga una copia completa de todo (grupos, listas, calificaciones y observaciones). Guárdala de vez en cuando.</p><div class="row"><button class="btn sm sec" id="r-dl">Descargar respaldo</button><label class="btn sm sec" for="r-up" style="cursor:pointer">Restaurar respaldo</label><input type="file" id="r-up" accept=".json,application/json" class="hidden"></div></div>';
+  h+='<div class="card"><h3 style="margin-top:0">Cerrar sesión en este equipo</h3><p class="muted">Úsalo si compartes esta computadora o celular con otro maestro: borra de este equipo tus grupos, tu conexión y tu formato. En tu Hoja de Google no se borra nada.</p><button class="btn sm danger" id="s-salir">Cerrar sesión y borrar datos de este equipo</button></div>';
   h+='<p class="muted">Los datos de tus alumnos no se guardan en esta página: viven en este equipo y en tu Hoja de Google. Sin la clave nadie puede verlos.</p>';
   app.innerHTML=h;
   const guardaPerfil=()=>{S.perfil={docente:$('#p-doc').value.trim(),escuela:$('#p-esc').value.trim()};if(!S.perfil.escuela)delete S.perfil.escuela;cambio();titulo('Ajustes',true);toast('Datos guardados');};
@@ -996,7 +1005,7 @@ function vAjustes(){
     if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(url)){$('#s-msg').textContent='La dirección debe empezar con https://script.google.com/ y terminar en /exec';return;}
     $('#s-msg').textContent='Probando conexión…';
     try{const r=await fetch(url,{method:'POST',body:JSON.stringify({clave:cl,accion:'cargar'})});const j=JSON.parse(await r.text());
-      if(!j.ok){$('#s-msg').textContent=j.error==='clave'?'La clave no coincide con la del código.':'El servidor respondió con un error.';return;}
+      if(!j.ok){$('#s-msg').textContent=j.error==='sinclave'?'Tu hoja todavía no tiene clave: ábrela y usa el menú Seguimiento → Configurar mi clave.':j.error==='clave'?'La clave no coincide con la de tu hoja.':'El servidor respondió con un error.';return;}
       const cambia=C.url!==url;C.url=url;C.clave=cl;red=null;
       if(cambia){C.rev=0;C.dirty=false;}
       if(j.rev&&S.grupos.length&&cambia){conflicto=j;persist();mostrarConflicto();}
@@ -1005,6 +1014,12 @@ function vAjustes(){
     }catch(e){$('#s-msg').textContent='No se pudo conectar. Revisa la dirección y que la implementación diga "Cualquier usuario".';}
   };
   if($('#s-des'))$('#s-des').onclick=()=>{if(confirm('¿Desconectar este equipo? Tus datos siguen en la hoja.')){delete C.url;delete C.clave;C.rev=0;C.dirty=false;persist();render();}};
+  $('#s-salir').onclick=()=>{
+    if(!C.url&&S.grupos.length&&!confirm('Tus datos NO están conectados a una Hoja de Google: si cierras sesión se pierden. Descarga antes un respaldo. ¿Borrar de todos modos?'))return;
+    if(C.url&&C.dirty&&!confirm('Hay cambios que todavía no se guardan en tu Hoja de Google. Si sigues, se perderán. ¿Borrar de todos modos?'))return;
+    if(!confirm('¿Cerrar sesión y borrar de este equipo tus grupos, conexión y formato?'))return;
+    try{[LS,LSC,LSF].forEach(k=>localStorage.removeItem(k));}catch(e){}
+    location.hash='';location.reload();};
   $('#r-dl').onclick=()=>descargar('Respaldo_seguimiento_'+hoy()+'.json',JSON.stringify(S,null,1),'application/json');
   $('#r-up').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!d||!Array.isArray(d.grupos))throw 0;
     if(confirm('Esto reemplaza todos tus datos actuales por los del respaldo ('+d.grupos.length+' grupos). ¿Continuar?')){S=migrar(d);cambio();toast('Respaldo restaurado');location.hash='';}}catch(x){toast('Ese archivo no es un respaldo válido');}};rd.readAsText(f);};

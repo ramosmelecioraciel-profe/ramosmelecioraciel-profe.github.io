@@ -1,0 +1,172 @@
+/**
+ * SEGUIMIENTO DE ALUMNOS — servidor de datos para la app
+ *   https://ramosmelecioraciel-profe.github.io/seguimiento/
+ * Guarda tus grupos, listas y calificaciones en ESTA hoja de tu Google Drive.
+ * Solo tú (con tu clave) puedes leerlos o cambiarlos.
+ *
+ * PRIMERA VEZ (una sola vez):
+ *  1) En la hoja: menú  Seguimiento → Configurar mi clave  (acepta los permisos).
+ *  2) Aquí en Apps Script: Implementar → Nueva implementación → Aplicación web
+ *       Ejecutar como: Yo   ·   Quién tiene acceso: Cualquier usuario
+ *  3) Copia la dirección que termina en /exec y pégala en la app (botón ⚙) con tu clave.
+ */
+const CLAVE_EN_CODIGO = '';       // opcional: si prefieres, escribe aquí tu clave en lugar de usar el menú
+
+const HOJA_DATOS = '_datos';      // aquí se guarda todo (no la edites a mano)
+const TROZO = 40000;              // caracteres por celda
+
+function doPost(e) {
+  let p = {};
+  try { p = JSON.parse(e.postData.contents); } catch (x) {}
+  return salida_(manejar_(p));
+}
+function doGet() {
+  return salida_({ ok: true, mensaje: 'Servidor de seguimiento activo' });
+}
+
+function manejar_(p) {
+  const clave = PropertiesService.getScriptProperties().getProperty('CLAVE') || CLAVE_EN_CODIGO;
+  if (!clave) return { ok: false, error: 'sinclave' };
+  if (String(p.clave || '') !== clave) return { ok: false, error: 'clave' };
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const cur = leer_();
+    if (p.accion === 'cargar') return { ok: true, datos: cur.datos, rev: cur.rev };
+    if (p.accion === 'guardar') {
+      if (!p.datos || !Array.isArray(p.datos.grupos)) return { ok: false, error: 'datos' };
+      if (Number(p.base) !== -1 && cur.rev && Number(p.base) !== cur.rev)
+        return { ok: false, error: 'conflicto', datos: cur.datos, rev: cur.rev };
+      const rev = cur.rev + 1;
+      escribir_(p.datos, rev);
+      return { ok: true, rev: rev };
+    }
+    return { ok: false, error: 'accion' };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function salida_(o) {
+  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function hojaDatos_() {
+  const ss = SpreadsheetApp.getActive();
+  let h = ss.getSheetByName(HOJA_DATOS);
+  if (!h) { h = ss.insertSheet(HOJA_DATOS); h.hideSheet(); }
+  return h;
+}
+function leer_() {
+  const h = hojaDatos_();
+  const n = h.getLastRow();
+  if (!n) return { datos: null, rev: 0 };
+  const v = h.getRange(1, 1, n, 2).getValues();
+  const rev = Number(v[0][1]) || 0;
+  const txt = v.map(r => String(r[0]).replace(/^~/, '')).join('');
+  if (!txt) return { datos: null, rev: rev };
+  return { datos: JSON.parse(txt), rev: rev };
+}
+function escribir_(datos, rev) {
+  const h = hojaDatos_();
+  const txt = JSON.stringify(datos);
+  const filas = [];
+  for (let i = 0; i < txt.length; i += TROZO) filas.push(['~' + txt.slice(i, i + TROZO), '']);
+  if (!filas.length) filas.push(['~', '']);
+  filas[0][1] = rev;
+  filas[0].push(new Date());
+  for (let i = 1; i < filas.length; i++) filas[i].push('');
+  h.clearContents();
+  h.getRange(1, 1, filas.length, 3).setValues(filas);
+}
+
+/* ---------- hojas para leer (resumen por grupo) ---------- */
+function configurarClave() {
+  const ui = SpreadsheetApp.getUi();
+  const r = ui.prompt('Configurar mi clave', 'Escribe una clave (mínimo 6 caracteres). La usarás en la app junto con la dirección /exec.\nNo la compartas con tus alumnos.', ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  const c = r.getResponseText().trim();
+  if (c.length < 6) { ui.alert('La clave debe tener al menos 6 caracteres.'); return; }
+  PropertiesService.getScriptProperties().setProperty('CLAVE', c);
+  configurar();
+  ui.alert('Listo. Ahora en Extensiones → Apps Script: Implementar → Nueva implementación → Aplicación web (Quién tiene acceso: Cualquier usuario) y copia la dirección /exec.');
+}
+function configurar() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'actualizarHojas')
+    .forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('actualizarHojas').timeBased().everyHours(1).create();
+  hojaDatos_();
+  actualizarHojas();
+}
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('Seguimiento')
+    .addItem('Configurar mi clave', 'configurarClave')
+    .addItem('Actualizar resúmenes ahora', 'actualizarHojas').addToUi();
+}
+
+function actualizarHojas() {
+  const d = leer_().datos;
+  if (!d) return;
+  const ss = SpreadsheetApp.getActive();
+  d.grupos.forEach(g => {
+    const nombre = ('Resumen ' + g.materia + ' ' + g.nombre).replace(/[\[\]\*\?\/\\:]/g, '-').slice(0, 90);
+    let h = ss.getSheetByName(nombre) || ss.insertSheet(nombre);
+    h.clear();
+    const enc = ['Alumno', '% Asistencia', 'Faltas', 'Retardos', 'Justificadas'];
+    for (let p = 1; p <= g.parciales; p++) enc.push('Parcial ' + p);
+    enc.push('Promedio final', 'Alertas');
+    const filas = [enc];
+    g.alumnos.filter(a => !a.baja).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+      .forEach(a => {
+        const s = asis_(g, a.id);
+        const f = [a.nombre, s.pct == null ? '' : Math.round(s.pct), s.F, s.R, s.J];
+        const fins = [];
+        for (let p = 1; p <= g.parciales; p++) {
+          const c = calif_(g, a.id, p);
+          f.push(c == null ? '' : Math.round(c * 10) / 10);
+          if (c != null) fins.push(c);
+        }
+        f.push(fins.length ? Math.round(fins.reduce((x, y) => x + y, 0) / fins.length * 10) / 10 : '');
+        f.push(alertas_(g, a.id).join(' · '));
+        filas.push(f);
+      });
+    h.getRange(1, 1, filas.length, enc.length).setValues(filas);
+    h.getRange(1, 1, 1, enc.length).setFontWeight('bold').setBackground('#1d3557').setFontColor('#ffffff');
+    h.setFrozenRows(1);
+    h.autoResizeColumns(1, enc.length);
+  });
+}
+function asis_(g, aid, p) {
+  let A = 0, F = 0, R = 0, J = 0;
+  Object.keys(g.asis).forEach(k => {
+    const s = g.asis[k]; if (p && s.p !== p) return;
+    const c = s.m[aid];
+    if (c === 'A') A++; else if (c === 'F') F++; else if (c === 'R') R++; else if (c === 'J') J++;
+  });
+  const tot = A + F + R;
+  return { A, F, R, J, tot, pct: tot ? (A + R) / tot * 100 : null };
+}
+function calif_(g, aid, p) {
+  let sp = 0, sw = 0;
+  g.crit.forEach(c => {
+    const v = g.acts.filter(a => a.parcial === p && a.crit === c.id).map(a => a.notas[aid]).filter(x => typeof x === 'number');
+    if (!v.length) return;
+    sp += v.reduce((x, y) => x + y, 0) / v.length * (+c.peso || 0); sw += (+c.peso || 0);
+  });
+  if (!sw) return null;
+  const ex = +(((g.extra || {})[p] || {})[aid]) || 0;
+  return Math.min(10, sp / sw + ex);
+}
+function alertas_(g, aid) {
+  const o = [], a = asis_(g, aid);
+  if (a.tot >= 3 && a.pct < 80) o.push('Asistencia ' + Math.round(a.pct) + '%');
+  let n = 0;
+  for (const f of Object.keys(g.asis).sort().reverse()) {
+    const c = g.asis[f].m[aid]; if (!c || c === 'J') continue;
+    if (c === 'F') n++; else break;
+  }
+  if (n >= 3) o.push(n + ' faltas seguidas');
+  const p = g.pActual || 1, c = calif_(g, aid, p);
+  if (c != null && c < 6) o.push('Parcial ' + p + ': ' + (Math.round(c * 10) / 10));
+  return o;
+}
