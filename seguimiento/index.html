@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#1d3557">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icono-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Seguimiento">
 <title>Seguimiento de alumnos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
@@ -353,6 +359,7 @@ function vInicio(){
   let h='';
   if(!(S.perfil&&S.perfil.docente))h+='<div class="card"><label class="f" for="i-doc" style="margin-top:0">Escribe tu nombre para que aparezca arriba</label><div class="row"><input class="in" id="i-doc" placeholder="Ej. Prof. Raciel Ramos Melecio" style="flex:1;min-width:200px"><button class="btn" id="i-docok">Guardar</button></div></div>';
   if(!C.url)h+='<div class="card" style="background:var(--warn)"><b>Tus datos se guardan solo en este equipo.</b> Conecta tu Hoja de Google para verlos también en el celular y la computadora. <a href="#ajustes">Conectar</a></div>';
+  if(instalar&&!instalada())h+='<div class="card row" style="justify-content:space-between;background:#e8f3ec"><span><b>Instala la app</b> en este equipo: ícono propio, pantalla completa y abre sin internet.</span><button class="btn sm xl" id="i-inst">📲 Instalar</button></div>';
   h+='<div class="row" style="justify-content:space-between"><h2>Mis grupos</h2><a class="btn sm" href="#nuevo">+ Nuevo grupo o asignatura</a></div>';
   if(!S.grupos.length){app.innerHTML=h+'<div class="card empty-st"><p><b>Todavía no tienes grupos.</b></p><p>Crea uno, elige su asignatura e importa o pega la lista de tus alumnos.</p><p class="muted">¿Es tu primera vez? Revisa <a href="#ajustes">⚙ Primeros pasos</a> para guardar tus datos en tu propia Hoja de Google.</p><a class="btn" href="#nuevo">Crear mi primer grupo</a></div>';return;}
   const orden=[...S.grupos].sort((a,b)=>(a.nombre+'|'+(a.semestre||'')).localeCompare(b.nombre+'|'+(b.semestre||''),'es',{numeric:true})||matNom(a.materia).localeCompare(matNom(b.materia),'es'));
@@ -372,6 +379,7 @@ function vInicio(){
     h+='</tbody></table></div>';}
   app.innerHTML=h;
   app.querySelectorAll('tr[data-h]').forEach(t=>t.onclick=()=>location.hash=t.dataset.h);
+  if($('#i-inst'))$('#i-inst').onclick=async()=>{const ev=instalar;instalar=null;try{ev.prompt();const r=await ev.userChoice;toast(r.outcome==='accepted'?'¡Instalada! Búscala como "Seguimiento"':'Puedes instalarla después desde el menú del navegador');}catch(e){}render();};
   if($('#i-docok'))$('#i-docok').onclick=()=>{const v=$('#i-doc').value.trim();if(!v){toast('Escribe tu nombre');return;}S.perfil=Object.assign({},S.perfil,{docente:v});cambio();render();toast('Listo');};
 }
 
@@ -1025,6 +1033,12 @@ function vAjustes(){
     if(confirm('Esto reemplaza todos tus datos actuales por los del respaldo ('+d.grupos.length+' grupos). ¿Continuar?')){S=migrar(d);cambio();toast('Respaldo restaurado');location.hash='';}}catch(x){toast('Ese archivo no es un respaldo válido');}};rd.readAsText(f);};
 }
 
+/* instalar como app y abrir sin internet */
+let instalar=null;
+const instalada=()=>window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();instalar=e;if(!location.hash||location.hash==='#')render();});
+window.addEventListener('appinstalled',()=>{instalar=null;toast('¡App instalada!');});
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 render();bajar();
 setInterval(()=>{if(C.url&&C.dirty&&!ocupado&&!conflicto)subir();},60000);
 })();
