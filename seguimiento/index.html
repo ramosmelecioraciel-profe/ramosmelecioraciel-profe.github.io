@@ -87,6 +87,9 @@ tr.click{cursor:pointer}tr.click:hover td{background:#f8f5ee}
 .cal{display:inline-block;min-width:30px;text-align:center;border-radius:6px;padding:1px 6px;font-weight:800}
 .cal.rep{background:#fde047}
 .ninp{width:70px;padding:6px 8px;border:1.5px solid var(--line);border-radius:8px;text-align:right;font-family:var(--f-mono);background:var(--paper)}
+.pbar{display:flex;height:14px;border-radius:8px;overflow:hidden;background:#ece7db;margin:4px 0 10px}.pbar i{display:block;height:100%;transition:width .15s}
+.prow{display:grid;grid-template-columns:110px 1fr auto auto;gap:8px;align-items:center;margin:6px 0}.prow label{font-weight:800;font-size:14px}.prow input[type=range]{width:100%;min-width:0}
+@media (max-width:420px){.prow{grid-template-columns:96px 1fr 56px auto}}
 .tbtn{width:40px;height:38px;border-radius:9px;border:1.5px solid var(--line);background:var(--paper);cursor:pointer;flex:none;filter:grayscale(1);opacity:.55}
 .tbtn.on{background:#fde68a;border-color:#d97706;filter:none;opacity:1}
 .ninp.bad{border-color:#b42318;background:#fff1f1}
@@ -295,10 +298,7 @@ function notaEf(g,a,aid){   // calificación que cuenta (con penalización si en
 const esTarde=(a,aid)=>!!(a.tarde&&a.tarde[aid]);
 function setPond(g,p,v,pp){
   g.pond=g.pond||{};g.pond[p]=v;if(pp!=null){g.pondP=g.pondP||{};g.pondP[p]=pp;}const pe=pondE(g,p),ex=examP(g,p);
-  if(ex&&pe>0&&exMax(ex)!==pe){const old=exMax(ex);
-    if(old>0)for(const k in ex.notas)if(esNum(ex.notas[k]))ex.notas[k]=Math.round(ex.notas[k]*pe/old*100)/100;
-    ex.max=pe;return true;}
-  return false;
+  return !!(ex&&pe>0&&exMax(ex)!==pe&&Object.values(ex.notas).some(esNum));   // las calificaciones guardadas no se tocan: se muestran en la escala nueva
 }
 function calFinal(total){const r=Math.round(total);return r<60?5:Math.min(10,Math.round(r/10));}
 function calif(g,aid,p){
@@ -491,10 +491,10 @@ function vCalif(g,head){
   const ac=actsP(g,p),ex=examP(g,p),pz=paecP(g,p);
   const pa=pondA(g,p),pp=pondP(g,p),pe=pondE(g,p);
   h+='<div class="card"><h3 style="margin-top:0">Parcial '+p+'</h3><div class="row"><span style="font-weight:700">Periodo</span><span>del</span><input type="date" class="in" id="c-pi" value="'+esc(rg.ini||'')+'" style="width:auto"><span>al</span><input type="date" class="in" id="c-pf" value="'+esc(rg.fin||'')+'" style="width:auto"></div>'+
-    '<p class="muted" style="margin:4px 0 10px">El pase de lista y las faltas se cuentan dentro de este periodo.</p><h3 style="margin:6px 0 6px">Ponderación</h3><div class="row"><label for="c-pa" style="font-weight:700;min-width:96px">Actividades</label><input class="ninp" id="c-pa" inputmode="numeric" value="'+pa+'" style="width:70px"> %</div>'+
-    '<div class="row" style="margin-top:6px"><label for="c-pp" style="font-weight:700;min-width:96px">Proyecto PAEC</label><input class="ninp" id="c-pp" inputmode="numeric" value="'+pp+'" style="width:70px"> %</div>'+
-    '<div class="row" style="margin-top:6px"><span style="font-weight:700;min-width:96px">Examen</span><b id="c-pe" style="font-family:var(--f-mono)">'+pe+'</b> % <span class="muted">(lo que resta)</span></div>'+
-    '<p class="muted" style="margin:6px 0 0">Actividades valen '+pa+' puntos'+(pp?', el proyecto PAEC '+pp+' puntos':'')+' y el examen se captura sobre '+pe+' puntos. Total 100.</p>'+
+    '<p class="muted" style="margin:4px 0 10px">El pase de lista y las faltas se cuentan dentro de este periodo.</p><h3 style="margin:6px 0 6px">Ponderación</h3>'+
+    '<div class="pbar" aria-hidden="true"><i id="pb-a" style="width:'+pa+'%;background:var(--A)"></i><i id="pb-p" style="width:'+pp+'%;background:#0e7490"></i><i id="pb-e" style="width:'+pe+'%;background:#7c3aed"></i></div>'+
+    [['a','Actividades',pa,'var(--A)'],['p','Proyecto PAEC',pp,'#0e7490'],['e','Examen',pe,'#7c3aed']].map(([k,t,v,c])=>'<div class="prow"><label for="c-r'+k+'" style="color:'+c+'">'+t+'</label><input type="range" id="c-r'+k+'" min="0" max="100" step="5" value="'+v+'" style="accent-color:'+c+'"><input class="ninp" id="c-n'+k+'" inputmode="numeric" value="'+v+'" aria-label="'+t+' %" style="width:62px"><span>%</span></div>').join('')+
+    '<p class="muted" style="margin:6px 0 0">Siempre suman 100: al mover Actividades o PAEC se ajusta el Examen; al mover el Examen se ajustan las Actividades. Cada actividad se califica de 0 a 10 y el examen se captura sobre los puntos que le toquen.</p>'+
     '<h3>Entregas tardías</h3>'+reglaHtml('c-pen',penParcial(g,p),false)+'<p class="muted" style="margin:4px 0 0">Se aplica al alumno que marques con ⏰ al calificar. Cada actividad puede tener su propia regla.</p></div>';
   h+='<div class="card"><h3 style="margin-top:0">Nueva actividad</h3><div class="row"><input class="in" id="c-new" placeholder="Ej. MCM y MCD" style="flex:2;min-width:180px"><input type="date" class="in" id="c-fecha" value="'+hoy()+'" style="flex:1;min-width:140px"><button class="btn" id="c-add">Agregar y calificar</button></div>'+
     (ac.length>=MAX_ACT?'<p class="note">Tu formato de Excel tiene lugar para '+MAX_ACT+' actividades por parcial.</p>':'')+'</div>';
@@ -526,11 +526,17 @@ function vCalif(g,head){
   $('#c-add').onclick=()=>{const n=$('#c-new').value.trim();if(!n){toast('Escribe el nombre de la actividad');return;}
     const x={id:uid(),parcial:p,tipo:'act',nombre:n,fecha:$('#c-fecha').value||hoy(),notas:{}};g.acts.push(x);actSel=x.id;cambio();render();setTimeout(()=>{const i=app.querySelector('.ninp[data-a]');if(i)i.focus();},60);};
   $('#c-new').onkeydown=e=>{if(e.key==='Enter')$('#c-add').click();};
-  const cambiaPond=()=>{const a=Math.round(num($('#c-pa').value)),q=Math.round(num($('#c-pp').value)||0);
-    if(!(a>=0&&a<=100)||!(q>=0&&q<=100)){toast('Escribe porcentajes de 0 a 100');return;}
-    if(a+q>100){toast('Actividades + PAEC no pueden pasar de 100 %');$('#c-pe').textContent='—';return;}
-    const aj=setPond(g,p,a,q);cambio();render();const txt='Actividades '+a+' % · PAEC '+q+' % · Examen '+(100-a-q)+' %';toast(aj?txt+'. El examen se ajustó a la nueva escala.':txt);};
-  $('#c-pa').onchange=cambiaPond;$('#c-pp').onchange=cambiaPond;
+  const P={a:pa,p:pp,e:pe};
+  const ajusta=(k,v)=>{v=Math.max(0,Math.min(100,Math.round(v)));P[k]=v;
+    if(k==='a'){P.e=100-P.a-P.p;if(P.e<0){P.p=100-P.a;P.e=0;}}
+    else if(k==='p'){P.e=100-P.a-P.p;if(P.e<0){P.a=100-P.p;P.e=0;}}
+    else{P.a=100-P.p-P.e;if(P.a<0){P.p=100-P.e;P.a=0;}}
+    for(const x of ['a','p','e']){$('#c-r'+x).value=P[x];$('#c-n'+x).value=P[x];$('#pb-'+x).style.width=P[x]+'%';}};
+  const guarda=()=>{if(P.a===pondA(g,p)&&P.p===pondP(g,p))return;const aj=setPond(g,p,P.a,P.p);cambio();render();
+    const txt='Actividades '+P.a+' % · PAEC '+P.p+' % · Examen '+P.e+' %';toast(aj?txt+'. El examen se muestra ahora sobre '+P.e+'.':txt);};
+  for(const x of ['a','p','e']){
+    $('#c-r'+x).oninput=e=>ajusta(x,+e.target.value);$('#c-r'+x).onchange=guarda;
+    $('#c-n'+x).onchange=e=>{const v=num(e.target.value);if(v==null||isNaN(v)){e.target.value=P[x];return;}ajusta(x,v);guarda();};}
   const cambiaPer=()=>{const i=$('#c-pi').value,f=$('#c-pf').value;if(i&&f&&i>f){toast('La fecha de inicio debe ser antes del fin');return;}g.periodos[p]={ini:i,fin:f};cambio();render();toast('Periodo del parcial '+p+' actualizado');};
   $('#c-pi').onchange=cambiaPer;$('#c-pf').onchange=cambiaPer;
   wireRegla('c-pen',r=>{g.pen[p]=r;cambio();render();toast('Regla de entregas tardías actualizada');});
@@ -548,9 +554,9 @@ function vCalif(g,head){
 function wireCalifTabs(g){app.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{g.pActual=+b.dataset.p;actSel=null;cambio();render();});}
 function vCaptura(g,a,h){
   h=h.replace(buscadorHtml(),'');
-  if(a.tipo==='exam')setPond(g,a.parcial,pondA(g,a.parcial));
   const esP=a.tipo==='paec';
-  const al=activos(g),max=a.tipo==='exam'?exMax(a):actMax(a),ac=actsP(g,a.parcial),pos=ac.indexOf(a),VV=a.tipo==='exam'||esP?null:valores(g,a.parcial);
+  const esE=a.tipo==='exam',peA=pondE(g,a.parcial),aVista=v=>esE&&esNum(v)&&exMax(a)>0?v/exMax(a)*peA:v,aGuardar=v=>esE&&peA>0?v/peA*exMax(a):v;
+  const al=activos(g),max=a.tipo==='exam'?peA:actMax(a),ac=actsP(g,a.parcial),pos=ac.indexOf(a),VV=a.tipo==='exam'||esP?null:valores(g,a.parcial);
   const cuentaTxt=()=>al.filter(x=>esNum(a.notas[x.id])).length+' de '+al.length+' calificados.';
   h+='<div class="card"><div class="row" style="justify-content:space-between"><button class="btn sm sec" id="c-volver">← Concentrado</button><button class="btn sm danger" id="c-del">Eliminar</button></div>'+
     '<p style="margin:10px 0 0"><span class="act" style="display:inline-flex;cursor:default;margin:0;padding:3px 8px"><span class="tag">'+(a.tipo==='exam'?'Examen · sobre '+max:esP?'Proyecto PAEC · sobre '+max+' · vale '+pondP(g,a.parcial)+' pts':'Act '+(pos+1)+' · sobre '+max+' · vale '+fpt(VV.v[a.id])+' pts')+'</span></span></p>'+
@@ -560,7 +566,7 @@ function vCaptura(g,a,h){
     '<div class="row"><div style="flex:2;min-width:180px"><label class="f" for="c-nom">Nombre</label><input class="in" id="c-nom" value="'+esc(a.nombre)+'"></div><div style="flex:1;min-width:140px"><label class="f" for="c-fe">Fecha</label><input type="date" class="in" id="c-fe" value="'+esc(a.fecha||'')+'"></div></div>'+
     '<p class="muted"><span id="c-n">'+cuentaTxt()+'</span> Escribe de 0 a '+max+' y pulsa Enter para pasar al siguiente. Deja vacío si no la ha entregado (cuenta como 0 y aparece en faltantes).</p></div>'+buscadorHtml()+'<div class="lst">';
   const lineaT=x=>{if(!esTarde(a,x.id))return '';const v=a.notas[x.id],e=notaEf(g,a,x.id);return 'Tarde ('+fcorta(a.tarde[x.id])+')'+(esNum(v)?': '+v+' → cuenta '+fpt(e):'');};
-  al.forEach((x,i)=>{const v=a.notas[x.id],t=esTarde(a,x.id);h+='<div class="al"><span class="n">'+(i+1)+'</span><span class="nm">'+esc(x.nombre)+'<span class="muted" style="display:block;font-weight:700;color:#9a5b00" data-tt="'+x.id+'">'+lineaT(x)+'</span></span>'+(a.tipo==='exam'?'':'<button type="button" class="tbtn'+(t?' on':'')+'" data-t="'+x.id+'" aria-pressed="'+t+'" title="Entregó tarde" aria-label="'+esc(x.nombre)+' entregó tarde">⏰</button>')+'<input class="ninp'+(esNum(v)&&v>max?' bad':'')+'" inputmode="decimal" data-a="'+x.id+'" value="'+(esNum(v)?v:'')+'" aria-label="Calificación de '+esc(x.nombre)+'"></div>';});
+  al.forEach((x,i)=>{const v=aVista(a.notas[x.id]),t=esTarde(a,x.id);h+='<div class="al"><span class="n">'+(i+1)+'</span><span class="nm">'+esc(x.nombre)+'<span class="muted" style="display:block;font-weight:700;color:#9a5b00" data-tt="'+x.id+'">'+lineaT(x)+'</span></span>'+(a.tipo==='exam'?'':'<button type="button" class="tbtn'+(t?' on':'')+'" data-t="'+x.id+'" aria-pressed="'+t+'" title="Entregó tarde" aria-label="'+esc(x.nombre)+' entregó tarde">⏰</button>')+'<input class="ninp'+(esNum(v)&&v>max+1e-9?' bad':'')+'" inputmode="decimal" data-a="'+x.id+'" value="'+(esNum(v)?fpt(v):'')+'" aria-label="Calificación de '+esc(x.nombre)+'"></div>';});
   app.innerHTML=h+'</div>';wireCalifTabs(g);wireBuscador();
   $('#c-volver').onclick=()=>{actSel=null;render();};
   $('#c-del').onclick=()=>{if(confirm('¿Eliminar "'+a.nombre+'" y sus calificaciones?')){g.acts=g.acts.filter(x=>x!==a);actSel=null;cambio();render();}};
@@ -584,7 +590,7 @@ function vCaptura(g,a,h){
   ins.forEach((inp,i)=>{
     inp.onchange=()=>{const v=num(inp.value);if(v==null){delete a.notas[inp.dataset.a];inp.classList.remove('bad');}
       else if(isNaN(v)||v<0||v>max){inp.classList.add('bad');toast('Escribe un número del 0 al '+max);return;}
-      else{a.notas[inp.dataset.a]=v;inp.classList.remove('bad');}$('#c-n').textContent=cuentaTxt();
+      else{a.notas[inp.dataset.a]=aGuardar(v);inp.classList.remove('bad');}$('#c-n').textContent=cuentaTxt();
       const tt=app.querySelector('[data-tt="'+inp.dataset.a+'"]');if(tt)tt.textContent=lineaT(al.find(x=>x.id===inp.dataset.a));cambio();};
     inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();inp.dispatchEvent(new Event('change'));let j=i+1;while(ins[j]&&ins[j].closest('.al').style.display==='none')j++;const n=ins[j];if(n){n.focus();n.select();}else inp.blur();}};
   });
@@ -671,7 +677,7 @@ function vFicha(g,aid){
   for(let p=1;p<=g.parciales;p++){const ac=actsP(g,p),ex=examP(g,p);if(!ac.length&&!ex&&!paecP(g,p))continue;
     h+='<details'+(p===pHoy(g)?' open':'')+'><summary>Actividades del parcial '+p+'</summary><table style="margin-top:6px"><tbody>'+ac.map((z2,i)=>{const v=notaEf(g,z2,aid),tt=esTarde(z2,aid);return '<tr><td class="num" style="width:60px">Act '+(i+1)+'</td><td class="nm">'+esc(z2.nombre)+(tt?'<div class="muted" style="color:#9a5b00;font-weight:700">⏰ Entregó tarde ('+fcorta(z2.tarde[aid])+')'+(esNum(z2.notas[aid])&&z2.notas[aid]!==v?': '+z2.notas[aid]+' → '+fpt(v):'')+'</div>':'')+'</td><td class="num'+(esNum(v)?(v/actMax(z2)<0.6?' low':''):' empty')+'">'+(esNum(v)?fpt(v)+(actMax(z2)!==10?' / '+actMax(z2):''):'No entregó')+'</td></tr>';}).join('')+
     (paecP(g,p)&&pondP(g,p)>0?(z3=>{const v=notaEf(g,z3,aid);return '<tr><td class="num">PAEC</td><td class="nm">'+esc(z3.nombre)+(esTarde(z3,aid)?' <span class="muted">⏰ tarde</span>':'')+'</td><td class="num'+(esNum(v)?'':' empty')+'">'+(esNum(v)?fpt(v)+' / '+actMax(z3):'No entregó')+'</td></tr>';})(paecP(g,p)):'')+
-    (ex?'<tr><td class="num">Examen</td><td class="nm">'+esc(ex.nombre)+'</td><td class="num">'+(esNum(ex.notas[aid])?ex.notas[aid]+' / '+exMax(ex):'—')+'</td></tr>':'')+'</tbody></table></details>';}
+    (ex?'<tr><td class="num">Examen</td><td class="nm">'+esc(ex.nombre)+'</td><td class="num">'+(esNum(ex.notas[aid])?fpt(exMax(ex)>0?ex.notas[aid]/exMax(ex)*pondE(g,p):0)+' / '+pondE(g,p):'—')+'</td></tr>':'')+'</tbody></table></details>';}
   const marcadas=Object.keys(g.asis).sort().reverse().filter(f=>{const c=g.asis[f].m[aid];return c&&c!=='A';});
   h+='<h3>Faltas, retardos y justificadas</h3>'+(marcadas.length?'<div class="chips">'+marcadas.map(f=>{const c=g.asis[f].m[aid];return '<span class="chip" style="background:'+({F:'#fde2e2',R:'#fff1d6',J:'#e0ecff'})[c]+';color:var(--ink)">'+c+' · '+fcorta(f)+'</span>';}).join('')+'</div>':'<p class="muted">Ninguna.</p>');
   h+='<p style="margin-top:14px"><button class="btn sm sec" id="f-copia">Copiar resumen (para padres u orientación)</button></p>';
