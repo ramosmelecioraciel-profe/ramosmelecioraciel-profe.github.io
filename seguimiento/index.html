@@ -344,7 +344,21 @@ function limpiarNombres(txt){return txt.split(/\r?\n/).map(s=>s.replace(/^\s*\d+
 const num=s=>{s=String(s).trim().replace(',','.');if(s==='')return null;const n=Number(s);return isFinite(n)?n:NaN;};
 
 /* ---------- vistas ---------- */
-let listaFecha=hoy(),actSel=null,soloRiesgo=false;
+let listaFecha=hoy(),actSel=null,soloRiesgo=false,qNom='';
+const buscadorHtml=()=>'<div class="row" style="margin:-4px 0 12px"><input class="in" id="q-nom" type="search" placeholder="🔍 Buscar alumno por nombre o apellido" value="'+esc(qNom)+'" style="flex:1;min-width:200px" aria-label="Buscar alumno" autocomplete="off"><span class="muted" id="q-cnt"></span></div>';
+function aplicarBusqueda(){
+  const q=normal(qNom),vis=new Set(),tot=new Set();
+  app.querySelectorAll('.lst .al, .tw tbody tr').forEach(r=>{const nm=r.querySelector('.nm');if(!nm)return;const k=normal(nm.textContent);tot.add(k);
+    const ok=!q||q.split(' ').every(w=>k.includes(w));r.style.display=ok?'':'none';if(ok)vis.add(k);});
+  const c=$('#q-cnt');if(c)c.textContent=q?vis.size+' de '+tot.size:'';
+}
+function wireBuscador(){
+  const i=$('#q-nom');if(!i)return;
+  i.oninput=()=>{qNom=i.value;aplicarBusqueda();};
+  i.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();const x=[...app.querySelectorAll('.ninp[data-a]')].find(n=>n.closest('.al').style.display!=='none');if(x){x.focus();x.select();}}
+    if(e.key==='Escape'){i.value='';qNom='';aplicarBusqueda();}};
+  aplicarBusqueda();
+}
 function render(){
   const r=ruta();estado();
   if(r[0]==='g'&&grupo(r[1]))return vGrupo(grupo(r[1]),r[2]||'lista');
@@ -465,7 +479,7 @@ function wireLista(g){
 function vCalif(g,head){
   if(!g.pActual||g.pActual>g.parciales)g.pActual=pHoy(g);
   const p=g.pActual,al=activos(g),rg=rango(g,p);
-  let h=head+'<div class="tabs">';for(let i=1;i<=g.parciales;i++)h+='<button class="tab'+(i===p?' on':'')+'" data-p="'+i+'">Parcial '+i+'</button>';h+='</div>';
+  let h=head+'<div class="tabs">';for(let i=1;i<=g.parciales;i++)h+='<button class="tab'+(i===p?' on':'')+'" data-p="'+i+'">Parcial '+i+'</button>';h+='</div>'+buscadorHtml();
   const a=actSel&&g.acts.find(x=>x.id===actSel);
   if(a)return vCaptura(g,a,h);
   const ac=actsP(g,p),ex=examP(g,p);
@@ -493,11 +507,11 @@ function vCalif(g,head){
   h+='</tbody></table></div>';
 
   const pen=pendientesYTarde(g,p);
-  h+='<div class="row" style="justify-content:space-between;margin-top:18px"><h3 style="margin:0">Faltantes, entregas tardías y faltas</h3>'+(pen.length?'<span class="row"><button class="btn sm" id="c-wa" style="background:#128c4a">📲 Reporte a orientación (WhatsApp)</button><button class="btn sm sec" id="c-copen">Copiar</button></span>':'')+'</div>';
+  h+='<div class="row" style="justify-content:space-between;margin-top:18px"><h3 style="margin:0">Faltantes, tardías, faltas y observaciones</h3>'+(pen.length?'<span class="row"><button class="btn sm" id="c-wa" style="background:#128c4a">📲 Reporte a orientación (WhatsApp)</button><button class="btn sm sec" id="c-copen">Copiar</button></span>':'')+'</div>';
   if(!ac.length&&!pen.length)h+='<p class="muted">Sin actividades ni faltas todavía.</p>';
   else if(!pen.length)h+='<p class="muted">Todos entregaron todo a tiempo y sin faltas. 🎉</p>';
-  else{h+='<div class="tw"><table><tbody>'+pen.map(([x,pd,td,ff])=>'<tr class="click" data-h="a/'+g.id+'/'+x.id+'"><td class="nm">'+esc(x.nombre)+'</td><td style="white-space:normal"><span class="chips">'+pd.map(a=>'<span class="chip pen" title="'+esc(a.nombre)+'">Act '+(ac.indexOf(a)+1)+'</span>').join('')+td.map(a=>'<span class="chip" title="'+esc(a.nombre)+'" style="background:#fff1d6;color:#7a4b00">⏰ Act '+(ac.indexOf(a)+1)+'</span>').join('')+(ff.length?'<span class="chip inf" title="'+ff.map(fcorta).join(', ')+'">📅 '+ff.length+' falta'+(ff.length>1?'s':'')+'</span>':'')+'</span></td></tr>').join('')+'</tbody></table></div>';}
-  app.innerHTML=h;wireCalifTabs(g);
+  else{h+='<div class="tw"><table><tbody>'+pen.map(([x,pd,td,ff,rr,ob])=>'<tr class="click" data-h="a/'+g.id+'/'+x.id+'"><td class="nm">'+esc(x.nombre)+'</td><td style="white-space:normal"><span class="chips">'+pd.map(a=>'<span class="chip pen" title="'+esc(a.nombre)+'">Act '+(ac.indexOf(a)+1)+'</span>').join('')+td.map(a=>'<span class="chip" title="'+esc(a.nombre)+'" style="background:#fff1d6;color:#7a4b00">⏰ Act '+(ac.indexOf(a)+1)+'</span>').join('')+(ff.length?'<span class="chip inf" title="'+ff.map(fcorta).join(', ')+'">📅 '+ff.length+' falta'+(ff.length>1?'s':'')+'</span>':'')+(ob.length?'<span class="chip" style="background:#efe7ff;color:#4c1d95" title="'+esc(ob.map(o=>fcorta(o.fecha)+': '+o.texto).join(' | '))+'">📝 '+ob.length+' obs.</span>':'')+'</span></td></tr>').join('')+'</tbody></table></div>';}
+  app.innerHTML=h;wireCalifTabs(g);wireBuscador();
   $('#c-add').onclick=()=>{const n=$('#c-new').value.trim();if(!n){toast('Escribe el nombre de la actividad');return;}
     const x={id:uid(),parcial:p,tipo:'act',nombre:n,fecha:$('#c-fecha').value||hoy(),notas:{}};g.acts.push(x);actSel=x.id;cambio();render();setTimeout(()=>{const i=app.querySelector('.ninp[data-a]');if(i)i.focus();},60);};
   $('#c-new').onkeydown=e=>{if(e.key==='Enter')$('#c-add').click();};
@@ -520,6 +534,7 @@ function vCalif(g,head){
 }
 function wireCalifTabs(g){app.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{g.pActual=+b.dataset.p;actSel=null;cambio();render();});}
 function vCaptura(g,a,h){
+  h=h.replace(buscadorHtml(),'');
   if(a.tipo==='exam')setPond(g,a.parcial,pondA(g,a.parcial));
   const al=activos(g),max=a.tipo==='exam'?exMax(a):actMax(a),ac=actsP(g,a.parcial),pos=ac.indexOf(a),VV=a.tipo==='exam'?null:valores(g,a.parcial);
   const cuentaTxt=()=>al.filter(x=>esNum(a.notas[x.id])).length+' de '+al.length+' calificados.';
@@ -528,10 +543,10 @@ function vCaptura(g,a,h){
     (a.tipo==='exam'?'':'<div class="row"><div style="flex:1;min-width:140px"><label class="f" for="c-max">Calificar sobre</label><input class="in" id="c-max" inputmode="decimal" value="'+max+'"></div><div style="flex:1;min-width:140px"><label class="f" for="c-val">Vale (puntos de '+VV.pa+')</label><input class="in" id="c-val" inputmode="decimal" value="'+(esNum(a.valor)?a.valor:'')+'" placeholder="Automático ('+fpt(VV.v[a.id])+')"></div></div><p class="muted" style="margin:4px 0 0">Vacío = automático: reparte en partes iguales los puntos que no asignaste. Puedes asignar hasta '+fpt(VV.pa-(VV.sumF-(esNum(a.valor)?a.valor:0)))+' puntos a esta actividad.</p>')+
     (a.tipo==='exam'?'':'<label class="f">Entrega tardía en esta actividad</label>'+reglaHtml('c-apen',a.pen||null,true)+'<p class="muted" style="margin:4px 0 0">Regla del parcial: '+reglaTxt(penParcial(g,a.parcial))+'. Toca ⏰ junto al alumno que entregó tarde.</p>')+
     '<div class="row"><div style="flex:2;min-width:180px"><label class="f" for="c-nom">Nombre</label><input class="in" id="c-nom" value="'+esc(a.nombre)+'"></div><div style="flex:1;min-width:140px"><label class="f" for="c-fe">Fecha</label><input type="date" class="in" id="c-fe" value="'+esc(a.fecha||'')+'"></div></div>'+
-    '<p class="muted"><span id="c-n">'+cuentaTxt()+'</span> Escribe de 0 a '+max+' y pulsa Enter para pasar al siguiente. Deja vacío si no la ha entregado (cuenta como 0 y aparece en faltantes).</p></div><div class="lst">';
+    '<p class="muted"><span id="c-n">'+cuentaTxt()+'</span> Escribe de 0 a '+max+' y pulsa Enter para pasar al siguiente. Deja vacío si no la ha entregado (cuenta como 0 y aparece en faltantes).</p></div>'+buscadorHtml()+'<div class="lst">';
   const lineaT=x=>{if(!esTarde(a,x.id))return '';const v=a.notas[x.id],e=notaEf(g,a,x.id);return 'Tarde ('+fcorta(a.tarde[x.id])+')'+(esNum(v)?': '+v+' → cuenta '+fpt(e):'');};
   al.forEach((x,i)=>{const v=a.notas[x.id],t=esTarde(a,x.id);h+='<div class="al"><span class="n">'+(i+1)+'</span><span class="nm">'+esc(x.nombre)+'<span class="muted" style="display:block;font-weight:700;color:#9a5b00" data-tt="'+x.id+'">'+lineaT(x)+'</span></span>'+(a.tipo==='exam'?'':'<button type="button" class="tbtn'+(t?' on':'')+'" data-t="'+x.id+'" aria-pressed="'+t+'" title="Entregó tarde" aria-label="'+esc(x.nombre)+' entregó tarde">⏰</button>')+'<input class="ninp'+(esNum(v)&&v>max?' bad':'')+'" inputmode="decimal" data-a="'+x.id+'" value="'+(esNum(v)?v:'')+'" aria-label="Calificación de '+esc(x.nombre)+'"></div>';});
-  app.innerHTML=h+'</div>';wireCalifTabs(g);
+  app.innerHTML=h+'</div>';wireCalifTabs(g);wireBuscador();
   $('#c-volver').onclick=()=>{actSel=null;render();};
   $('#c-del').onclick=()=>{if(confirm('¿Eliminar "'+a.nombre+'" y sus calificaciones?')){g.acts=g.acts.filter(x=>x!==a);actSel=null;cambio();render();}};
   $('#c-nom').onchange=e=>{const v=e.target.value.trim();if(v){a.nombre=v;cambio();}};
@@ -556,28 +571,30 @@ function vCaptura(g,a,h){
       else if(isNaN(v)||v<0||v>max){inp.classList.add('bad');toast('Escribe un número del 0 al '+max);return;}
       else{a.notas[inp.dataset.a]=v;inp.classList.remove('bad');}$('#c-n').textContent=cuentaTxt();
       const tt=app.querySelector('[data-tt="'+inp.dataset.a+'"]');if(tt)tt.textContent=lineaT(al.find(x=>x.id===inp.dataset.a));cambio();};
-    inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();inp.dispatchEvent(new Event('change'));const n=ins[i+1];if(n){n.focus();n.select();}else inp.blur();}};
+    inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();inp.dispatchEvent(new Event('change'));let j=i+1;while(ins[j]&&ins[j].closest('.al').style.display==='none')j++;const n=ins[j];if(n){n.focus();n.select();}else inp.blur();}};
   });
 }
 function pendientesYTarde(g,p){
   const h=hoy(),dias=Object.keys(g.asis).filter(f=>parcialDe(g,f)===p&&f<=h).sort();
   return activos(g).map(x=>{const c=calif(g,x.id,p);const ff=dias.filter(f=>g.asis[f].m[x.id]==='F'),rr=dias.filter(f=>g.asis[f].m[x.id]==='R');
-    return [x,c.pend,c.ac.filter(a=>esTarde(a,x.id)),ff,rr];}).filter(z=>z[1].length||z[2].length||z[3].length);
+    const ob=(g.obs||[]).filter(o=>o.aid===x.id&&o.fecha<=h&&parcialDe(g,o.fecha)===p).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+    return [x,c.pend,c.ac.filter(a=>esTarde(a,x.id)),ff,rr,ob];}).filter(z=>z[1].length||z[2].length||z[3].length||z[5].length);
 }
 function reporteOrientacion(g,p){
   const ac=actsP(g,p),pen=pendientesYTarde(g,p),total=activos(g).length;
-  const nP=pen.filter(z=>z[1].length).length,nT=pen.filter(z=>z[2].length).length,nF=pen.filter(z=>z[3].length).length;
+  const nP=pen.filter(z=>z[1].length).length,nT=pen.filter(z=>z[2].length).length,nF=pen.filter(z=>z[3].length).length,nO=pen.filter(z=>z[5].length).length;
   const dias=Object.keys(g.asis).filter(f=>parcialDe(g,f)===p&&f<=hoy()).length;
   const numAct=a=>'Act '+(ac.indexOf(a)+1);
   let t='*Reporte para Orientación*\n'+matNom(g.materia)+' · Grupo '+g.nombre+(g.semestre?' · Semestre '+g.semestre:'')+'\nParcial '+p+' · '+fcorta(hoy())+'\n\n';
   if(ac.length)t+='_Actividades del parcial:_\n'+ac.map((a,i)=>'Act '+(i+1)+': '+a.nombre+(a.fecha?' ('+fcorta(a.fecha)+')':'')).join('\n')+'\n\n';
-  t+='Alumnos con actividades sin entregar: *'+nP+'* de '+total+'\nAlumnos con entregas a destiempo: *'+nT+'*\nAlumnos con faltas: *'+nF+'* (de '+dias+' clases registradas en el parcial hasta hoy)\n';
-  if(!pen.length)t+='\n✅ Ningún alumno con actividades pendientes, entregas a destiempo ni faltas en este parcial hasta hoy.\n';
-  pen.forEach(([x,pd,td,ff,rr],i)=>{
+  t+='Alumnos con actividades sin entregar: *'+nP+'* de '+total+'\nAlumnos con entregas a destiempo: *'+nT+'*\nAlumnos con faltas: *'+nF+'* (de '+dias+' clases registradas en el parcial hasta hoy)\n'+(nO?'Alumnos con observaciones: *'+nO+'*\n':'');
+  if(!pen.length)t+='\n✅ Ningún alumno con actividades pendientes, entregas a destiempo, faltas ni observaciones en este parcial hasta hoy.\n';
+  pen.forEach(([x,pd,td,ff,rr,ob],i)=>{
     t+='\n'+(i+1)+'. *'+x.nombre+'*\n';
     if(pd.length)t+='   ❌ No entregó: '+pd.map(numAct).join(', ')+'\n';
     if(td.length)t+='   ⏰ A destiempo: '+td.map(a=>numAct(a)+' ('+fcorta(a.tarde[x.id])+')').join(', ')+'\n';
     if(ff.length)t+='   📅 Faltas: *'+ff.length+'* ('+ff.map(fcorta).join(', ')+')'+(rr.length?' · Retardos: '+rr.length:'')+'\n';
+    if(ob.length)t+='   📝 Observaciones:\n'+ob.map(o=>'      • '+fcorta(o.fecha)+' ('+o.tipo+'): '+o.texto.replace(/\s+/g,' ').trim()).join('\n')+'\n';
   });
   t+='\nGracias por su apoyo.';
   return t;
