@@ -421,7 +421,9 @@ function tabsGrupo(g,t){
 function vGrupo(g,t){
   titulo('Grupo '+g.nombre+(g.semestre?' · Semestre '+g.semestre:''),true);
   const hs=[g,...hermanos(g)].sort((a,b)=>matNom(a.materia).localeCompare(matNom(b.materia),'es'));
-  const head='<div class="chips" style="margin:0 0 10px;gap:6px">'+hs.map(x=>x===g?'<span class="chip" style="background:'+matCol(x.materia)+';color:#fff;font-size:13px;padding:4px 10px">'+esc(matNom(x.materia))+'</span>':'<a class="chip inf" style="font-size:13px;padding:4px 10px;text-decoration:none" href="#g/'+x.id+'/'+t+'">'+esc(matNom(x.materia))+'</a>').join('')+'<a class="chip ok" style="font-size:13px;padding:4px 10px;text-decoration:none" href="#nuevo/'+g.id+'">+ asignatura</a></div>'+tabsGrupo(g,t);
+  const head='<div class="chips" style="margin:0 0 10px;gap:6px">'+hs.map(x=>x===g?'<span class="chip" style="background:'+matCol(x.materia)+';color:#fff;font-size:13px;padding:4px 10px">'+esc(matNom(x.materia))+'</span>':'<a class="chip inf" style="font-size:13px;padding:4px 10px;text-decoration:none" href="#g/'+x.id+'/'+t+'">'+esc(matNom(x.materia))+'</a>').join('')+'<a class="chip ok" style="font-size:13px;padding:4px 10px;text-decoration:none" href="#nuevo/'+g.id+'">+ asignatura</a></div>'+tabsGrupo(g,t)+
+    '<div class="row" style="margin:-4px 0 14px"><button class="btn sm" id="h-wa" style="background:#128c4a">📲 Reporte a orientación por WhatsApp</button><select class="in" id="h-wap" style="width:auto;padding:6px 10px" aria-label="Parcial del reporte">'+[...Array(g.parciales)].map((_,i)=>'<option value="'+(i+1)+'"'+(i+1===(t==='calif'&&g.pActual?g.pActual:pHoy(g))?' selected':'')+'>Parcial '+(i+1)+'</option>').join('')+'</select></div>';
+  setTimeout(()=>{const b=$('#h-wa');if(b)b.onclick=()=>enviarWhatsApp(g,reporteOrientacion(g,+$('#h-wap').value));},0);
   if(t==='calif')return vCalif(g,head);
   if(t==='alumnos')return vAlumnos(g,head);
   if(t==='notas')return vNotas(g,head);
@@ -568,8 +570,9 @@ function reporteOrientacion(g,p){
   const dias=Object.keys(g.asis).filter(f=>parcialDe(g,f)===p&&f<=hoy()).length;
   const numAct=a=>'Act '+(ac.indexOf(a)+1);
   let t='*Reporte para Orientación*\n'+matNom(g.materia)+' · Grupo '+g.nombre+(g.semestre?' · Semestre '+g.semestre:'')+'\nParcial '+p+' · '+fcorta(hoy())+'\n\n';
-  t+='_Actividades del parcial:_\n'+ac.map((a,i)=>'Act '+(i+1)+': '+a.nombre+(a.fecha?' ('+fcorta(a.fecha)+')':'')).join('\n')+'\n\n';
+  if(ac.length)t+='_Actividades del parcial:_\n'+ac.map((a,i)=>'Act '+(i+1)+': '+a.nombre+(a.fecha?' ('+fcorta(a.fecha)+')':'')).join('\n')+'\n\n';
   t+='Alumnos con actividades sin entregar: *'+nP+'* de '+total+'\nAlumnos con entregas a destiempo: *'+nT+'*\nAlumnos con faltas: *'+nF+'* (de '+dias+' clases registradas en el parcial hasta hoy)\n';
+  if(!pen.length)t+='\n✅ Ningún alumno con actividades pendientes, entregas a destiempo ni faltas en este parcial hasta hoy.\n';
   pen.forEach(([x,pd,td,ff,rr],i)=>{
     t+='\n'+(i+1)+'. *'+x.nombre+'*\n';
     if(pd.length)t+='   ❌ No entregó: '+pd.map(numAct).join(', ')+'\n';
