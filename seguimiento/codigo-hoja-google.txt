@@ -173,18 +173,20 @@ function notaEf_(g, a, aid) {
   return v;
 }
 function calif_(g, aid, p) {
-  const ac = g.acts.filter(a => a.parcial === p && a.tipo !== 'exam'), ex = g.acts.find(a => a.parcial === p && a.tipo === 'exam');
-  const pa = pondA_(g, p), pe = 100 - pa;
+  const ac = g.acts.filter(a => a.parcial === p && a.tipo !== 'exam' && a.tipo !== 'paec'), ex = g.acts.find(a => a.parcial === p && a.tipo === 'exam');
+  const pz = g.acts.find(a => a.parcial === p && a.tipo === 'paec');
+  const pa = pondA_(g, p), pp = num_((g.pondP || {})[p]) ? g.pondP[p] : 0, pe = Math.max(0, 100 - pa - pp);
   const fij = ac.filter(a => num_(a.valor)), sumF = fij.reduce((s, a) => s + a.valor, 0), nAut = ac.length - fij.length;
   const cada = nAut ? Math.max(0, pa - sumF) / nAut : 0;
   const escala = ac.reduce((s, a) => { const v = notaEf_(g, a, aid); return s + (num_(v) ? v / actMax_(a) * (num_(a.valor) ? a.valor : cada) : 0); }, 0);
   const exam = ex && num_((ex.notas || {})[aid]) ? (exMax_(ex) > 0 ? ex.notas[aid] / exMax_(ex) * pe : 0) : null;
   const extra = +(((g.extra || {})[p] || {})[aid]) || 0;
-  const hay = ac.length > 0 || (ex && pe > 0), total = escala + (exam || 0);
-  const pend = ac.filter(a => !num_((a.notas || {})[aid])).length;
+  const vp = pz && pp > 0 ? notaEf_(g, pz, aid) : null, paec = num_(vp) ? vp / actMax_(pz) * pp : null;
+  const hay = ac.length > 0 || (ex && pe > 0) || (pz && pp > 0), total = escala + (exam || 0) + (paec || 0);
+  const pend = ac.filter(a => !num_((a.notas || {})[aid])).length + (pz && pp > 0 && !num_((pz.notas || {})[aid]) ? 1 : 0);
   let fin = null;
   if (hay) { const r = Math.round(total + extra * 10); fin = r < 60 ? 5 : Math.min(10, Math.round(r / 10)); }
-  return { total: hay ? total : null, fin, hayExam: !!ex && pe > 0, pend };
+  return { total: hay ? total : null, fin, hayExam: (!!ex && pe > 0) || (pe === 0 && !!hay), pend };
 }
 function alertas_(g, aid) {
   const o = [], a = asis_(g, aid);
