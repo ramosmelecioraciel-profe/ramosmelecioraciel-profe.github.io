@@ -172,21 +172,36 @@ function notaEf_(g, a, aid) {
   if (r.tipo === 'resta') return Math.max(0, v - r.v / 10 * m);
   return v;
 }
+function rubros_(g, p) {
+  const R = (g.rub || {})[p];
+  if (R && R.length) return R;
+  const a0 = num_((g.pond || {})[p]) ? g.pond[p] : 70, p0 = num_((g.pondP || {})[p]) ? g.pondP[p] : 0;
+  return [{ id: 'act', tipo: 'lista', peso: a0 }, { id: 'paec', tipo: 'unico', peso: p0 }, { id: 'exam', tipo: 'examen', peso: Math.max(0, 100 - a0 - p0) }];
+}
+const rubDe_ = a => a.tipo === 'exam' ? 'exam' : (a.rub || (a.tipo === 'paec' ? 'paec' : 'act'));
 function calif_(g, aid, p) {
-  const ac = g.acts.filter(a => a.parcial === p && a.tipo !== 'exam' && a.tipo !== 'paec'), ex = g.acts.find(a => a.parcial === p && a.tipo === 'exam');
-  const pz = g.acts.find(a => a.parcial === p && a.tipo === 'paec');
-  const pa = pondA_(g, p), pp = num_((g.pondP || {})[p]) ? g.pondP[p] : 0, pe = Math.max(0, 100 - pa - pp);
-  const fij = ac.filter(a => num_(a.valor)), sumF = fij.reduce((s, a) => s + a.valor, 0), nAut = ac.length - fij.length;
-  const cada = nAut ? Math.max(0, pa - sumF) / nAut : 0;
-  const escala = ac.reduce((s, a) => { const v = notaEf_(g, a, aid); return s + (num_(v) ? v / actMax_(a) * (num_(a.valor) ? a.valor : cada) : 0); }, 0);
-  const exam = ex && num_((ex.notas || {})[aid]) ? (exMax_(ex) > 0 ? ex.notas[aid] / exMax_(ex) * pe : 0) : null;
+  const R = rubros_(g, p), ex = g.acts.find(a => a.parcial === p && a.tipo === 'exam');
+  let total = 0, hay = false, hayEx = false, pend = 0;
+  R.forEach(r => {
+    const it = g.acts.filter(a => a.parcial === p && a.tipo !== 'exam' && rubDe_(a) === r.id);
+    if (r.tipo === 'lista') {
+      if (!it.length) return; hay = true;
+      const fij = it.filter(a => num_(a.valor)), sumF = fij.reduce((s, a) => s + a.valor, 0), nAut = it.length - fij.length;
+      const cada = nAut ? Math.max(0, r.peso - sumF) / nAut : 0;
+      it.forEach(a => { const v = notaEf_(g, a, aid); if (num_(v)) total += v / actMax_(a) * (num_(a.valor) ? a.valor : cada); else pend++; });
+    } else if (r.tipo === 'unico') {
+      const a = it[0]; if (!a || !(r.peso > 0)) return; hay = true;
+      const v = notaEf_(g, a, aid); if (num_(v)) total += v / actMax_(a) * r.peso; if (!num_((a.notas || {})[aid])) pend++;
+    } else {
+      if (!ex || !(r.peso > 0)) return; hay = true; hayEx = true;
+      if (num_((ex.notas || {})[aid])) total += exMax_(ex) > 0 ? ex.notas[aid] / exMax_(ex) * r.peso : 0;
+    }
+  });
+  const pe = (R.find(r => r.tipo === 'examen') || { peso: 0 }).peso;
   const extra = +(((g.extra || {})[p] || {})[aid]) || 0;
-  const vp = pz && pp > 0 ? notaEf_(g, pz, aid) : null, paec = num_(vp) ? vp / actMax_(pz) * pp : null;
-  const hay = ac.length > 0 || (ex && pe > 0) || (pz && pp > 0), total = escala + (exam || 0) + (paec || 0);
-  const pend = ac.filter(a => !num_((a.notas || {})[aid])).length + (pz && pp > 0 && !num_((pz.notas || {})[aid]) ? 1 : 0);
   let fin = null;
   if (hay) { const r = Math.round(total + extra * 10); fin = r < 60 ? 5 : Math.min(10, Math.round(r / 10)); }
-  return { total: hay ? total : null, fin, hayExam: (!!ex && pe > 0) || (pe === 0 && !!hay), pend };
+  return { total: hay ? total : null, fin, hayExam: hayEx || (pe === 0 && hay), pend };
 }
 function alertas_(g, aid) {
   const o = [], a = asis_(g, aid);

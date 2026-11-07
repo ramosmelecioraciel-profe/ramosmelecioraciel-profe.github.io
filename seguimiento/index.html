@@ -89,7 +89,8 @@ tr.click{cursor:pointer}tr.click:hover td{background:#f8f5ee}
 .ninp{width:70px;padding:6px 8px;border:1.5px solid var(--line);border-radius:8px;text-align:right;font-family:var(--f-mono);background:var(--paper)}
 .pbar{display:flex;height:14px;border-radius:8px;overflow:hidden;background:#ece7db;margin:4px 0 10px}.pbar i{display:block;height:100%;transition:width .15s}
 .prow{display:grid;grid-template-columns:110px 1fr auto auto;gap:8px;align-items:center;margin:6px 0}.prow label{font-weight:800;font-size:14px}.prow input[type=range]{width:100%;min-width:0}
-@media (max-width:420px){.prow{grid-template-columns:96px 1fr 56px auto}}
+.prow2{grid-template-columns:minmax(110px,150px) 1fr auto auto auto;margin-bottom:0}.prow2 .rnom{padding:6px 8px;font-weight:800;font-size:14px;min-width:0}.rtipo{font-size:11px;margin:0 0 6px 2px}.rdel{padding:4px 9px}
+@media (max-width:420px){.prow{grid-template-columns:96px 1fr 56px auto}.prow2{grid-template-columns:1fr 54px auto auto;gap:6px;row-gap:4px}.prow2 .rnom{grid-column:1/-1}}
 .tbtn{width:40px;height:38px;border-radius:9px;border:1.5px solid var(--line);background:var(--paper);cursor:pointer;flex:none;filter:grayscale(1);opacity:.55}
 .tbtn.on{background:#fde68a;border-color:#d97706;filter:none;opacity:1}
 .ninp.bad{border-color:#b42318;background:#fff1f1}
@@ -174,7 +175,8 @@ function migrar(d){
     for(let q=1;q<=4;q++)g.periodos[q]=g.periodos[q]||{ini:'',fin:''};
     delete g.inicios;g.pen=g.pen||{};
     if(g.semestre==null)g.semestre='';
-    g.acts=(g.acts||[]).map(a=>Object.assign({tipo:'act'},a));
+    g.acts=(g.acts||[]).map(a=>{a=Object.assign({tipo:'act'},a);if(a.tipo==='paec'){a.tipo='unico';a.rub='paec';}return a;});
+    g.rub=g.rub||{};
     g.extra=g.extra||{};g.obs=g.obs||[];g.asis=g.asis||{};g.pond=g.pond||{};
     delete g.crit;
   });
@@ -256,22 +258,43 @@ function asis(g,aid,p){
   const tot=A+F+R+J;return {A,F,R,J,tot,pct:tot?A/tot*100:null};   // % = P/(P+F+R+J), como tu hoja
 }
 function seguidas(g,aid){let n=0;for(const f of Object.keys(g.asis).sort().reverse()){const c=g.asis[f].m[aid];if(!c||c==='J')continue;if(c==='F')n++;else break;}return n;}
-const actsP=(g,p)=>g.acts.filter(a=>a.parcial===p&&a.tipo!=='exam'&&a.tipo!=='paec');
-const paecP=(g,p)=>g.acts.find(a=>a.parcial===p&&a.tipo==='paec');
-const etiq=(a,ac)=>a.tipo==='paec'?'PAEC':a.tipo==='exam'?'Examen':'Act '+(ac.indexOf(a)+1);
-const examP=(g,p)=>g.acts.find(a=>a.parcial===p&&a.tipo==='exam');
 const esNum=v=>typeof v==='number'&&isFinite(v);
-const pondA=(g,p)=>{const v=(g.pond||{})[p];return esNum(v)?v:70;};      // % de actividades (el examen es el resto)
 const exMax=ex=>esNum(ex.max)?ex.max:30;
-const pondP=(g,p)=>{const v=(g.pondP||{})[p];return esNum(v)?v:0;};              // % del proyecto PAEC
-const pondE=(g,p)=>Math.max(0,100-pondA(g,p)-pondP(g,p));                         // el examen es lo que resta
+const RCOL=['#15803d','#0e7490','#c2410c','#be185d','#4d7c0f','#a16207','#2563eb'];
+const TIPOS_R={lista:'Varias actividades',unico:'Una calificación por alumno',examen:'Examen'};
+function rubros(g,p){   // rubros del parcial: [{id,nombre,tipo:'lista'|'unico'|'examen',peso}] — siempre suman 100
+  g.rub=g.rub||{};
+  if(!g.rub[p]){const a0=esNum((g.pond||{})[p])?g.pond[p]:70,p0=esNum((g.pondP||{})[p])?g.pondP[p]:0;
+    g.rub[p]=[{id:'act',nombre:'Actividades',tipo:'lista',peso:a0},{id:'paec',nombre:'Proyecto PAEC',tipo:'unico',peso:p0},{id:'exam',nombre:'Examen',tipo:'examen',peso:Math.max(0,100-a0-p0)}];}
+  return g.rub[p];
+}
+const rubro=(g,p,id)=>rubros(g,p).find(r=>r.id===id);
+const rubExam=(g,p)=>rubros(g,p).find(r=>r.tipo==='examen');
+const rubDe=a=>a.tipo==='exam'?'exam':(a.rub||(a.tipo==='paec'?'paec':'act'));
+const itemsR=(g,p,rid)=>g.acts.filter(a=>a.parcial===p&&a.tipo!=='exam'&&rubDe(a)===rid);
+const actsP=(g,p)=>itemsR(g,p,'act');
+const examP=(g,p)=>g.acts.find(a=>a.parcial===p&&a.tipo==='exam');
+const paecP=(g,p)=>itemsR(g,p,'paec')[0];
+const pesoR=(g,p,id)=>{const r=rubro(g,p,id);return r?r.peso:0;};
+const pondA=(g,p)=>pesoR(g,p,'act');
+const pondP=(g,p)=>pesoR(g,p,'paec');
+const pondE=(g,p)=>{const r=rubExam(g,p);return r?r.peso:0;};
+const abrev=t=>{const w=String(t).trim().split(/\s+/);return w.length>1?w.map(x=>x[0]).join('').toUpperCase().slice(0,4):String(t).slice(0,5);};
+function etiq(g,a){   // etiqueta corta: Act 3, PAEC, Tareas 2…
+  if(a.tipo==='exam'){const r=rubExam(g,a.parcial);return r?r.nombre:'Examen';}
+  const rid=rubDe(a),r=rubro(g,a.parcial,rid);if(!r)return a.nombre;
+  if(r.tipo==='unico')return rid==='paec'&&/PAEC/i.test(r.nombre)?'PAEC':r.nombre;
+  const k=itemsR(g,a.parcial,rid).indexOf(a)+1;return rid==='act'?'Act '+k:r.nombre+' '+k;
+}
+const itemsNoExam=(g,p)=>{const o=[];for(const r of rubros(g,p)){if(r.tipo==='lista')o.push(...itemsR(g,p,r.id));else if(r.tipo==='unico'){const a=itemsR(g,p,r.id)[0];if(a&&r.peso>0)o.push(a);}}return o;};
 const actMax=a=>esNum(a.max)&&a.max>0?a.max:10;                 // se califica sobre…
-function valores(g,p){   // puntos que vale cada actividad (las "automáticas" se reparten lo que falta)
-  const ac=actsP(g,p),pa=pondA(g,p),fij=ac.filter(a=>esNum(a.valor)),aut=ac.filter(a=>!esNum(a.valor));
+function valoresR(g,p,rid){   // puntos que vale cada actividad del rubro (las "automáticas" se reparten lo que falta)
+  const ac=itemsR(g,p,rid),pa=pesoR(g,p,rid),fij=ac.filter(a=>esNum(a.valor)),aut=ac.filter(a=>!esNum(a.valor));
   const sumF=fij.reduce((s,a)=>s+a.valor,0),resto=Math.max(0,pa-sumF),cada=aut.length?resto/aut.length:0;
   const v={};ac.forEach(a=>v[a.id]=esNum(a.valor)?a.valor:cada);
   return {v,pa,sumF,resto,nAut:aut.length,total:sumF+cada*aut.length};
 }
+const valores=(g,p)=>valoresR(g,p,'act');
 const fpt=x=>{const r=Math.round(x*100)/100;return String(r);};
 const penParcial=(g,p)=>(g.pen||{})[p]||PEN0;
 const reglaDe=(g,a)=>a.pen||penParcial(g,a.parcial);
@@ -296,26 +319,20 @@ function notaEf(g,a,aid){   // calificación que cuenta (con penalización si en
   return Math.round(x*100)/100;
 }
 const esTarde=(a,aid)=>!!(a.tarde&&a.tarde[aid]);
-function setPond(g,p,v,pp){
-  g.pond=g.pond||{};g.pond[p]=v;if(pp!=null){g.pondP=g.pondP||{};g.pondP[p]=pp;}const pe=pondE(g,p),ex=examP(g,p);
-  return !!(ex&&pe>0&&exMax(ex)!==pe&&Object.values(ex.notas).some(esNum));   // las calificaciones guardadas no se tocan: se muestran en la escala nueva
-}
 function calFinal(total){const r=Math.round(total);return r<60?5:Math.min(10,Math.round(r/10));}
 function calif(g,aid,p){
-  const ac=actsP(g,p),ex=examP(g,p);
-  const notas=ac.map(a=>notaEf(g,a,aid));
-  const pend=ac.filter(a=>!esNum(a.notas[aid]));
-  const n=ac.length,suma=notas.reduce((s,v)=>s+(esNum(v)?v:0),0);
-  const pa=pondA(g,p),pp=pondP(g,p),pe=pondE(g,p),pz=paecP(g,p);
-  const V=valores(g,p).v;
-  const escala=ac.reduce((s,a)=>{const v=notaEf(g,a,aid);return s+(esNum(v)?v/actMax(a)*V[a.id]:0);},0);   // Σ calificación/escala × valor
-  const exam=ex&&esNum(ex.notas[aid])?(exMax(ex)>0?ex.notas[aid]/exMax(ex)*pe:0):null;
-  const extra=+((g.extra[p]||{})[aid])||0;
-  const vp=pz&&pp>0?notaEf(g,pz,aid):null,paec=pz&&pp>0&&esNum(vp)?vp/actMax(pz)*pp:null;
-  if(pz&&pp>0&&!esNum(pz.notas[aid]))pend.push(pz);
-  const hay=n>0||(ex&&pe>0)||(pz&&pp>0);
-  const total=escala+(exam||0)+(paec||0);
-  return {ac,notas,pend,n,pa,pe,pp,pz,escala:n?escala:null,exam,paec,hayPaec:!!pz&&pp>0,hayExam:(!!ex&&pe>0)||(pe===0&&!!hay),extra,total:hay?total:null,fin:hay?calFinal(total+extra*10):null};
+  const RR=rubros(g,p),ac=actsP(g,p),ex=examP(g,p),det={},pend=[];let hay=false,total=0,exam=null,hayEx=false;
+  for(const r of RR){
+    if(r.tipo==='lista'){const it=itemsR(g,p,r.id);if(!it.length){det[r.id]=null;continue;}const V=valoresR(g,p,r.id).v;
+      let s=0;it.forEach(a=>{const v=notaEf(g,a,aid);if(esNum(v))s+=v/actMax(a)*V[a.id];else pend.push(a);});det[r.id]=s;hay=true;total+=s;}
+    else if(r.tipo==='unico'){const a=itemsR(g,p,r.id)[0];if(!a||!(r.peso>0)){det[r.id]=null;continue;}hay=true;
+      const v=notaEf(g,a,aid),c=esNum(v)?v/actMax(a)*r.peso:null;det[r.id]=c;total+=c||0;if(!esNum(a.notas[aid]))pend.push(a);}
+    else{if(!ex||!(r.peso>0)){det[r.id]=null;continue;}hay=true;hayEx=true;
+      exam=esNum(ex.notas[aid])?(exMax(ex)>0?ex.notas[aid]/exMax(ex)*r.peso:0):null;det[r.id]=exam;total+=exam||0;}
+  }
+  const extra=+((g.extra[p]||{})[aid])||0,pe=pondE(g,p),pz=paecP(g,p);
+  return {RR,det,ac,notas:ac.map(a=>notaEf(g,a,aid)),pend,n:ac.length,pa:pondA(g,p),pe,pp:pondP(g,p),pz,escala:det.act==null?null:det.act,exam,paec:det.paec==null?null:det.paec,
+    hayPaec:!!pz&&pondP(g,p)>0,hayExam:hayEx||(pe===0&&hay),extra,total:hay?total:null,fin:hay?calFinal(total+extra*10):null};
 }
 function final(g,aid){const v=[];for(let p=1;p<=g.parciales;p++){const c=calif(g,aid,p);if(c.fin!=null&&c.hayExam)v.push(c.fin);}return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;}
 function alertas(g,aid){
@@ -488,60 +505,92 @@ function vCalif(g,head){
   let h=head+'<div class="tabs">';for(let i=1;i<=g.parciales;i++)h+='<button class="tab'+(i===p?' on':'')+'" data-p="'+i+'">Parcial '+i+'</button>';h+='</div>'+buscadorHtml();
   const a=actSel&&g.acts.find(x=>x.id===actSel);
   if(a)return vCaptura(g,a,h);
-  const ac=actsP(g,p),ex=examP(g,p),pz=paecP(g,p);
-  const pa=pondA(g,p),pp=pondP(g,p),pe=pondE(g,p);
+  const RR=rubros(g,p),ex=examP(g,p),ac=actsP(g,p),col=i=>RR[i].tipo==='examen'?'#7c3aed':RCOL[i%RCOL.length];
+  const listas=RR.filter(r=>r.tipo==='lista');
   h+='<div class="card"><h3 style="margin-top:0">Parcial '+p+'</h3><div class="row"><span style="font-weight:700">Periodo</span><span>del</span><input type="date" class="in" id="c-pi" value="'+esc(rg.ini||'')+'" style="width:auto"><span>al</span><input type="date" class="in" id="c-pf" value="'+esc(rg.fin||'')+'" style="width:auto"></div>'+
-    '<p class="muted" style="margin:4px 0 10px">El pase de lista y las faltas se cuentan dentro de este periodo.</p><h3 style="margin:6px 0 6px">Ponderación</h3>'+
-    '<div class="pbar" aria-hidden="true"><i id="pb-a" style="width:'+pa+'%;background:var(--A)"></i><i id="pb-p" style="width:'+pp+'%;background:#0e7490"></i><i id="pb-e" style="width:'+pe+'%;background:#7c3aed"></i></div>'+
-    [['a','Actividades',pa,'var(--A)'],['p','Proyecto PAEC',pp,'#0e7490'],['e','Examen',pe,'#7c3aed']].map(([k,t,v,c])=>'<div class="prow"><label for="c-r'+k+'" style="color:'+c+'">'+t+'</label><input type="range" id="c-r'+k+'" min="0" max="100" step="5" value="'+v+'" style="accent-color:'+c+'"><input class="ninp" id="c-n'+k+'" inputmode="numeric" value="'+v+'" aria-label="'+t+' %" style="width:62px"><span>%</span></div>').join('')+
-    '<p class="muted" style="margin:6px 0 0">Siempre suman 100: al mover Actividades o PAEC se ajusta el Examen; al mover el Examen se ajustan las Actividades. Cada actividad se califica de 0 a 10 y el examen se captura sobre los puntos que le toquen.</p>'+
+    '<p class="muted" style="margin:4px 0 10px">El pase de lista y las faltas se cuentan dentro de este periodo.</p><h3 style="margin:6px 0 6px">Rubros y ponderación</h3>'+
+    '<div class="pbar" aria-hidden="true">'+RR.map((r,i)=>'<i id="pb-'+i+'" style="width:'+r.peso+'%;background:'+col(i)+'"></i>').join('')+'</div>'+
+    RR.map((r,i)=>'<div class="prow prow2"><input class="in rnom" data-rn="'+i+'" value="'+esc(r.nombre)+'" aria-label="Nombre del rubro" style="color:'+col(i)+'" title="'+TIPOS_R[r.tipo]+'"><input type="range" id="c-r'+i+'" min="0" max="100" step="5" value="'+r.peso+'" style="accent-color:'+col(i)+'" aria-label="% de '+esc(r.nombre)+'"><input class="ninp" id="c-n'+i+'" inputmode="numeric" value="'+r.peso+'" aria-label="% de '+esc(r.nombre)+'" style="width:56px"><span>%</span>'+(RR.length>1?'<button class="btn sm sec rdel" data-rd="'+i+'" aria-label="Quitar '+esc(r.nombre)+'" title="Quitar rubro">✕</button>':'<span></span>')+'</div><div class="muted rtipo">'+TIPOS_R[r.tipo]+'</div>').join('')+
+    '<details id="r-addw" style="margin-top:8px"><summary>+ Agregar rubro</summary><div class="row" style="margin-top:8px"><input class="in" id="r-nom" placeholder="Ej. Exposición, Tareas, Portafolio" style="flex:2;min-width:160px"><select class="in" id="r-tipo" style="flex:1;min-width:160px"><option value="unico">Una calificación por alumno</option><option value="lista">Varias actividades</option>'+(rubExam(g,p)?'':'<option value="examen">Examen</option>')+'</select><button class="btn sm" id="r-add">Agregar</button></div><p class="muted" style="margin:4px 0 0">Empieza en 0 %: después mueve su deslizador.</p></details>'+
+    (g.parciales>1?'<p style="margin:8px 0 0"><button class="btn sm sec" id="r-copia">Usar estos rubros en los demás parciales</button></p>':'')+
+    '<p class="muted" style="margin:6px 0 0">Siempre suman 100: al mover un rubro se ajusta '+(rubExam(g,p)?'el '+esc(rubExam(g,p).nombre):'el último')+'. Toca un nombre para cambiarlo.</p>'+
     '<h3>Entregas tardías</h3>'+reglaHtml('c-pen',penParcial(g,p),false)+'<p class="muted" style="margin:4px 0 0">Se aplica al alumno que marques con ⏰ al calificar. Cada actividad puede tener su propia regla.</p></div>';
-  h+='<div class="card"><h3 style="margin-top:0">Nueva actividad</h3><div class="row"><input class="in" id="c-new" placeholder="Ej. MCM y MCD" style="flex:2;min-width:180px"><input type="date" class="in" id="c-fecha" value="'+hoy()+'" style="flex:1;min-width:140px"><button class="btn" id="c-add">Agregar y calificar</button></div>'+
-    (ac.length>=MAX_ACT?'<p class="note">Tu formato de Excel tiene lugar para '+MAX_ACT+' actividades por parcial.</p>':'')+'</div>';
+  if(listas.length)h+='<div class="card"><h3 style="margin-top:0">Nueva actividad</h3><div class="row">'+(listas.length>1?'<select class="in" id="c-rub" style="flex:1;min-width:130px" aria-label="Rubro">'+listas.map(r=>'<option value="'+r.id+'">'+esc(r.nombre)+'</option>').join('')+'</select>':'')+'<input class="in" id="c-new" placeholder="Ej. MCM y MCD" style="flex:2;min-width:180px"><input type="date" class="in" id="c-fecha" value="'+hoy()+'" style="flex:1;min-width:140px"><button class="btn" id="c-add">Agregar y calificar</button></div>'+
+    (itemsNoExam(g,p).length>=MAX_ACT?'<p class="note">Tu formato de Excel tiene lugar para '+MAX_ACT+' columnas de actividades por parcial.</p>':'')+'</div>';
   h+='<h3>Actividades del parcial '+p+'</h3>';
-  if(!ac.length&&!ex)h+='<p class="muted">Aún no hay actividades en este parcial.</p>';
-  const VV=valores(g,p);
-  if(ac.length){const ok=Math.abs(VV.total-pa)<0.01;h+='<p class="'+(ok?'muted':'note')+'">Las actividades valen <b>'+fpt(VV.total)+' de '+pa+'</b> puntos.'+(ok?'':(VV.total>pa?' Te pasaste: baja el valor de alguna.':' Falta asignar '+fpt(pa-VV.total)+' puntos: sube el valor de alguna o deja alguna en automático.'))+' Toca una actividad para cambiar su valor o su escala.</p>';}
-  ac.forEach((x,i)=>{const n=al.filter(y=>esNum(x.notas[y.id])).length;
-    h+='<div class="act" data-act="'+x.id+'"><span class="tag">Act '+(i+1)+'</span><div class="grow"><b>'+esc(x.nombre)+'</b> <span class="muted">'+fcorta(x.fecha)+' · vale '+fpt(VV.v[x.id])+' pts'+(esNum(x.valor)?'':' (auto)')+' · sobre '+actMax(x)+'</span><div class="bar" style="margin-top:6px"><i style="width:'+(al.length?Math.round(100*n/al.length):0)+'%"></i></div></div><span class="muted">'+n+'/'+al.length+'</span></div>';});
-  if(ex){const n=al.filter(y=>esNum(ex.notas[y.id])).length;h+='<div class="act exam" data-act="'+ex.id+'"><span class="tag">Examen</span><div class="grow"><b>'+esc(ex.nombre)+'</b> <span class="muted">'+(pe>0?'sobre '+pe:'no cuenta (0 %)')+' · '+fcorta(ex.fecha)+'</span><div class="bar" style="margin-top:6px"><i style="width:'+(al.length?Math.round(100*n/al.length):0)+'%;background:#7c3aed"></i></div></div><span class="muted">'+n+'/'+al.length+'</span></div>';}
-  else if(pe>0)h+='<p><button class="btn sm sec" id="c-exam">+ Capturar examen del parcial '+p+' (sobre '+pe+')</button></p>';
-  if(pz){const n=al.filter(y=>esNum(pz.notas[y.id])).length;h+='<div class="act exam" style="border-left-color:#0e7490" data-act="'+pz.id+'"><span class="tag" style="background:#d9f2f7">PAEC</span><div class="grow"><b>'+esc(pz.nombre)+'</b> <span class="muted">'+(pp>0?'vale '+pp+' pts · sobre '+actMax(pz):'no cuenta (0 %)')+' · '+fcorta(pz.fecha)+'</span><div class="bar" style="margin-top:6px"><i style="width:'+(al.length?Math.round(100*n/al.length):0)+'%;background:#0e7490"></i></div></div><span class="muted">'+n+'/'+al.length+'</span></div>';}
-  else if(pp>0)h+='<p><button class="btn sm sec" id="c-paec">+ Capturar proyecto PAEC del parcial '+p+' (vale '+pp+')</button></p>';
+  const barra=(x,c)=>{const n=al.filter(y=>esNum(x.notas[y.id])).length;return '<div class="bar" style="margin-top:6px"><i style="width:'+(al.length?Math.round(100*n/al.length):0)+'%;background:'+c+'"></i></div></div><span class="muted">'+n+'/'+al.length+'</span></div>';};
+  RR.forEach((r,i)=>{const c=col(i);
+    h+='<div class="muted" style="font-weight:800;margin:12px 0 4px;color:'+c+'">'+esc(r.nombre)+' · '+r.peso+' %</div>';
+    if(r.tipo==='lista'){const it=itemsR(g,p,r.id),VV=valoresR(g,p,r.id);
+      if(!it.length){h+='<p class="muted" style="margin:0 0 6px">Sin actividades todavía.</p>';return;}
+      const ok=Math.abs(VV.total-r.peso)<0.01;h+='<p class="'+(ok?'muted':'note')+'" style="margin:0 0 6px">Valen <b>'+fpt(VV.total)+' de '+r.peso+'</b> puntos.'+(ok?'':(VV.total>r.peso?' Te pasaste: baja el valor de alguna.':' Falta asignar '+fpt(r.peso-VV.total)+' puntos: sube el valor de alguna o deja alguna en automático.'))+'</p>';
+      it.forEach(x=>{h+='<div class="act" data-act="'+x.id+'"><span class="tag">'+esc(etiq(g,x))+'</span><div class="grow"><b>'+esc(x.nombre)+'</b> <span class="muted">'+fcorta(x.fecha)+' · vale '+fpt(VV.v[x.id])+' pts'+(esNum(x.valor)?'':' (auto)')+' · sobre '+actMax(x)+'</span>'+barra(x,c);});}
+    else if(r.tipo==='unico'){const x=itemsR(g,p,r.id)[0];
+      if(x)h+='<div class="act exam" style="border-left-color:'+c+'" data-act="'+x.id+'"><span class="tag">'+esc(etiq(g,x))+'</span><div class="grow"><b>'+esc(x.nombre)+'</b> <span class="muted">'+(r.peso>0?'vale '+r.peso+' pts · sobre '+actMax(x):'no cuenta (0 %)')+' · '+fcorta(x.fecha)+'</span>'+barra(x,c);
+      else h+=r.peso>0?'<p style="margin:0 0 6px"><button class="btn sm sec" data-nu="'+r.id+'">+ Capturar '+esc(r.nombre)+' (vale '+r.peso+')</button></p>':'<p class="muted" style="margin:0 0 6px">Vale 0 %: sube su deslizador para usarlo.</p>';}
+    else{if(ex)h+='<div class="act exam" data-act="'+ex.id+'"><span class="tag">'+esc(r.nombre)+'</span><div class="grow"><b>'+esc(ex.nombre)+'</b> <span class="muted">'+(r.peso>0?'sobre '+r.peso:'no cuenta (0 %)')+' · '+fcorta(ex.fecha)+'</span>'+barra(ex,'#7c3aed');
+      else h+=r.peso>0?'<p style="margin:0 0 6px"><button class="btn sm sec" data-nu="'+r.id+'">+ Capturar '+esc(r.nombre)+' del parcial '+p+' (sobre '+r.peso+')</button></p>':'<p class="muted" style="margin:0 0 6px">Vale 0 %.</p>';}
+  });
 
   h+='<div class="row" style="justify-content:space-between;margin-top:18px"><h3 style="margin:0">Concentrado del parcial '+p+'</h3><button class="btn sm xl" id="c-xls">⬇ Descargar parcial '+p+' (Excel)</button></div>';
-  h+='<p class="muted">Suma de escala = suma de (calificación ÷ escala × valor) de cada actividad, sin pasar de '+pa+'.'+(pp?' PAEC = calificación ÷ escala × '+pp+'.':'')+' Cal. final = total ÷ 10 redondeado; menos de 60 puntos = 5. Las actividades vacías cuentan como 0. "Extra" suma décimas (por ejemplo, insignias del blog).</p>';
-  h+='<div class="tw"><table><thead><tr><th>N.P.</th><th>Alumno</th>'+ac.map((x,i)=>'<th class="num" title="'+esc(x.nombre)+'">Act '+(i+1)+'<br><span style="text-transform:none;font-weight:600">'+fpt(VV.v[x.id])+' pts</span></th>').join('')+'<th class="num">Escala /'+pa+'</th>'+(pp||pz?'<th class="num">PAEC /'+pp+'</th>':'')+'<th class="num">Examen /'+pe+'</th><th class="num">Total</th><th class="num">Extra</th><th class="num">Cal.</th><th class="num">Faltas</th></tr></thead><tbody>';
+  h+='<p class="muted">Cada rubro suma (calificación ÷ escala × valor) de sus actividades, sin pasar de su porcentaje. Cal. final = total ÷ 10 redondeado; menos de 60 puntos = 5. Las actividades vacías cuentan como 0. "Extra" suma décimas (por ejemplo, insignias del blog).</p>';
+  const VA=valores(g,p),cols=RR.filter(r=>r.tipo!=='unico'||r.peso>0||itemsR(g,p,r.id).length);
+  h+='<div class="tw"><table><thead><tr><th>N.P.</th><th>Alumno</th>'+ac.map(x=>'<th class="num" title="'+esc(x.nombre)+'">'+esc(etiq(g,x))+'<br><span style="text-transform:none;font-weight:600">'+fpt(VA.v[x.id])+' pts</span></th>').join('')+
+    cols.map(r=>'<th class="num">'+esc(r.id==='act'?'Escala':r.nombre)+' /'+r.peso+'</th>').join('')+'<th class="num">Total</th><th class="num">Extra</th><th class="num">Cal.</th><th class="num">Faltas</th></tr></thead><tbody>';
   al.forEach((x,i)=>{const r=calif(g,x.id,p),fa=asis(g,x.id,p).F;
     h+='<tr><td class="num">'+(i+1)+'</td><td class="nm">'+esc(x.nombre)+'</td>'+r.notas.map((v,k)=>esNum(v)?'<td class="num"'+(esTarde(r.ac[k],x.id)?' title="Entregó tarde: '+r.ac[k].notas[x.id]+' → '+v+'" style="background:#fff4d6"':'')+'>'+fpt(v)+(esTarde(r.ac[k],x.id)?' ⏰':'')+'</td>':'<td class="num empty"></td>').join('')+
-      '<td class="num sum">'+f1(r.escala)+'</td>'+(pp||pz?(r.paec==null?(pz&&pp>0?'<td class="num empty"></td>':'<td class="num">—</td>'):'<td class="num">'+f1(r.paec)+(esTarde(pz,x.id)?' ⏰':'')+'</td>'):'')+'<td class="num">'+(r.exam==null?'—':f1(r.exam))+'</td><td class="num sum">'+f1(r.total)+'</td><td class="num"><input class="ninp" inputmode="decimal" data-ex="'+x.id+'" value="'+(r.extra||'')+'" aria-label="Décimas extra de '+esc(x.nombre)+'" style="width:56px"></td><td class="num" data-fin="'+x.id+'">'+calHtml(r.fin)+'</td><td class="num">'+fa+'</td></tr>';});
+      cols.map(c=>{const v=r.det[c.id];if(v!=null){const it=c.tipo==='unico'?itemsR(g,p,c.id)[0]:null;return '<td class="num'+(c.id==='act'?' sum':'')+'">'+f1(v)+(it&&esTarde(it,x.id)?' ⏰':'')+'</td>';}
+        const pendiente=(c.tipo==='unico'&&c.peso>0&&itemsR(g,p,c.id)[0])||(c.tipo==='lista'&&itemsR(g,p,c.id).length);return pendiente?'<td class="num empty"></td>':'<td class="num">—</td>';}).join('')+
+      '<td class="num sum">'+f1(r.total)+'</td><td class="num"><input class="ninp" inputmode="decimal" data-ex="'+x.id+'" value="'+(r.extra||'')+'" aria-label="Décimas extra de '+esc(x.nombre)+'" style="width:56px"></td><td class="num" data-fin="'+x.id+'">'+calHtml(r.fin)+'</td><td class="num">'+fa+'</td></tr>';});
   h+='</tbody></table></div>';
 
   const pen=pendientesYTarde(g,p);
   h+='<div class="row" style="justify-content:space-between;margin-top:18px"><h3 style="margin:0">Faltantes, tardías, faltas y observaciones</h3>'+(pen.length?'<span class="row"><button class="btn sm" id="c-wa" style="background:#128c4a">📲 Reporte a orientación (WhatsApp)</button><button class="btn sm sec" id="c-copen">Copiar</button></span>':'')+'</div>';
-  if(!ac.length&&!pen.length)h+='<p class="muted">Sin actividades ni faltas todavía.</p>';
+  if(!itemsNoExam(g,p).length&&!pen.length)h+='<p class="muted">Sin actividades ni faltas todavía.</p>';
   else if(!pen.length)h+='<p class="muted">Todos entregaron todo a tiempo y sin faltas. 🎉</p>';
-  else{h+='<div class="tw"><table><tbody>'+pen.map(([x,pd,td,ff,rr,ob])=>'<tr class="click" data-h="a/'+g.id+'/'+x.id+'"><td class="nm">'+esc(x.nombre)+'</td><td style="white-space:normal"><span class="chips">'+pd.map(a=>'<span class="chip pen" title="'+esc(a.nombre)+'">'+etiq(a,ac)+'</span>').join('')+td.map(a=>'<span class="chip" title="'+esc(a.nombre)+'" style="background:#fff1d6;color:#7a4b00">⏰ '+etiq(a,ac)+'</span>').join('')+(ff.length?'<span class="chip inf" title="'+ff.map(fcorta).join(', ')+'">📅 '+ff.length+' falta'+(ff.length>1?'s':'')+'</span>':'')+(ob.length?'<span class="chip" style="background:#efe7ff;color:#4c1d95" title="'+esc(ob.map(o=>fcorta(o.fecha)+': '+o.texto).join(' | '))+'">📝 '+ob.length+' obs.</span>':'')+'</span></td></tr>').join('')+'</tbody></table></div>';}
+  else{h+='<div class="tw"><table><tbody>'+pen.map(([x,pd,td,ff,rr,ob])=>'<tr class="click" data-h="a/'+g.id+'/'+x.id+'"><td class="nm">'+esc(x.nombre)+'</td><td style="white-space:normal"><span class="chips">'+pd.map(a=>'<span class="chip pen" title="'+esc(a.nombre)+'">'+esc(etiq(g,a))+'</span>').join('')+td.map(a=>'<span class="chip" title="'+esc(a.nombre)+'" style="background:#fff1d6;color:#7a4b00">⏰ '+esc(etiq(g,a))+'</span>').join('')+(ff.length?'<span class="chip inf" title="'+ff.map(fcorta).join(', ')+'">📅 '+ff.length+' falta'+(ff.length>1?'s':'')+'</span>':'')+(ob.length?'<span class="chip" style="background:#efe7ff;color:#4c1d95" title="'+esc(ob.map(o=>fcorta(o.fecha)+': '+o.texto).join(' | '))+'">📝 '+ob.length+' obs.</span>':'')+'</span></td></tr>').join('')+'</tbody></table></div>';}
   app.innerHTML=h;wireCalifTabs(g);wireBuscador();
-  $('#c-add').onclick=()=>{const n=$('#c-new').value.trim();if(!n){toast('Escribe el nombre de la actividad');return;}
-    const x={id:uid(),parcial:p,tipo:'act',nombre:n,fecha:$('#c-fecha').value||hoy(),notas:{}};g.acts.push(x);actSel=x.id;cambio();render();setTimeout(()=>{const i=app.querySelector('.ninp[data-a]');if(i)i.focus();},60);};
-  $('#c-new').onkeydown=e=>{if(e.key==='Enter')$('#c-add').click();};
-  const P={a:pa,p:pp,e:pe};
-  const ajusta=(k,v)=>{v=Math.max(0,Math.min(100,Math.round(v)));P[k]=v;
-    if(k==='a'){P.e=100-P.a-P.p;if(P.e<0){P.p=100-P.a;P.e=0;}}
-    else if(k==='p'){P.e=100-P.a-P.p;if(P.e<0){P.a=100-P.p;P.e=0;}}
-    else{P.a=100-P.p-P.e;if(P.a<0){P.p=100-P.e;P.a=0;}}
-    for(const x of ['a','p','e']){$('#c-r'+x).value=P[x];$('#c-n'+x).value=P[x];$('#pb-'+x).style.width=P[x]+'%';}};
-  const guarda=()=>{if(P.a===pondA(g,p)&&P.p===pondP(g,p))return;const aj=setPond(g,p,P.a,P.p);cambio();render();
-    const txt='Actividades '+P.a+' % · PAEC '+P.p+' % · Examen '+P.e+' %';toast(aj?txt+'. El examen se muestra ahora sobre '+P.e+'.':txt);};
-  for(const x of ['a','p','e']){
-    $('#c-r'+x).oninput=e=>ajusta(x,+e.target.value);$('#c-r'+x).onchange=guarda;
-    $('#c-n'+x).onchange=e=>{const v=num(e.target.value);if(v==null||isNaN(v)){e.target.value=P[x];return;}ajusta(x,v);guarda();};}
+  if($('#c-add')){$('#c-add').onclick=()=>{const n=$('#c-new').value.trim();if(!n){toast('Escribe el nombre de la actividad');return;}
+    const rid=$('#c-rub')?$('#c-rub').value:listas[0].id;
+    const x={id:uid(),parcial:p,tipo:'act',rub:rid,nombre:n,fecha:$('#c-fecha').value||hoy(),notas:{}};g.acts.push(x);actSel=x.id;cambio();render();setTimeout(()=>{const i=app.querySelector('.ninp[data-a]');if(i)i.focus();},60);};
+    $('#c-new').onkeydown=e=>{if(e.key==='Enter')$('#c-add').click();};}
+  // --- deslizadores: siempre suman 100 ---
+  const P=RR.map(r=>r.peso),ix=RR.findIndex(r=>r.tipo==='examen'),resto=ix>=0?ix:RR.length-1;
+  const pinta=()=>P.forEach((v,i)=>{$('#c-r'+i).value=v;$('#c-n'+i).value=v;$('#pb-'+i).style.width=v+'%';});
+  const ajusta=(k,v)=>{
+    if(RR.length===1){P[0]=100;pinta();return;}
+    v=Math.max(0,Math.min(100,Math.round(v)));let falta=P[k]-v;P[k]=v;          // lo que hay que dar (+) o quitar (−) a los demás
+    const orden=[k===resto?RR.findIndex((_,i)=>i!==resto):resto].concat(RR.map((_,i)=>i).reverse().filter(i=>i!==k&&i!==resto&&i!==(k===resto?RR.findIndex((_,j)=>j!==resto):-1)));
+    if(falta>0)P[orden[0]]+=falta;
+    else for(const i of orden){if(falta===0)break;const t=Math.min(P[i],-falta);P[i]-=t;falta+=t;}
+    if(falta<0)P[k]+=falta;
+    pinta();};
+  const guarda=()=>{if(RR.every((r,i)=>r.peso===P[i]))return;RR.forEach((r,i)=>r.peso=P[i]);cambio();render();toast(RR.map(r=>r.nombre+' '+r.peso+' %').join(' · '));};
+  RR.forEach((_,i)=>{$('#c-r'+i).oninput=e=>ajusta(i,+e.target.value);$('#c-r'+i).onchange=guarda;
+    $('#c-n'+i).onchange=e=>{const v=num(e.target.value);if(v==null||isNaN(v)){e.target.value=P[i];return;}ajusta(i,v);guarda();};});
+  app.querySelectorAll('[data-rn]').forEach(inp=>inp.onchange=()=>{const v=inp.value.trim();const r=RR[+inp.dataset.rn];if(!v){inp.value=r.nombre;return;}r.nombre=v;cambio();render();toast('Rubro renombrado: '+v);});
+  app.querySelectorAll('[data-rd]').forEach(b=>b.onclick=()=>{const i=+b.dataset.rd,r=RR[i];
+    const it=r.tipo==='examen'?(ex?[ex]:[]):itemsR(g,p,r.id),con=it.some(a=>Object.values(a.notas||{}).some(esNum));
+    if(!confirm('¿Quitar el rubro "'+r.nombre+'" del parcial '+p+'?'+(it.length?' Se borrarán sus '+it.length+' actividad(es)'+(con?' con sus calificaciones':'')+'.':'')+' Su '+r.peso+' % pasa a otro rubro.'))return;
+    g.acts=g.acts.filter(a=>!it.includes(a));RR.splice(i,1);
+    const j=RR.findIndex(x=>x.tipo==='examen');(RR[j>=0?j:RR.length-1]).peso+=r.peso;cambio();render();toast('Rubro quitado');});
+  $('#r-add').onclick=()=>{const n=$('#r-nom').value.trim(),t=$('#r-tipo').value;if(!n){toast('Escribe el nombre del rubro');return;}
+    if(RR.some(r=>normal(r.nombre)===normal(n))){toast('Ya hay un rubro con ese nombre');return;}
+    const nuevo={id:t==='examen'?'exam':uid(),nombre:n,tipo:t,peso:0};const j=RR.findIndex(r=>r.tipo==='examen');
+    if(t==='examen'||j<0)RR.push(nuevo);else RR.splice(j,0,nuevo);cambio();render();toast('Rubro "'+n+'" agregado: mueve su deslizador para darle porcentaje');};
+  if($('#r-copia'))$('#r-copia').onclick=()=>{if(!confirm('¿Usar estos rubros y porcentajes en los demás parciales? Los rubros que no existan allá se crean; los que sobren allá se quitan si no tienen actividades.'))return;
+    for(let q=1;q<=g.parciales;q++){if(q===p)continue;const viejo=rubros(g,q);
+      const conAct=viejo.filter(r=>!RR.some(x=>x.id===r.id)&&(r.tipo==='examen'?examP(g,q):itemsR(g,q,r.id).length));
+      if(conAct.length){toast('El parcial '+q+' tiene actividades en '+conAct.map(r=>r.nombre).join(', ')+': quítalas primero');continue;}
+      g.rub[q]=RR.map(r=>Object.assign({},r));}
+    cambio();render();toast('Rubros copiados');};
   const cambiaPer=()=>{const i=$('#c-pi').value,f=$('#c-pf').value;if(i&&f&&i>f){toast('La fecha de inicio debe ser antes del fin');return;}g.periodos[p]={ini:i,fin:f};cambio();render();toast('Periodo del parcial '+p+' actualizado');};
   $('#c-pi').onchange=cambiaPer;$('#c-pf').onchange=cambiaPer;
   wireRegla('c-pen',r=>{g.pen[p]=r;cambio();render();toast('Regla de entregas tardías actualizada');});
-  if($('#c-paec'))$('#c-paec').onclick=()=>{const x={id:uid(),parcial:p,tipo:'paec',nombre:'Proyecto PAEC',fecha:hoy(),notas:{}};g.acts.push(x);actSel=x.id;cambio();render();};
-  if($('#c-exam'))$('#c-exam').onclick=()=>{const x={id:uid(),parcial:p,tipo:'exam',nombre:'Examen parcial '+p,fecha:hoy(),max:pe,notas:{}};g.acts.push(x);actSel=x.id;cambio();render();};
+  app.querySelectorAll('[data-nu]').forEach(b=>b.onclick=()=>{const r=rubro(g,p,b.dataset.nu);let x;
+    if(r.tipo==='examen')x={id:uid(),parcial:p,tipo:'exam',nombre:r.nombre+' parcial '+p,fecha:hoy(),max:r.peso,notas:{}};
+    else x={id:uid(),parcial:p,tipo:'unico',rub:r.id,nombre:r.nombre,fecha:hoy(),notas:{}};
+    g.acts.push(x);actSel=x.id;cambio();render();});
   app.querySelectorAll('[data-act]').forEach(d=>d.onclick=()=>{actSel=d.dataset.act;render();window.scrollTo(0,0);});
   app.querySelectorAll('tr[data-h]').forEach(t=>t.onclick=()=>location.hash=t.dataset.h);
   app.querySelectorAll('[data-ex]').forEach(inp=>inp.onchange=()=>{const v=num(inp.value),aid=inp.dataset.ex;g.extra[p]=g.extra[p]||{};
@@ -554,13 +603,13 @@ function vCalif(g,head){
 function wireCalifTabs(g){app.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{g.pActual=+b.dataset.p;actSel=null;cambio();render();});}
 function vCaptura(g,a,h){
   h=h.replace(buscadorHtml(),'');
-  const esP=a.tipo==='paec';
+  const esP=a.tipo==='unico',rA=a.tipo==='exam'?rubExam(g,a.parcial):rubro(g,a.parcial,rubDe(a));
   const esE=a.tipo==='exam',peA=pondE(g,a.parcial),aVista=v=>esE&&esNum(v)&&exMax(a)>0?v/exMax(a)*peA:v,aGuardar=v=>esE&&peA>0?v/peA*exMax(a):v;
-  const al=activos(g),max=a.tipo==='exam'?peA:actMax(a),ac=actsP(g,a.parcial),pos=ac.indexOf(a),VV=a.tipo==='exam'||esP?null:valores(g,a.parcial);
+  const al=activos(g),max=a.tipo==='exam'?peA:actMax(a),ac=actsP(g,a.parcial),pos=ac.indexOf(a),VV=a.tipo==='exam'||esP?null:valoresR(g,a.parcial,rubDe(a));
   const cuentaTxt=()=>al.filter(x=>esNum(a.notas[x.id])).length+' de '+al.length+' calificados.';
   h+='<div class="card"><div class="row" style="justify-content:space-between"><button class="btn sm sec" id="c-volver">← Concentrado</button><button class="btn sm danger" id="c-del">Eliminar</button></div>'+
-    '<p style="margin:10px 0 0"><span class="act" style="display:inline-flex;cursor:default;margin:0;padding:3px 8px"><span class="tag">'+(a.tipo==='exam'?'Examen · sobre '+max:esP?'Proyecto PAEC · sobre '+max+' · vale '+pondP(g,a.parcial)+' pts':'Act '+(pos+1)+' · sobre '+max+' · vale '+fpt(VV.v[a.id])+' pts')+'</span></span></p>'+
-    (esP?'<div class="row"><div style="flex:1;min-width:140px"><label class="f" for="c-max">Calificar sobre</label><input class="in" id="c-max" inputmode="decimal" value="'+max+'"></div></div><p class="muted" style="margin:4px 0 0">El proyecto vale '+pondP(g,a.parcial)+' puntos; cámbialo en la ponderación del parcial.</p>':'')+
+    '<p style="margin:10px 0 0"><span class="act" style="display:inline-flex;cursor:default;margin:0;padding:3px 8px"><span class="tag">'+esc(a.tipo==='exam'?(rA?rA.nombre:'Examen')+' · sobre '+max:esP?(rA?rA.nombre:a.nombre)+' · sobre '+max+' · vale '+(rA?rA.peso:0)+' pts':etiq(g,a)+' · sobre '+max+' · vale '+fpt(VV.v[a.id])+' pts')+'</span></span></p>'+
+    (esP?'<div class="row"><div style="flex:1;min-width:140px"><label class="f" for="c-max">Calificar sobre</label><input class="in" id="c-max" inputmode="decimal" value="'+max+'"></div></div><p class="muted" style="margin:4px 0 0">'+esc(rA?rA.nombre:'Este rubro')+' vale '+(rA?rA.peso:0)+' puntos; cámbialo en los rubros del parcial.</p>':'')+
     (a.tipo==='exam'||esP?'':'<div class="row"><div style="flex:1;min-width:140px"><label class="f" for="c-max">Calificar sobre</label><input class="in" id="c-max" inputmode="decimal" value="'+max+'"></div><div style="flex:1;min-width:140px"><label class="f" for="c-val">Vale (puntos de '+VV.pa+')</label><input class="in" id="c-val" inputmode="decimal" value="'+(esNum(a.valor)?a.valor:'')+'" placeholder="Automático ('+fpt(VV.v[a.id])+')"></div></div><p class="muted" style="margin:4px 0 0">Vacío = automático: reparte en partes iguales los puntos que no asignaste. Puedes asignar hasta '+fpt(VV.pa-(VV.sumF-(esNum(a.valor)?a.valor:0)))+' puntos a esta actividad.</p>')+
     (a.tipo==='exam'?'':'<label class="f">Entrega tardía en esta actividad</label>'+reglaHtml('c-apen',a.pen||null,true)+'<p class="muted" style="margin:4px 0 0">Regla del parcial: '+reglaTxt(penParcial(g,a.parcial))+'. Toca ⏰ junto al alumno que entregó tarde.</p>')+
     '<div class="row"><div style="flex:2;min-width:180px"><label class="f" for="c-nom">Nombre</label><input class="in" id="c-nom" value="'+esc(a.nombre)+'"></div><div style="flex:1;min-width:140px"><label class="f" for="c-fe">Fecha</label><input type="date" class="in" id="c-fe" value="'+esc(a.fecha||'')+'"></div></div>'+
@@ -578,7 +627,7 @@ function vCaptura(g,a,h){
     if(v==null){delete a.valor;cambio();render();toast('Valor automático');return;}
     const otros=VV.sumF-(esNum(a.valor)?a.valor:0),lim=VV.pa-otros;
     if(isNaN(v)||v<0){toast('Escribe un número de puntos');return;}
-    if(v>lim+1e-9){toast('Máximo '+fpt(lim)+' puntos: las actividades no pueden pasar de '+VV.pa);e.target.value=esNum(a.valor)?a.valor:'';return;}
+    if(v>lim+1e-9){toast('Máximo '+fpt(lim)+' puntos: '+(rA?rA.nombre:'las actividades')+' no puede pasar de '+VV.pa);e.target.value=esNum(a.valor)?a.valor:'';return;}
     a.valor=v;cambio();render();toast('Esta actividad vale '+fpt(v)+' puntos');};
   if($('#c-apen-t'))wireRegla('c-apen',r=>{if(r)a.pen=r;else delete a.pen;cambio();render();toast('Regla de esta actividad: '+reglaTxt(reglaDe(g,a)));});
   app.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{const aid=b.dataset.t;a.tarde=a.tarde||{};
@@ -599,15 +648,15 @@ function pendientesYTarde(g,p){
   const h=hoy(),dias=Object.keys(g.asis).filter(f=>parcialDe(g,f)===p&&f<=h).sort();
   return activos(g).map(x=>{const c=calif(g,x.id,p);const ff=dias.filter(f=>g.asis[f].m[x.id]==='F'),rr=dias.filter(f=>g.asis[f].m[x.id]==='R');
     const ob=(g.obs||[]).filter(o=>o.aid===x.id&&o.fecha<=h&&parcialDe(g,o.fecha)===p).sort((a,b)=>a.fecha.localeCompare(b.fecha));
-    return [x,c.pend,c.ac.concat(c.pz&&c.pp>0?[c.pz]:[]).filter(a=>esTarde(a,x.id)),ff,rr,ob];}).filter(z=>z[1].length||z[2].length||z[3].length||z[5].length);
+    return [x,c.pend,itemsNoExam(g,p).filter(a=>esTarde(a,x.id)),ff,rr,ob];}).filter(z=>z[1].length||z[2].length||z[3].length||z[5].length);
 }
 function reporteOrientacion(g,p){
   const ac=actsP(g,p),pen=pendientesYTarde(g,p),total=activos(g).length;
   const nP=pen.filter(z=>z[1].length).length,nT=pen.filter(z=>z[2].length).length,nF=pen.filter(z=>z[3].length).length,nO=pen.filter(z=>z[5].length).length;
   const dias=Object.keys(g.asis).filter(f=>parcialDe(g,f)===p&&f<=hoy()).length;
-  const numAct=a=>etiq(a,ac),pz=paecP(g,p);
+  const numAct=a=>etiq(g,a),todas=itemsNoExam(g,p);
   let t='*Reporte para Orientación*\n'+matNom(g.materia)+' · Grupo '+g.nombre+(g.semestre?' · Semestre '+g.semestre:'')+'\nParcial '+p+' · '+fcorta(hoy())+'\n\n';
-  if(ac.length||(pz&&pondP(g,p)>0))t+='_Actividades del parcial:_\n'+ac.map((a,i)=>'Act '+(i+1)+': '+a.nombre+(a.fecha?' ('+fcorta(a.fecha)+')':'')).concat(pz&&pondP(g,p)>0?['PAEC: '+pz.nombre+(pz.fecha?' ('+fcorta(pz.fecha)+')':'')]:[]).join('\n')+'\n\n';
+  if(todas.length)t+='_Actividades del parcial:_\n'+todas.map(a=>etiq(g,a)+(normal(etiq(g,a))===normal(a.nombre)?'':': '+a.nombre)+(a.fecha?' ('+fcorta(a.fecha)+')':'')).join('\n')+'\n\n';
   t+='Alumnos con actividades sin entregar: *'+nP+'* de '+total+'\nAlumnos con entregas a destiempo: *'+nT+'*\nAlumnos con faltas: *'+nF+'* (de '+dias+' clases registradas en el parcial hasta hoy)\n'+(nO?'Alumnos con observaciones: *'+nO+'*\n':'');
   if(!pen.length)t+='\n✅ Ningún alumno con actividades pendientes, entregas a destiempo, faltas ni observaciones en este parcial hasta hoy.\n';
   pen.forEach(([x,pd,td,ff,rr,ob],i)=>{
@@ -671,13 +720,14 @@ function vFicha(g,aid){
   const a=asis(g,aid),z=alertas(g,aid),fi=final(g,aid),seg=seguidas(g,aid);
   let h='<div class="muted">'+esc(matNom(g.materia))+' · Grupo '+esc(g.nombre)+(x.baja?' · <b>Dado de baja</b>':'')+'</div><h2 style="margin-top:6px">'+esc(x.nombre)+'</h2>'+(z.length?chips(z):'<span class="chip ok">Sin alertas</span>');
   h+='<div class="stat" style="margin-top:12px"><div><span>Asistencia</span><b>'+(a.pct==null?'—':Math.round(a.pct)+'%')+'</b></div><div><span>Faltas</span><b>'+a.F+'</b></div><div><span>Retardos</span><b>'+a.R+'</b></div><div><span>Justificadas</span><b>'+a.J+'</b></div><div><span>Faltas seguidas</span><b>'+seg+'</b></div><div><span>Promedio</span><b'+(fi!=null&&fi<6?' class="low"':'')+'>'+f1(fi)+'</b></div></div>';
-  h+='<h3>Calificaciones</h3><div class="tw"><table><thead><tr><th>Parcial</th><th class="num">Actividades</th><th class="num">PAEC</th><th class="num">Examen</th><th class="num">Total</th><th class="num">Extra</th><th class="num">Cal.</th><th class="num">Faltas</th><th>Pendientes</th></tr></thead><tbody>';
-  for(let p=1;p<=g.parciales;p++){const c=calif(g,aid,p);h+='<tr><td>Parcial '+p+' <span class="muted">('+c.pa+(c.pp?'/'+c.pp:'')+'/'+c.pe+')</span></td><td class="num">'+(c.escala==null?'—':f1(c.escala)+' / '+c.pa)+'</td><td class="num">'+(c.paec==null?(c.hayPaec?'0 / '+c.pp:'—'):f1(c.paec)+' / '+c.pp)+'</td><td class="num">'+(c.exam==null?'—':f1(c.exam)+' / '+c.pe)+'</td><td class="num">'+f1(c.total)+'</td><td class="num">'+(c.extra?'+'+c.extra:'—')+'</td><td class="num">'+(c.hayExam?calHtml(c.fin):'—')+'</td><td class="num">'+asis(g,aid,p).F+'</td><td>'+(c.pend.length?'<span class="chip">'+c.pend.length+'</span>':'')+'</td></tr>';}
+  h+='<h3>Calificaciones</h3><div class="tw"><table><thead><tr><th>Parcial</th><th>Rubros</th><th class="num">Total</th><th class="num">Extra</th><th class="num">Cal.</th><th class="num">Faltas</th><th>Pendientes</th></tr></thead><tbody>';
+  for(let p=1;p<=g.parciales;p++){const c=calif(g,aid,p);
+    const des=c.RR.filter(r=>r.peso>0).map(r=>esc(r.nombre)+' <b>'+(c.det[r.id]==null?'—':f1(c.det[r.id]))+'</b>/'+r.peso).join(' · ');
+    h+='<tr><td>Parcial '+p+'</td><td style="white-space:normal;font-size:13px">'+des+'</td><td class="num">'+f1(c.total)+'</td><td class="num">'+(c.extra?'+'+c.extra:'—')+'</td><td class="num">'+(c.hayExam?calHtml(c.fin):'—')+'</td><td class="num">'+asis(g,aid,p).F+'</td><td>'+(c.pend.length?'<span class="chip">'+c.pend.length+'</span>':'')+'</td></tr>';}
   h+='</tbody></table></div>';
-  for(let p=1;p<=g.parciales;p++){const ac=actsP(g,p),ex=examP(g,p);if(!ac.length&&!ex&&!paecP(g,p))continue;
-    h+='<details'+(p===pHoy(g)?' open':'')+'><summary>Actividades del parcial '+p+'</summary><table style="margin-top:6px"><tbody>'+ac.map((z2,i)=>{const v=notaEf(g,z2,aid),tt=esTarde(z2,aid);return '<tr><td class="num" style="width:60px">Act '+(i+1)+'</td><td class="nm">'+esc(z2.nombre)+(tt?'<div class="muted" style="color:#9a5b00;font-weight:700">⏰ Entregó tarde ('+fcorta(z2.tarde[aid])+')'+(esNum(z2.notas[aid])&&z2.notas[aid]!==v?': '+z2.notas[aid]+' → '+fpt(v):'')+'</div>':'')+'</td><td class="num'+(esNum(v)?(v/actMax(z2)<0.6?' low':''):' empty')+'">'+(esNum(v)?fpt(v)+(actMax(z2)!==10?' / '+actMax(z2):''):'No entregó')+'</td></tr>';}).join('')+
-    (paecP(g,p)&&pondP(g,p)>0?(z3=>{const v=notaEf(g,z3,aid);return '<tr><td class="num">PAEC</td><td class="nm">'+esc(z3.nombre)+(esTarde(z3,aid)?' <span class="muted">⏰ tarde</span>':'')+'</td><td class="num'+(esNum(v)?'':' empty')+'">'+(esNum(v)?fpt(v)+' / '+actMax(z3):'No entregó')+'</td></tr>';})(paecP(g,p)):'')+
-    (ex?'<tr><td class="num">Examen</td><td class="nm">'+esc(ex.nombre)+'</td><td class="num">'+(esNum(ex.notas[aid])?fpt(exMax(ex)>0?ex.notas[aid]/exMax(ex)*pondE(g,p):0)+' / '+pondE(g,p):'—')+'</td></tr>':'')+'</tbody></table></details>';}
+  for(let p=1;p<=g.parciales;p++){const todas=itemsNoExam(g,p),ex=examP(g,p),re=rubExam(g,p);if(!todas.length&&!ex)continue;
+    h+='<details'+(p===pHoy(g)?' open':'')+'><summary>Actividades del parcial '+p+'</summary><table style="margin-top:6px"><tbody>'+todas.map(z2=>{const v=notaEf(g,z2,aid),tt=esTarde(z2,aid);return '<tr><td class="num" style="width:70px">'+esc(etiq(g,z2))+'</td><td class="nm">'+esc(z2.nombre)+(tt?'<div class="muted" style="color:#9a5b00;font-weight:700">⏰ Entregó tarde ('+fcorta(z2.tarde[aid])+')'+(esNum(z2.notas[aid])&&z2.notas[aid]!==v?': '+z2.notas[aid]+' → '+fpt(v):'')+'</div>':'')+'</td><td class="num'+(esNum(v)?(v/actMax(z2)<0.6?' low':''):' empty')+'">'+(esNum(v)?fpt(v)+(actMax(z2)!==10?' / '+actMax(z2):''):'No entregó')+'</td></tr>';}).join('')+
+    (ex&&re&&re.peso>0?'<tr><td class="num">'+esc(re.nombre)+'</td><td class="nm">'+esc(ex.nombre)+'</td><td class="num">'+(esNum(ex.notas[aid])?fpt(exMax(ex)>0?ex.notas[aid]/exMax(ex)*re.peso:0)+' / '+re.peso:'—')+'</td></tr>':'')+'</tbody></table></details>';}
   const marcadas=Object.keys(g.asis).sort().reverse().filter(f=>{const c=g.asis[f].m[aid];return c&&c!=='A';});
   h+='<h3>Faltas, retardos y justificadas</h3>'+(marcadas.length?'<div class="chips">'+marcadas.map(f=>{const c=g.asis[f].m[aid];return '<span class="chip" style="background:'+({F:'#fde2e2',R:'#fff1d6',J:'#e0ecff'})[c]+';color:var(--ink)">'+c+' · '+fcorta(f)+'</span>';}).join('')+'</div>':'<p class="muted">Ninguna.</p>');
   h+='<p style="margin-top:14px"><button class="btn sm sec" id="f-copia">Copiar resumen (para padres u orientación)</button></p>';
@@ -688,7 +738,7 @@ function vFicha(g,aid){
     for(let p=1;p<=g.parciales;p++){const c=calif(g,aid,p);if(c.fin==null)continue;
       t+='Parcial '+p+': '+(c.hayExam?'calificación '+c.fin:f1(c.total)+' puntos acumulados (sin examen aún)')+'\n';
       if(c.pend.length)t+='  Actividades pendientes: '+c.pend.map(q=>q.nombre).join(', ')+'\n';
-      const tard=c.ac.filter(q=>esTarde(q,aid));if(tard.length)t+='  Entregó tarde: '+tard.map(q=>q.nombre).join(', ')+'\n';}
+      const tard=itemsNoExam(g,p).filter(q=>esTarde(q,aid));if(tard.length)t+='  Entregó tarde: '+tard.map(q=>q.nombre).join(', ')+'\n';}
     copiar(t,'Resumen copiado. Pégalo en WhatsApp o correo.');
   };
 }
@@ -847,37 +897,33 @@ async function llenarFormato(buf,g,opts){
   for(let p=1;p<=3;p++){
     if(!NOMP[p])continue;const d=await hoja(NOMP[p]);if(!d)continue;
     const L=await plano(d),AC=L.acol,MA=AC.length;
-    const ac=p<=g.parciales?actsP(g,p):[],ex=p<=g.parciales?examP(g,p):null;
-    if(ac.length>MA)avisos.push('Parcial '+p+': solo caben '+MA+' actividades');
+    const ok=p<=g.parciales,ex=ok?examP(g,p):null,RRp=ok?rubros(g,p):[],ac=ok?actsP(g,p):[],todos=ok?itemsNoExam(g,p):[];
+    if(todos.length>MA)avisos.push('Parcial '+p+': solo caben '+MA+' columnas de actividades');
     if(al.length>L.n)avisos.push('Parcial '+p+': solo caben '+L.n+' alumnos');
-    const ua=ac.slice(0,MA),n=ua.length,lst=al.slice(0,L.n);
-    const pz=p<=g.parciales?paecP(g,p):null,ppx=p<=g.parciales?pondP(g,p):0,colP=pz&&ppx>0?(n<MA?AC[n]:null):null;
-    if(pz&&ppx>0&&!colP)avisos.push('Parcial '+p+': no queda columna libre para el PAEC');
+    const ua=todos.slice(0,MA),n=ua.length,lst=al.slice(0,L.n);
+    const pa=pondA(g,p),simple=n>0&&ua.every(a=>rubDe(a)==='act')&&ua.length===ac.length&&ac.every(a=>!esNum(a.valor)&&actMax(a)===10);
+    const coefs=ua.map(a=>{const r=rubro(g,p,rubDe(a));if(r.tipo==='unico')return r.peso+'/'+actMax(a);const V=valoresR(g,p,r.id);return esNum(a.valor)?a.valor+'/'+actMax(a):'('+fpt(V.resto)+'/'+V.nAut+')/'+actMax(a);});
     if(L.hdr.sem)poner(d,L.hdr.sem,'SEMESTRE: '+(g.semestre||''));if(L.hdr.grp)poner(d,L.hdr.grp,'GRUPO: '+g.nombre);if(L.hdr.asig)poner(d,L.hdr.asig,'ASIGNATURA: '+MATX);
     const PF=S.perfil||{};if(L.hdr.prof&&PF.docente)poner(d,L.hdr.prof,'PROFESOR: '+(PF.docente||'').replace(/^\s*(prof(a|r|ra)?|mtr[oa]|maestr[oa]|lic|ing|dr|dra)\.?\s+/i,'').toUpperCase());if(L.hdr.esc&&PF.escuela)poner(d,L.hdr.esc,PF.escuela.toUpperCase());
-    for(let k=0;k<MA;k++){poner(d,AC[k]+L.rLab,'Act '+(k+1));poner(d,AC[k]+L.rAct,ua[k]?ua[k].nombre:null);poner(d,AC[k]+L.rFec,ua[k]&&ua[k].fecha?serial(ua[k].fecha):null);}
-    if(colP){poner(d,colP+L.rLab,'PAEC');poner(d,colP+L.rAct,'PROYECTO PAEC'+(pz.nombre&&normal(pz.nombre)!=='PROYECTO PAEC'?': '+pz.nombre:''));poner(d,colP+L.rFec,pz.fecha?serial(pz.fecha):null);}
+    for(let k=0;k<MA;k++){const a=ua[k],r=a?rubro(g,p,rubDe(a)):null;
+      poner(d,AC[k]+L.rLab,a?etiq(g,a):'Act '+(k+1));
+      poner(d,AC[k]+L.rAct,a?(r&&r.tipo==='unico'?r.nombre.toUpperCase()+(normal(a.nombre)!==normal(r.nombre)?': '+a.nombre:''):a.nombre):null);
+      poner(d,AC[k]+L.rFec,a&&a.fecha?serial(a.fecha):null);}
     const c1=colNum(AC[0]),cE=colNum(L.cE);
     for(let i=0;i<L.n;i++){
       const r=L.r0+i,x=lst[i];
       poner(d,L.cN+r,x?x.nombre:null);
       for(let k=0;k<MA;k++){const v=x&&ua[k]?notaEf(g,ua[k],x.id):null;poner(d,AC[k]+r,esNum(v)?v:null);}
-      if(colP){const v=x?notaEf(g,pz,x.id):null;poner(d,colP+r,esNum(v)?v:null);}
       for(let c=c1;c<cE;c++){const Lt=colLet(c);if(!AC.includes(Lt))poner(d,Lt+r,null);}
       if(!x){[L.cE,L.cF,L.cG,L.cH,L.cI,L.cK,L.cL,L.cM].filter(Boolean).forEach(Lt=>poner(d,Lt+r,null));continue;}
-      const pa=pondA(g,p);
-      const VV=valores(g,p),simple=ac.length===n&&ac.every(a=>!esNum(a.valor)&&actMax(a)===10);
-      const coef=a=>esNum(a.valor)?a.valor+'/'+actMax(a):'('+fpt(VV.resto)+'/'+VV.nAut+')/'+actMax(a);
       const E=L.cE+r,G=L.cG+r;
-      const fa=n?(simple?'(('+ua.map((_,k)=>AC[k]+r).join('+')+')*'+pa+')/'+(n*10):ua.map((a,k)=>AC[k]+r+'*'+coef(a)).join('+')):'';
-      const fp=colP?colP+r+'*'+ppx+'/'+actMax(pz):'';
-      poner(d,E,fa||fp?{f:[fa,fp].filter(Boolean).join('+')}:0);
+      poner(d,E,n?{f:simple?'(('+ua.map((_,k)=>AC[k]+r).join('+')+')*'+pa+')/'+(n*10):ua.map((a,k)=>AC[k]+r+'*'+coefs[k]).join('+')}:0);
       if(L.cF)poner(d,L.cF+r,{f:E+'+'+G});
       if(L.cH)poner(d,L.cH+r,p<=g.parciales?asis(g,x.id,p).F:null);
       const cx=calif(g,x.id,p);poner(d,G,cx.exam==null?null:Math.round(cx.exam*100)/100);
       const xt=+((g.extra[p]||{})[x.id])||0;
       const base='ROUND('+E+'+'+G+(xt?'+'+(Math.round(xt*100)/10):'')+',0)';
-      poner(d,L.cI+r,(n||cx.hayExam||colP)?{f:'IF('+base+'<60,5,MIN(10,ROUND('+base+'/10,0)))'}:null);
+      poner(d,L.cI+r,(n||cx.hayExam)?{f:'IF('+base+'<60,5,MIN(10,ROUND('+base+'/10,0)))'}:null);
       if(L.cL)poner(d,L.cL+r,null);if(L.cM)poner(d,L.cM+r,null);
     }
     for(const sv of [...d.getElementsByTagNameNS(NS,'sheetView')]){sv.setAttribute('topLeftCell','A1');[...sv.getElementsByTagNameNS(NS,'pane')].forEach(x=>x.parentNode.removeChild(x));[...sv.getElementsByTagNameNS(NS,'selection')].forEach(x=>{x.setAttribute('activeCell',L.cN+L.r0);x.setAttribute('sqref',L.cN+L.r0);x.removeAttribute('pane');});}   // abrir mostrando el logo
