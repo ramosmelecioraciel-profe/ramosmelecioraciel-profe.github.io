@@ -183,7 +183,65 @@ function migrar(d){
   d.v=2;return d;
 }
 S=migrar(S);
-function persist(){try{localStorage.setItem(LS,JSON.stringify(S));localStorage.setItem(LSC,JSON.stringify(C));}catch(e){toast('No se pudo guardar en este dispositivo');}}
+/* ---------- varias ventanas o pestañas a la vez: se combinan los cambios ---------- */
+let BASE=null;try{BASE=localStorage.getItem(LS);}catch(e){}
+const esObj=x=>x&&typeof x==='object'&&!Array.isArray(x);
+const conId=a=>Array.isArray(a)&&a.length>0&&a.every(o=>esObj(o)&&'id' in o);
+const clon=x=>x===undefined?undefined:JSON.parse(JSON.stringify(x));
+function mez(b,m,t){   // mezcla de 3 vías: b = lo que había, m = lo mío, t = lo de la otra ventana. Modifica m en su lugar.
+  const js=JSON.stringify;
+  if(esObj(m)&&esObj(t)){
+    const bb=esObj(b)?b:{};
+    for(const k of Object.keys(t)){
+      if(k in m)m[k]=mez(bb[k],m[k],t[k]);
+      else if(!(k in bb))m[k]=clon(t[k]);                              // la otra ventana lo agregó
+      else if(js(t[k])!==js(bb[k]))m[k]=clon(t[k]);                    // yo lo borré pero la otra lo cambió: se conserva
+    }
+    for(const k of Object.keys(m))if(!(k in t)&&(k in bb)&&js(m[k])===js(bb[k]))delete m[k];   // la otra lo borró
+    return m;
+  }
+  if((conId(m)||conId(t))&&Array.isArray(m)&&Array.isArray(t)){
+    const bm=new Map((Array.isArray(b)?b:[]).filter(esObj).map(o=>[o.id,o])),mm=new Set(m.map(o=>o.id)),tm=new Map(t.map(o=>[o.id,o]));
+    for(let i=m.length-1;i>=0;i--){const o=m[i];if(bm.has(o.id)&&!tm.has(o.id)&&js(o)===js(bm.get(o.id)))m.splice(i,1);}
+    for(let i=0;i<m.length;i++)if(tm.has(m[i].id))m[i]=mez(bm.get(m[i].id),m[i],tm.get(m[i].id));
+    for(const o of t)if(!mm.has(o.id)&&!bm.has(o.id))m.push(clon(o));
+    return m;
+  }
+  if(js(t)===js(b))return m;
+  if(js(m)===js(b))return clon(t);
+  return m;                                                             // las dos cambiaron lo mismo: gana esta ventana
+}
+function combinarLocal(){   // trae lo que otra ventana haya guardado y lo mezcla con lo de aquí
+  let t=null;try{t=localStorage.getItem(LS);}catch(e){return false;}
+  if(!t||t===BASE)return false;
+  try{const b=BASE?JSON.parse(BASE):{grupos:[]};S=mez(b,S,migrar(JSON.parse(t)));}catch(e){return false;}
+  BASE=t;return true;
+}
+function persist(){
+  try{
+    combinarLocal();
+    const txt=JSON.stringify(S);localStorage.setItem(LS,txt);BASE=txt;
+    try{const c=JSON.parse(localStorage.getItem(LSC)||'{}');if((c.rev||0)>(C.rev||0)&&c.url===C.url)C.rev=c.rev;}catch(e){}
+    localStorage.setItem(LSC,JSON.stringify(C));
+  }catch(e){toast('No se pudo guardar en este dispositivo');}
+}
+let refrescoPend=false;
+const escribiendo=()=>{const a=document.activeElement;return a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)&&a.type!=='range'&&a.type!=='checkbox'&&a.type!=='file';};
+function refrescar(){
+  if(escribiendo()){refrescoPend=true;return;}
+  refrescoPend=false;const y=window.scrollY;render();window.scrollTo(0,y);
+}
+document.addEventListener('focusout',()=>setTimeout(()=>{if(refrescoPend&&!escribiendo())refrescar();},50));
+window.addEventListener('storage',e=>{
+  if(e.key===LS&&e.newValue&&e.newValue!==BASE){
+    try{const b=BASE?JSON.parse(BASE):{grupos:[]};S=mez(b,S,migrar(JSON.parse(e.newValue)));BASE=e.newValue;
+      if(JSON.stringify(S)!==e.newValue){const txt=JSON.stringify(S);localStorage.setItem(LS,txt);BASE=txt;}}catch(x){return;}
+    refrescar();
+  }else if(e.key===LSC&&e.newValue){
+    try{const c=JSON.parse(e.newValue);if(c.url===C.url){if((c.rev||0)>(C.rev||0)){C.rev=c.rev;if(!c.dirty)C.dirty=false;}}else{C.url=c.url;C.clave=c.clave;C.rev=c.rev;C.dirty=c.dirty;}}catch(x){}
+    estado();
+  }
+});
 let tSub=null;
 function cambio(){C.dirty=true;seq++;persist();estado();clearTimeout(tSub);tSub=setTimeout(subir,1500);}
 
@@ -222,6 +280,9 @@ async function bajar(){
   estado();
 }
 async function subir(forzar){
+  if(navigator.locks&&!subir.dentro){   // una sola ventana sube a la vez
+    return navigator.locks.request('seg-subir',async()=>{subir.dentro=true;try{persist();await subir(forzar);}finally{subir.dentro=false;}});
+  }
   if(!C.url||!C.dirty||ocupado||(conflicto&&!forzar)){estado();return;}
   ocupado=true;estado();const mio=seq;
   try{
