@@ -252,6 +252,7 @@ table.cal td .dots i{width:8px;height:8px;border-radius:50%}
 .tab-intro{margin:-8px 0 18px;color:var(--ink2);font-size:15px}
 @media (max-width:480px){.tabs{flex-wrap:wrap;gap:4px;overflow:visible}.tab{font-size:14px;padding:7px 11px}}
 .reg-hint{font-weight:400;font-size:13px;color:var(--ink2);line-height:1.4}
+.ev-d b.rng{font-size:19px;white-space:nowrap;padding:5px 0}
 </style><style>
 .fbar{position:relative;display:flex;align-items:stretch;max-width:620px;margin-top:20px;border-radius:8px;overflow:hidden;background:#fff;color:#1b2340;font-family:var(--f-mono);font-size:16px;box-shadow:0 3px 0 rgba(0,0,0,.25)}
 .fbar .ref{padding:8px 14px;border-right:1px solid #cfd8d2;font-weight:700;color:#17603a}
@@ -532,19 +533,25 @@ header .tile{border:2px solid rgba(255,255,255,.28)}
   function hoy(){const d=new Date();d.setHours(0,0,0,0);return d;}
   function parse(f){const [y,m,d]=f.split('-').map(Number);return new Date(y,m-1,d);}
   function cuando(dias){return dias===0?'Hoy':dias===1?'Mañana':dias<0?'Aplicada':'En '+dias+' días';}
+  const MESL=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  function rango(e){ if(!e.f) return `${DIA[e.d.getDay()]} ${e.d.getDate()} de ${MESL[e.d.getMonth()]}`;
+    return e.d.getMonth()===e.f.getMonth()?`Del ${e.d.getDate()} al ${e.f.getDate()} de ${MESL[e.f.getMonth()]}`:`Del ${e.d.getDate()} de ${MESL[e.d.getMonth()]} al ${e.f.getDate()} de ${MESL[e.f.getMonth()]}`; }
+  function estado(e,h){ const ini=Math.round((e.d-h)/864e5), fin=Math.round(((e.f||e.d)-h)/864e5);
+    if(fin<0) return {t:'Aplicada',c:'past'}; if(ini<=0) return {t:e.f?'En curso':'Hoy',c:'soon'};
+    return {t:cuando(ini),c:ini<=7?'soon':''}; }
   function pintar(evs){
     const h=hoy();
-    evs=evs.filter(e=>e&&e.fecha).map(e=>Object.assign({},e,{d:parse(e.fecha)})).sort((a,b)=>a.d-b.d);
+    evs=evs.filter(e=>e&&e.fecha).map(e=>Object.assign({},e,{d:parse(e.fecha),f:e.fin?parse(e.fin):null})).sort((a,b)=>a.d-b.d);
     const list=document.getElementById('ev-list'), next=document.getElementById('ev-next');
     if(!evs.length) return;
     list.innerHTML=evs.map(e=>{
-      const dias=Math.round((e.d-h)/864e5);
-      const cls=dias<0?'past':dias<=7?'soon':'';
-      return `<div class="ev ${cls}"><div class="ev-d"><span>${DIA[e.d.getDay()].slice(0,3)}</span><b>${e.d.getDate()}</b><span>${MES[e.d.getMonth()]}</span></div>
-        <div class="ev-t"><strong>${esc(e.titulo)}</strong><small>${esc([e.tipo,e.pf].filter(Boolean).join(' · '))}</small>${e.temas?`<small>Repasa: ${esc(e.temas)}</small>`:''}</div>
-        <span class="ev-s">${cuando(dias)}</span></div>`;}).join('');
-    const prox=evs.find(e=>e.d>=h);
-    next.innerHTML='<p class="lbl">Próxima evaluación</p>'+(prox?`<strong>${esc(prox.titulo)}</strong><p class="ev-none" style="margin:.2em 0">${DIA[prox.d.getDay()]} ${prox.d.getDate()} de ${['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][prox.d.getMonth()]}</p><span class="when">${cuando(Math.round((prox.d-h)/864e5))}</span> · <a href="#evaluaciones">Ver todas</a>`:'<p class="ev-none">No hay evaluaciones próximas.</p>');
+      const st=estado(e,h);
+      const dd=e.f?`<span>${MES[e.d.getMonth()]}</span><b class="rng">${e.d.getDate()}–${e.f.getDate()}</b><span>${MES[e.f.getMonth()]}</span>`:`<span>${DIA[e.d.getDay()].slice(0,3)}</span><b>${e.d.getDate()}</b><span>${MES[e.d.getMonth()]}</span>`;
+      return `<div class="ev ${st.c}"><div class="ev-d">${dd}</div>
+        <div class="ev-t"><strong>${esc(e.titulo)}</strong><small>${esc([rango(e),e.tipo,e.pf].filter(Boolean).join(' · '))}</small>${e.temas?`<small>Repasa: ${esc(e.temas)}</small>`:''}</div>
+        <span class="ev-s">${st.t}</span></div>`;}).join('');
+    const prox=evs.find(e=>(e.f||e.d)>=h);
+    next.innerHTML='<p class="lbl">Próxima evaluación</p>'+(prox?`<strong>${esc(prox.titulo)}</strong><p class="ev-none" style="margin:.2em 0">${rango(prox)}</p><span class="when">${estado(prox,h).t}</span> · <a href="#evaluaciones">Ver todas</a>`:'<p class="ev-none">No hay evaluaciones próximas.</p>');
   }
   fetch('evaluaciones.json',{cache:'no-store'}).then(r=>r.ok?r.json():[]).then(pintar).catch(()=>{});
 })();
@@ -758,7 +765,7 @@ header .tile{border:2px solid rgba(255,255,255,.28)}
     fetch('evaluaciones.json',{cache:'no-store'}).then(r=>r.ok?r.json():[]).catch(()=>[]),
     fetch('avance.json',{cache:'no-store'}).then(r=>r.ok?r.json():{}).catch(()=>({}))
   ]).then(([evs,av])=>{
-    (evs||[]).forEach(e=>{ if(e&&e.fecha) ev.push({a:e.fecha,b:null,t:'eval',x:e.titulo}); });
+    (evs||[]).forEach(e=>{ if(e&&e.fecha) ev.push({a:e.fecha,b:e.fin||null,t:'eval',x:e.titulo}); });
     const nombres={pf1:'PF1 Lógica matemática',pf2:'PF2 Conteo',pf3:'PF3 Naturales y enteros',pf4:'PF4 Fracciones y porcentajes',pf5:'PF5 Potencias y raíces',pf6:'PF6 La medición',pf7:'PF7 Operaciones combinadas'};
     const t=(av&&av.temas)||{};
     Object.keys(t).forEach(k=>{ if(/^\d{4}-\d{2}-\d{2}$/.test(t[k]||'')) ev.push({a:t[k],b:null,t:'tema',x:'Inicia en clase: '+(nombres[k]||k)}); });

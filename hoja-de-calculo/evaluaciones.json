@@ -1,1 +1,5 @@
-[]
+[
+  {"titulo": "Primer parcial", "tipo": "Periodo de evaluación", "fecha": "2026-09-23", "fin": "2026-09-29"},
+  {"titulo": "Segundo parcial", "tipo": "Periodo de evaluación", "fecha": "2026-10-26", "fin": "2026-11-03"},
+  {"titulo": "Tercer parcial", "tipo": "Periodo de evaluación", "fecha": "2026-11-30", "fin": "2026-12-07"}
+]
