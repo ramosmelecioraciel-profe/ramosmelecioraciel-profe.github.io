@@ -523,6 +523,7 @@ function vGrupo(g,t){
     '<div class="row" style="margin:-4px 0 14px"><button class="btn sm" id="h-wa" style="background:#128c4a">📲 Reporte a orientación por WhatsApp</button><select class="in" id="h-wap" style="width:auto;padding:6px 10px" aria-label="Parcial del reporte">'+[...Array(g.parciales)].map((_,i)=>'<option value="'+(i+1)+'"'+(i+1===(t==='calif'&&g.pActual?g.pActual:pHoy(g))?' selected':'')+'>Parcial '+(i+1)+'</option>').join('')+'</select></div>';
   setTimeout(()=>{const b=$('#h-wa');if(b)b.onclick=()=>enviarWhatsApp(g,reporteOrientacion(g,+$('#h-wap').value));},0);
   if(t==='calif')return vCalif(g,head);
+  if(t==='insignias')return vInsignias(g,head);
   if(t==='alumnos')return vAlumnos(g,head);
   if(t==='notas')return vNotas(g,head);
   if(t==='grupo')return vGrupoAjustes(g,head);
@@ -593,7 +594,7 @@ function vCalif(g,head){
       else h+=r.peso>0?'<p style="margin:0 0 6px"><button class="btn sm sec" data-nu="'+r.id+'">+ Capturar '+esc(r.nombre)+' del parcial '+p+' (sobre '+r.peso+')</button></p>':'<p class="muted" style="margin:0 0 6px">Vale 0 %.</p>';}
   });
 
-  h+='<div class="row" style="justify-content:space-between;margin-top:18px"><h3 style="margin:0">Concentrado del parcial '+p+'</h3><button class="btn sm xl" id="c-xls">⬇ Descargar parcial '+p+' (Excel)</button></div>';
+  h+='<div class="row" style="justify-content:space-between;margin-top:18px"><h3 style="margin:0">Concentrado del parcial '+p+'</h3><span class="row"><a class="btn sm sec" href="#g/'+g.id+'/insignias">⭐ Insignias del blog</a><button class="btn sm xl" id="c-xls">⬇ Descargar parcial '+p+' (Excel)</button></span></div>';
   h+='<p class="muted">Cada rubro suma (calificación ÷ escala × valor) de sus actividades, sin pasar de su porcentaje. Cal. final = total ÷ 10 redondeado; menos de 60 puntos = 5. Las actividades vacías cuentan como 0. "Extra" suma décimas (por ejemplo, insignias del blog).</p>';
   const VA=valores(g,p),cols=RR.filter(r=>r.tipo!=='unico'||r.peso>0||itemsR(g,p,r.id).length);
   h+='<div class="tw"><table><thead><tr><th>N.P.</th><th>Alumno</th>'+ac.map(x=>'<th class="num" title="'+esc(x.nombre)+'">'+esc(etiq(g,x))+'<br><span style="text-transform:none;font-weight:600">'+fpt(VA.v[x.id])+' pts</span></th>').join('')+
@@ -704,6 +705,63 @@ function vCaptura(g,a,h){
       const tt=app.querySelector('[data-tt="'+inp.dataset.a+'"]');if(tt)tt.textContent=lineaT(al.find(x=>x.id===inp.dataset.a));cambio();};
     inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();inp.dispatchEvent(new Event('change'));let j=i+1;while(ins[j]&&ins[j].closest('.al').style.display==='none')j++;const n=ins[j];if(n){n.focus();n.select();}else inp.blur();}};
   });
+}
+/* --- insignias del blog → puntos extra --- */
+const ESCALA_INS=[[40,1],[30,0.6],[20,0.4],[10,0.2]];
+const extraDeIns=pts=>{for(const [m,v] of ESCALA_INS)if(pts>=m)return v;return 0;};
+const VACIAS=new Set(['DE','LA','DEL','LOS','LAS','Y','EL']);
+const tokensN=t=>normal(t).split(' ').filter(w=>w.length>1&&!VACIAS.has(w));
+function parecido(blog,lista){const b=tokensN(blog),a=new Set(tokensN(lista));if(!b.length)return {s:0,h:0};const h=b.filter(w=>a.has(w)).length;return {s:h/b.length,h};}
+let insCache=null;
+function vInsignias(g,head){
+  if(!g.pActual||g.pActual>g.parciales)g.pActual=pHoy(g);
+  let h=head+'<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">⭐ Insignias del blog → puntos extra</h3><a class="btn sm sec" href="#g/'+g.id+'/calif">← Calificaciones</a></div>'+
+    '<p class="muted">Trae de tu hoja del blog las insignias de cada alumno de <b>'+esc(matNom(g.materia))+'</b> y calcula sus décimas extra: 10–19 pts = +0.2 · 20–29 = +0.4 · 30–39 = +0.6 · 40 o más = +1.0. Revisa y pulsa Aplicar.</p>'+
+    '<div class="row"><label for="i-p" style="font-weight:700">Aplicar al</label><select class="in" id="i-p" style="width:auto">'+[...Array(g.parciales)].map((_,i)=>'<option value="'+(i+1)+'"'+(i+1===g.pActual?' selected':'')+'>Parcial '+(i+1)+'</option>').join('')+'</select><button class="btn sm sec" id="i-rec">↻ Volver a leer</button></div><div id="i-res" style="margin-top:12px"><p class="muted">Leyendo tu hoja del blog…</p></div></div>';
+  app.innerHTML=h;
+  const res=$('#i-res');
+  $('#i-rec').onclick=()=>{insCache=null;cargar();};
+  $('#i-p').onchange=()=>pinta();
+  let datos=null;
+  async function cargar(){
+    if(!C.url){res.innerHTML='<p class="note">Primero conecta tu Hoja de Google en ⚙.</p>';return;}
+    res.innerHTML='<p class="muted">Leyendo tu hoja del blog…</p>';
+    try{
+      if(!insCache||insCache.g!==g.id){const r=await api({accion:'insignias',asignatura:matNom(g.materia)});
+        if(!r.ok){res.innerHTML=r.error==='sinblog'?'<div class="note"><b>Falta conectar la hoja del blog.</b> En tu Hoja de Google de Seguimiento (en la computadora): menú <b>Seguimiento → Conectar hoja de insignias del blog</b> y pega el enlace de tu hoja de accesos del blog. Después: Extensiones → Apps Script → Implementar → Administrar implementaciones → ✏️ → Versión: Nueva versión → Implementar.</div>':r.error==='accion'?'<div class="note">Tu Hoja de Google tiene el código anterior. Actualízalo con el archivo <a href="codigo-hoja-google.txt" target="_blank" rel="noopener">codigo-hoja-google.txt</a> y vuelve a implementar (nueva versión).</div>':'<p class="note">No se pudo leer ('+esc(r.error||'error')+').</p>';return;}
+        insCache={g:g.id,alumnos:r.alumnos||[]};}
+      datos=insCache.alumnos;pinta();
+    }catch(e){res.innerHTML='<p class="note">Sin conexión con tu Hoja de Google. Intenta de nuevo con internet.</p>';}
+  }
+  function emparejar(){   // registro del blog → alumno de la lista
+    g.insMap=g.insMap||{};const al=activos(g),asig={};
+    datos.forEach(e=>{const k=normal(e.nombre)+'|'+normal(e.grupo);e.k=k;
+      if(k in g.insMap){e.aid=g.insMap[k]||null;e.manual=true;return;}
+      const L=al.map(a=>Object.assign({a},parecido(e.nombre,a.nombre))).sort((x,y)=>y.s-x.s||y.h-x.h),b1=L[0],b2=L[1];
+      e.aid=b1&&b1.h>=2&&b1.s>=0.66&&(!b2||b1.s>b2.s||b1.h>b2.h)?b1.a.id:null;e.manual=false;});
+    al.forEach(a=>{const ins={};datos.filter(e=>e.aid===a.id).forEach(e=>Object.assign(ins,e.ins));asig[a.id]={pts:Object.values(ins).reduce((s,v)=>s+(+v||0),0),n:Object.keys(ins).length,regs:datos.filter(e=>e.aid===a.id)};});
+    return asig;
+  }
+  function pinta(){
+    if(!datos)return;const p=+$('#i-p').value,al=activos(g),A=emparejar(),sinId=datos.filter(e=>!e.aid);
+    const opciones=sel=>'<option value="">— Ignorar —</option>'+al.map(a=>'<option value="'+a.id+'"'+(a.id===sel?' selected':'')+'>'+esc(a.nombre)+'</option>').join('');
+    let t='<p class="muted">'+datos.length+' registro'+(datos.length===1?'':'s')+' en el blog · '+al.filter(a=>A[a.id].n).length+' de '+al.length+' alumnos con insignias.</p>';
+    const con=al.filter(a=>A[a.id].n),sin=al.filter(a=>!A[a.id].n);
+    const tabla=lista=>'<div class="tw"><table><thead><tr><th>Alumno</th><th class="num">Insig.</th><th class="num">Pts</th><th class="num">Extra</th><th class="num">Ahora</th></tr></thead><tbody>'+
+      lista.map(a=>{const x=A[a.id],ex=extraDeIns(x.pts),ac=+((g.extra[p]||{})[a.id])||0;return '<tr><td class="nm">'+esc(a.nombre)+(x.regs.length?'<div class="muted" style="font-weight:400">En el blog: '+x.regs.map(e=>esc(e.nombre)+(e.grupo?' ('+esc(e.grupo)+')':'')).join(', ')+'</div>':'')+'</td><td class="num">'+(x.n||'—')+'</td><td class="num">'+(x.pts||'—')+'</td><td class="num"><b>'+(ex?'+'+ex:'—')+'</b></td><td class="num'+(ex!==ac&&ex?' low':'')+'">'+(ac?'+'+ac:'—')+'</td></tr>';}).join('')+'</tbody></table></div>';
+    t+=con.length?tabla(con):'<p class="muted">Ningún alumno de la lista tiene insignias todavía.</p>';
+    if(sin.length)t+='<details style="margin-top:8px"><summary>Alumnos sin insignias ('+sin.length+')</summary><p class="muted" style="margin:6px 0">'+sin.map(a=>esc(a.nombre)).join(' · ')+'</p></details>';
+    if(sinId.length)t+='<h3>Registros del blog sin identificar ('+sinId.length+')</h3><p class="muted">El alumno escribió su nombre distinto o incompleto. Elige quién es; la app lo recordará.</p>'+
+      sinId.map(e=>'<div class="row" style="margin-bottom:6px"><span style="flex:1;min-width:180px"><b>'+esc(e.nombre)+'</b> <span class="muted">'+esc(e.grupo||'')+' · '+Object.keys(e.ins).length+' insignias</span></span><select class="in" data-k="'+esc(e.k)+'" style="flex:1;min-width:200px">'+opciones('')+'</select></div>').join('');
+    const man=datos.filter(e=>e.aid&&e.manual);
+    if(man.length)t+='<details style="margin-top:8px"><summary>Asignados a mano ('+man.length+')</summary>'+man.map(e=>'<div class="row" style="margin:6px 0"><span style="flex:1;min-width:180px">'+esc(e.nombre)+'</span><select class="in" data-k="'+esc(e.k)+'" style="flex:1;min-width:200px">'+opciones(e.aid)+'</select></div>').join('')+'</details>';
+    const n=al.filter(a=>extraDeIns(A[a.id].pts)).length;
+    t+='<p style="margin-top:14px"><button class="btn xl" id="i-ok"'+(n?'':' disabled')+'>Aplicar extra a '+n+' alumno'+(n===1?'':'s')+' en el parcial '+p+'</button></p><p class="muted">Solo se cambia el "Extra" de los alumnos con 10 o más puntos; a los demás no se les toca.</p>';
+    res.innerHTML=t;
+    res.querySelectorAll('[data-k]').forEach(s=>s.onchange=()=>{g.insMap=g.insMap||{};g.insMap[s.dataset.k]=s.value;cambio();pinta();});
+    if($('#i-ok'))$('#i-ok').onclick=()=>{g.extra[p]=g.extra[p]||{};let c=0;al.forEach(a=>{const ex=extraDeIns(A[a.id].pts);if(ex){g.extra[p][a.id]=ex;c++;}});cambio();toast('Extra aplicado a '+c+' alumnos en el parcial '+p);pinta();};
+  }
+  cargar();
 }
 function pendientesYTarde(g,p){
   const h=hoy(),dias=Object.keys(g.asis).filter(f=>parcialDe(g,f)===p&&f<=h).sort();

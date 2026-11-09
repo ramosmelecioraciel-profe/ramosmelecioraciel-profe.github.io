@@ -33,6 +33,7 @@ function manejar_(p) {
   try {
     const cur = leer_();
     if (p.accion === 'cargar') return { ok: true, datos: cur.datos, rev: cur.rev };
+    if (p.accion === 'insignias') return insignias_(p.asignatura);
     if (p.accion === 'guardar') {
       if (!p.datos || !Array.isArray(p.datos.grupos)) return { ok: false, error: 'datos' };
       if (Number(p.base) !== -1 && cur.rev && Number(p.base) !== cur.rev)
@@ -91,6 +92,45 @@ function configurarClave() {
   configurar();
   ui.alert('Listo. Ahora en Extensiones → Apps Script: Implementar → Nueva implementación → Aplicación web (Quién tiene acceso: Cualquier usuario) y copia la dirección /exec.');
 }
+/* ---------- insignias del blog (lee la pestaña "Accesos" de tu hoja del blog) ---------- */
+function conectarBlog() {
+  const ui = SpreadsheetApp.getUi();
+  const r = ui.prompt('Conectar la hoja del blog', 'Pega el enlace de tu Hoja de Google de accesos del blog (la que tiene la pestaña "Accesos").', ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  const t = r.getResponseText().trim(), m = t.match(/\/d\/([a-zA-Z0-9_-]{20,})/) || t.match(/^([a-zA-Z0-9_-]{20,})$/);
+  if (!m) { ui.alert('No reconocí el enlace. Cópialo completo desde la barra de direcciones de tu hoja del blog.'); return; }
+  try {
+    const h = SpreadsheetApp.openById(m[1]).getSheetByName('Accesos');
+    if (!h) { ui.alert('Esa hoja no tiene la pestaña "Accesos".'); return; }
+    PropertiesService.getScriptProperties().setProperty('BLOG_ID', m[1]);
+    const n = Math.max(0, h.getLastRow() - 1);
+    ui.alert('Listo, quedó conectada (' + n + ' registros). Ahora actualiza la implementación: Implementar → Administrar implementaciones → ✏️ → Versión: Nueva versión → Implementar.');
+  } catch (e) { ui.alert('No pude abrir esa hoja: ' + e.message); }
+}
+const sinAcentos_ = t => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toUpperCase();
+function insignias_(asig) {
+  const id = PropertiesService.getScriptProperties().getProperty('BLOG_ID');
+  if (!id) return { ok: false, error: 'sinblog' };
+  let h;
+  try { h = SpreadsheetApp.openById(id).getSheetByName('Accesos'); } catch (e) { return { ok: false, error: 'sinblog' }; }
+  if (!h) return { ok: false, error: 'sinblog' };
+  const n = h.getLastRow();
+  if (n < 2) return { ok: true, alumnos: [] };
+  const v = h.getRange(2, 1, n - 1, 6).getValues(), map = {};
+  v.forEach(r => {
+    if (!/^Insignia/i.test(String(r[4]))) return;
+    if (asig && sinAcentos_(r[3]) !== sinAcentos_(asig)) return;
+    const nom = String(r[1]).trim().replace(/\s+/g, ' '), gr = String(r[2]).trim();
+    if (!nom) return;
+    const k = nom.toUpperCase() + '|' + gr.toUpperCase(), det = String(r[5]);
+    const pm = det.match(/(\d+(?:\.\d+)?)\s*pts?\s*$/i), cl = det.replace(/\s*·\s*\d+(\.\d+)?\s*pts?\s*$/i, '').trim();
+    const o = map[k] || (map[k] = { nombre: nom, grupo: gr, ins: {}, ult: '' });
+    if (!(cl in o.ins)) o.ins[cl] = pm ? +pm[1] : 0;                 // cada insignia cuenta una sola vez
+    const f = r[0] instanceof Date ? Utilities.formatDate(r[0], 'America/Mexico_City', 'yyyy-MM-dd') : String(r[0]).slice(0, 10);
+    if (f > o.ult) o.ult = f;
+  });
+  return { ok: true, alumnos: Object.keys(map).map(k => { const o = map[k]; return { nombre: o.nombre, grupo: o.grupo, ult: o.ult, ins: o.ins }; }) };
+}
 function configurar() {
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'actualizarHojas')
     .forEach(t => ScriptApp.deleteTrigger(t));
@@ -101,6 +141,7 @@ function configurar() {
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('Seguimiento')
     .addItem('Configurar mi clave', 'configurarClave')
+    .addItem('Conectar hoja de insignias del blog', 'conectarBlog')
     .addItem('Actualizar resúmenes ahora', 'actualizarHojas').addToUi();
 }
 
