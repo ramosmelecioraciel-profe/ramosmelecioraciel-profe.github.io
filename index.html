@@ -10,7 +10,7 @@
 /* Layout: portada con una tarjeta grande por asignatura, cada una en el color de su blog */
 :root{
   --paper:#f4f6fb; --grid:#e2e7f2; --ink:#172042; --ink2:#4f5a7a; --card:#ffffff; --line:#d6dceb; --chalk:#ffd23f;
-  --pm:#1e2a6e; --hc:#17603a;
+  --pm:#1e2a6e; --pm2:#5b2a86; --hc:#17603a;
   --f-display:"Lexend","Atkinson Hyperlegible",system-ui,sans-serif;
   --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
@@ -31,6 +31,8 @@ h1{font-family:var(--f-display);font-weight:800;font-size:clamp(32px,5.5vw,52px)
 .subj:hover{transform:translateY(-4px)}
 .subj:focus-visible{outline:3px solid var(--chalk);outline-offset:3px}
 .subj.hc{--c:var(--hc)}
+.subj.pm2{--c:var(--pm2)}
+.subj.pm2 p{color:#eadcff}
 .sym{font-family:var(--f-mono);font-weight:700;font-size:28px;color:var(--chalk)}
 .subj h2{font-family:var(--f-display);font-weight:800;font-size:28px;line-height:1.15;margin:0}
 .subj p{margin:0;color:#e3e8ff;font-size:16px}
@@ -50,6 +52,12 @@ footer{color:var(--ink2);font-size:14px;margin-top:40px}
       <span class="sym">p → q · ¾ · √x</span>
       <h2>Pensamiento Matemático I</h2>
       <p>Primer semestre. Videos, presentaciones y cuadernillos de los 7 propósitos formativos.</p>
+      <span class="go">Entrar →</span>
+    </a>
+    <a class="subj pm2" href="pensamiento-matematico-2/">
+      <span class="sym">(x + 3)² · 2x + 5 = 11</span>
+      <h2>Pensamiento Matemático II</h2>
+      <p>Segundo semestre. Introducción al álgebra: temas, simuladores, práctica sin límite e insignias de los 6 propósitos formativos.</p>
       <span class="go">Entrar →</span>
     </a>
     <a class="subj hc" href="hoja-de-calculo/">

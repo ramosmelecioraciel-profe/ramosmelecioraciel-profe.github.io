@@ -1,0 +1,1626 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pensamiento Matemático II · Introducción al álgebra</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Lexend:wght@500;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: pizarrón azul con los 6 propósitos como fichas de color (los mismos colores de presentaciones y videos) sobre hoja cuadriculada; columna de entradas + índice */
+:root{
+  --paper:#fbfcfe; --grid:#e3e9f4; --ink:#1b2340; --ink2:#55607e;
+  --blue:#2343b8; --blue-soft:#e6ebfb; --red:#d24a4a; --line:#d6dceb; --card:#ffffff;
+  --board:#1e2a6e; --chalk:#ffd23f; --on-board:#ffffff; --on-board2:#c9d3ff;
+  --pf1:#8a2bc9; --pf2:#c45f06; --pf3:#1d6fd8; --pf4:#2e8a49; --pf5:#0f7f7a; --pf6:#c22a5f; --pf7:#6c3fc4; --c:var(--blue); --tint:0%;
+  --f-display:"Lexend", "Atkinson Hyperlegible", system-ui, sans-serif;
+  --f-body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12172a; --grid:#1b2238; --ink:#e8ecf7; --ink2:#a3acc7;
+  --blue:#8ea6ff; --blue-soft:#1e2950; --red:#ff7b7b; --line:#2a3352; --card:#171e35; --board:#151d4d; --tint:40%; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#12172a; --grid:#1b2238; --ink:#e8ecf7; --ink2:#a3acc7;
+  --blue:#8ea6ff; --blue-soft:#1e2950; --red:#ff7b7b; --line:#2a3352; --card:#171e35; --board:#151d4d; --tint:40%; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.6;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px;}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+a{color:var(--blue)}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px;border-radius:4px}
+
+header.top{padding-block:40px 28px;border-bottom:2px solid var(--red)}
+.eyebrow{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);font-weight:700}
+h1{font-family:var(--f-display);font-weight:400;font-size:clamp(34px,6vw,58px);line-height:1.05;margin:.25em 0 .3em;text-wrap:balance}
+h1 .frac{display:inline-flex;flex-direction:column;align-items:center;font-size:.55em;vertical-align:middle;line-height:1;color:var(--blue);margin:0 .1em}
+h1 .frac i{font-style:normal;border-top:3px solid currentColor;padding-top:2px}
+.lede{max-width:62ch;color:var(--ink2);margin:0}
+.who{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:16px;font-size:15px}
+.who b{color:var(--ink)}
+
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:40px;padding-block:32px 64px}
+@media (max-width:860px){.cols{grid-template-columns:minmax(0,1fr)}}
+
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px}
+.chip{font:inherit;font-size:14px;font-weight:700;border:1.5px solid var(--line);background:var(--card);color:var(--ink);padding:6px 14px;border-radius:999px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:var(--paper)}
+
+.feed{display:flex;flex-direction:column;gap:28px}
+article{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:24px 24px 22px 40px;position:relative;min-width:0}
+article::before{content:"";position:absolute;left:22px;top:0;bottom:0;width:2px;background:var(--red);opacity:.55}
+.meta{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:14px;color:var(--ink2)}
+.tag{font-family:var(--f-mono);font-size:12px;background:var(--blue-soft);color:var(--blue);padding:2px 8px;border-radius:4px}
+article h2{font-family:var(--f-display);font-weight:400;font-size:clamp(24px,3.4vw,31px);line-height:1.15;margin:.35em 0 .4em;text-wrap:balance}
+article h2 a{color:inherit;text-decoration:none}
+article h2 a:hover{text-decoration:underline;text-decoration-color:var(--red)}
+article p{margin:.6em 0;max-width:66ch}
+article h3{font-size:17px;margin:1.2em 0 .3em}
+article ul,article ol{padding-left:1.3em;margin:.4em 0;max-width:64ch}
+article li{margin:.2em 0}
+.media{margin:16px 0;border-radius:6px;overflow:hidden;border:1px solid var(--line);background:#000}
+.media video{display:block;width:100%;height:auto;aspect-ratio:16/9}
+.cover{margin:16px 0;border:1px solid var(--line);border-radius:6px;display:block;max-width:100%;height:auto}
+.note{font-size:15px;background:var(--blue-soft);border-radius:6px;padding:10px 14px;margin:12px 0;max-width:66ch}
+.math{font-family:var(--f-mono);font-size:.92em;white-space:nowrap}
+.reto{border:1.5px dashed var(--line);border-radius:6px;padding:12px 16px;margin:14px 0}
+.reto summary{cursor:pointer;font-weight:700;color:var(--blue)}
+.reto ol{margin-top:8px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.btn{text-decoration:none;font:inherit;font-size:15px;font-weight:700;display:inline-flex;align-items:center;gap:8px;border:none;border-radius:6px;padding:9px 16px;cursor:pointer;background:var(--blue);color:var(--paper)}
+.btn.ghost{background:transparent;color:var(--blue);border:1.5px solid var(--blue)}
+.btn[disabled]{opacity:.6;cursor:progress}
+.btn small{font-weight:400;opacity:.85}
+.open{align-self:center;font-size:14px;font-weight:700;margin-right:6px}
+.dl-msg{font-size:14px;color:var(--ink2);min-height:1.2em;margin-top:6px}
+
+
+.pf-list{display:flex;flex-direction:column;gap:0;margin-top:14px;border-top:1px solid var(--line)}
+.pf{padding-block:16px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+.pf-h{display:flex;align-items:baseline;gap:12px}
+.pf-h h3{font-family:var(--f-display);font-weight:400;font-size:21px;margin:0}
+.pf-n{font-family:var(--f-mono);font-size:13px;color:var(--red)}
+.lbl{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--ink2);margin-bottom:2px}
+.pf-p{margin:.5em 0 .7em;max-width:66ch;font-style:italic}
+.pf-p .lbl{font-style:normal}
+.pf-c{margin:.2em 0 .5em}
+.pf-l{margin:.3em 0 0;font-size:15px}
+
+.pinned{border-color:var(--blue)}
+.ev-list{display:flex;flex-direction:column;margin-top:12px;border-top:1px solid var(--line)}
+.ev{display:grid;grid-template-columns:84px minmax(0,1fr) auto;gap:14px;align-items:start;padding-block:12px;border-bottom:1px solid var(--line)}
+.ev-d{display:flex;flex-direction:column;align-items:center;border:1.5px solid var(--blue);border-radius:6px;padding:4px 0;line-height:1.1;font-variant-numeric:tabular-nums}
+.ev-d b{font-family:var(--f-display);font-weight:400;font-size:28px;color:var(--blue)}
+.ev-d span{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink2)}
+.ev-t{min-width:0}
+.ev-t strong{display:block;font-size:17px;line-height:1.3}
+.ev-t small{display:block;font-size:14px;color:var(--ink2);line-height:1.4}
+.ev-s{font-size:13px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap;background:var(--blue-soft);color:var(--blue)}
+.ev.soon .ev-s{background:var(--red);color:var(--paper)}
+.ev.past{opacity:.5}
+.ev.past .ev-d{border-color:var(--line)}.ev.past .ev-d b{color:var(--ink2)}
+.ev.past .ev-s{background:transparent;color:var(--ink2);border:1px solid var(--line)}
+.ev-empty,.ev-none{color:var(--ink2);font-size:15px;margin:.6em 0}
+.next .lbl{margin:0 0 6px}
+.next strong{display:block;font-size:16px;line-height:1.3}
+.next .when{font-size:14px;color:var(--red);font-weight:700}
+@media (max-width:480px){.ev{grid-template-columns:64px minmax(0,1fr)}.ev-s{grid-column:2;justify-self:start}}
+aside{min-width:0}
+.side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);display:flex;flex-direction:column;gap:18px}
+.side h2{font-family:var(--f-display);font-weight:400;font-size:22px;margin:0}
+.pfs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.pfs li{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;padding:10px 0;border-bottom:1px solid var(--line);align-items:start}
+.pfs .n{font-family:var(--f-mono);font-size:13px;color:var(--red);padding-top:3px}
+.pfs b{display:block;font-size:15px;line-height:1.3}
+.pfs span{font-size:13px;color:var(--ink2);line-height:1.35;display:block}
+.pfs a{font-size:13px;margin-right:10px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px 16px;font-size:15px}
+.box p{margin:.3em 0}
+footer{border-top:2px solid var(--red);padding-block:20px 40px;color:var(--ink2);font-size:14px}
+@media (max-width:480px){article{padding:20px 16px 18px 30px}article::before{left:14px}}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+
+/* ---- Identidad de la materia ---- */
+h1,h2,h3,.side h2{font-family:var(--f-display)}
+header.top{background:var(--board);color:var(--on-board);border-bottom:6px solid var(--chalk);padding-block:44px 34px;
+  background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:32px 32px;position:relative;overflow:hidden}
+header.top .eyebrow{color:var(--chalk)}
+header.top h1{font-weight:800;letter-spacing:-.02em;color:var(--on-board);margin:.2em 0 .25em}
+header.top h1 .num{color:var(--chalk)}
+header.top .lede{color:var(--on-board2)}
+header.top .who{color:var(--on-board2)}
+header.top .who b{color:var(--on-board)}
+.formulas{position:absolute;inset:0;pointer-events:none;font-family:var(--f-mono);color:rgba(255,255,255,.08);font-size:30px;line-height:1}
+.formulas span{position:absolute;white-space:nowrap}
+.hero-main{position:relative}
+.nline{display:block;width:100%;max-width:520px;height:auto;margin-top:18px}
+.tiles{position:relative;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;margin-top:28px}
+.tile{display:flex;flex-direction:column;justify-content:space-between;gap:8px;min-height:104px;padding:10px 12px;border-radius:10px;background:var(--c);color:#fff;text-decoration:none;box-shadow:0 3px 0 rgba(0,0,0,.3);transition:transform .15s}
+.tile:hover{transform:translateY(-3px)}
+.tile .sym{font-family:var(--f-mono);font-weight:700;font-size:21px;line-height:1.1}
+.tile .tn{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.9;font-weight:700}
+.tile .tt{display:block;font-size:14px;line-height:1.2;font-weight:700}
+@media (max-width:860px){.tiles{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:480px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.tile:last-child{grid-column:span 2;min-height:84px}.formulas{display:none}}
+@media (prefers-reduced-motion:reduce){.tile{transition:none}}
+[data-pf="1"]{--c:var(--pf1)}[data-pf="2"]{--c:var(--pf2)}[data-pf="3"]{--c:var(--pf3)}[data-pf="4"]{--c:var(--pf4)}[data-pf="5"]{--c:var(--pf5)}[data-pf="6"]{--c:var(--pf6)}[data-pf="7"]{--c:var(--pf7)}
+article{border-radius:10px;padding:24px 24px 22px 34px}
+article::before{left:0;top:0;bottom:0;width:8px;background:var(--c);opacity:1;border-radius:10px 0 0 10px}
+article h2{font-weight:700;letter-spacing:-.01em}
+article .tag.pfc{background:var(--c);color:#fff}
+.pinned{border:2px solid var(--chalk)}
+.pinned::before{background:var(--chalk)}
+.chip[aria-pressed="true"]{background:var(--board);border-color:var(--board);color:#fff}
+article[data-pf] .btn{background:var(--c);color:#fff}
+article[data-pf] .btn.ghost{background:transparent;color:color-mix(in srgb,var(--c),#fff var(--tint));border-color:currentColor}
+.pf{border-left:6px solid var(--c);padding-left:16px;margin-block:10px;border-bottom:none}
+.pf-list{border-top:none}
+.pf-n{display:inline-grid;place-items:center;min-width:46px;height:28px;border-radius:6px;background:var(--c);color:#fff;font-weight:700}
+.pf-h h3{font-weight:700;font-size:20px}
+.pfs .n{display:inline-grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--c);color:#fff;font-weight:700;padding:0;font-size:15px}
+.side h2{font-weight:700;font-size:20px}
+.next{border:2px solid var(--chalk)}
+footer{border-top:6px solid var(--chalk);background:var(--board);color:var(--on-board2)}
+@media (max-width:480px){article{padding:20px 16px 18px 24px}}
+.home{display:inline-block;margin-bottom:10px;color:var(--on-board2);font-size:14px}
+
+.reg{display:flex;flex-direction:column;gap:14px;margin-top:14px;max-width:560px}
+.reg-row{display:grid;grid-template-columns:minmax(0,1fr) 130px;gap:12px}
+@media (max-width:480px){.reg-row{grid-template-columns:minmax(0,1fr)}}
+.reg label{display:flex;flex-direction:column;gap:4px;font-size:14px;font-weight:700;color:var(--ink2)}
+.reg input[type=text],.reg input[type=email]{font:inherit;font-size:16px;font-weight:400;color:var(--ink);background:var(--paper);border:1.5px solid var(--line);border-radius:8px;padding:10px 12px}
+.reg input:focus-visible{outline:3px solid var(--blue);outline-offset:1px}
+.reg .chk{flex-direction:row;align-items:flex-start;gap:10px;font-weight:400;font-size:14px;line-height:1.45}
+.reg .chk input{width:20px;height:20px;margin-top:2px;flex:none;accent-color:var(--board)}
+.reg .btn{align-self:flex-start;background:var(--board);color:#fff;font-size:16px;padding:11px 20px}
+.reg-msg{margin:0;font-size:15px;min-height:1.4em}
+.reg-msg.ok{color:#1d7f40;font-weight:700}.reg-msg.err{color:var(--red);font-weight:700}
+.reg-side{justify-content:center;background:var(--board);color:#fff;text-decoration:none;border:2px solid var(--chalk)}
+
+.gate{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(10,16,40,.72);padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.gate-card{width:100%;max-width:440px;background:var(--card);color:var(--ink);border-radius:14px;border-top:6px solid var(--chalk);padding:24px;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.gate-card h2{font-family:var(--f-display);font-size:26px;margin:0}
+.gate-card p{margin:0}
+.gate-card label{display:flex;flex-direction:column;gap:4px;font-size:14px;font-weight:700;color:var(--ink2)}
+.gate-card input{font:inherit;font-size:16px;font-weight:400;color:var(--ink);background:var(--paper);border:1.5px solid var(--line);border-radius:8px;padding:10px 12px}
+.gate-card .btn{align-self:stretch;justify-content:center;background:var(--board);color:#fff;font-size:17px;padding:12px}
+.gate-note{font-size:13px;color:var(--ink2)}
+.whoami{max-width:1120px;margin:14px auto 0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));font-size:14px;color:var(--ink2)}
+.whoami button{font:inherit;font-size:14px;background:none;border:none;padding:0;color:var(--blue);text-decoration:underline;cursor:pointer}
+body.gated{overflow:hidden}
+[hidden]{display:none!important}
+
+.qchips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.qchip{font:inherit;font-size:14px;border:2px solid var(--c);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer}
+.qchip b{color:var(--c)}
+.qchip[aria-pressed="true"]{background:var(--c);color:#fff}.qchip[aria-pressed="true"] b{color:#fff}
+.quiz{border-top:1px solid var(--line);padding-top:6px}
+.quiz h3{font-family:var(--f-display);font-size:20px;margin:12px 0 6px}
+.qq{border:none;margin:0;padding:12px 0;border-bottom:1px solid var(--line)}
+.qq legend{font-weight:700;padding:0;margin-bottom:8px;line-height:1.4}
+.qq legend span{color:var(--c);margin-right:6px}
+.qopt{display:flex;align-items:flex-start;gap:10px;padding:7px 10px;border-radius:8px;cursor:pointer;line-height:1.4}
+.qopt:hover{background:var(--blue-soft)}
+.qopt input{width:18px;height:18px;margin-top:2px;flex:none;accent-color:var(--c)}
+.qopt.right{background:#dff3e6;color:#14532d}.qopt.wrong{background:#fde2e2;color:#7f1d1d}
+.qexp{font-size:14px;color:var(--ink2);margin:6px 0 0 10px}
+.qbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+.qscore{font-family:var(--f-display);font-size:22px;font-weight:700}
+.qmsg{font-size:15px;color:var(--ink2)}
+.qlink{margin:14px 0 0;font-weight:700}
+.qlink a{color:color-mix(in srgb,var(--c),#fff var(--tint))}
+.qchip.locked{opacity:.55;cursor:not-allowed;border-style:dashed}
+.qchip .lk{font-size:12px;font-weight:700;margin-left:4px}
+.qchip:disabled{cursor:not-allowed}
+
+.tema-badge{font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.tema-badge.visto{background:#dff3e6;color:#14532d}
+.tema-badge.prox{background:var(--chalk);color:#1b2340}
+.pfs .tema-badge{display:inline-block;margin:2px 0 4px;white-space:normal}
+.pf-h{flex-wrap:wrap;row-gap:6px}
+
+.cal-next{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.cal-next div{flex:1 1 200px;border:1.5px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--paper)}
+.cal-next small{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink2);font-weight:700}
+.cal-next b{display:block;line-height:1.3}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}
+.calbtn{font:inherit;font-size:16px;font-weight:700;border:1.5px solid var(--line);background:var(--card);color:var(--ink);padding:4px 16px;border-radius:999px;cursor:pointer}
+.calbtn:disabled{opacity:.4;cursor:default}
+.cal-nav strong{font-family:var(--f-display);font-size:19px;text-transform:capitalize}
+.cal-wrap{overflow-x:auto}
+table.cal{width:100%;min-width:300px;border-collapse:separate;border-spacing:4px;table-layout:fixed;margin-top:6px;font-variant-numeric:tabular-nums}
+table.cal th{font-size:12px;color:var(--ink2);font-weight:700;padding:2px}
+table.cal td{height:44px;vertical-align:top;border-radius:8px;background:var(--paper);border:1px solid var(--line);padding:4px 6px;font-size:14px;position:relative}
+table.cal td.out{background:transparent;border-color:transparent}
+table.cal td.hoy{outline:3px solid var(--board);outline-offset:-2px;font-weight:700}
+table.cal td.vac{background:#dbeafe;border-color:#93c5fd;color:#1e3a8a}
+table.cal td.susp{background:#fde2e2;border-color:#fca5a5;color:#7f1d1d}
+table.cal td.jor{background:#ede9fe;border-color:#c4b5fd;color:#4c1d95}
+table.cal td.hito{background:var(--chalk);border-color:#e0b400;color:#1b2340;font-weight:700}
+table.cal td .dots{position:absolute;left:6px;bottom:4px;display:flex;gap:3px}
+table.cal td .dots i{width:8px;height:8px;border-radius:50%}
+.k{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.k.vac,.dots .vac{background:#60a5fa}.k.susp{background:#f87171}.k.jor{background:#a78bfa}.k.hito{background:var(--chalk)}
+.k.eval,.dots .eval{background:#16a34a}.k.tema,.dots .tema{background:#f97316}
+.cal-leg{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink2);margin:10px 0}
+.cal-list{list-style:none;padding:0;margin:8px 0 0;border-top:1px solid var(--line)}
+.cal-list li{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:15px}
+.cal-list li span{color:var(--ink2);font-variant-numeric:tabular-nums}
+.cal-src{font-size:13px;color:var(--ink2)}
+
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;flex-wrap:wrap;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 0 22px;padding:10px 0;background:var(--paper);border-bottom:2px solid var(--line)}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;font:inherit;font-size:15px;font-weight:700;color:var(--ink2);background:transparent;border:none;border-radius:999px;padding:8px 13px;cursor:pointer;white-space:nowrap}
+.tab:hover{background:var(--blue-soft);color:var(--ink)}
+.tab[aria-selected="true"]{background:var(--board);color:#fff}
+.tab:focus-visible{outline:3px solid var(--chalk);outline-offset:2px}
+.tab-intro{margin:-8px 0 18px;color:var(--ink2);font-size:15px}
+@media (max-width:480px){.tabs{flex-wrap:wrap;gap:4px;overflow:visible}.tab{font-size:14px;padding:7px 11px}}
+.reg-hint{font-weight:400;font-size:13px;color:var(--ink2);line-height:1.4}
+
+.psubs{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
+.psub{font:inherit;font-size:14px;font-weight:700;border:1.5px solid var(--line);background:var(--paper);color:var(--ink2);border-radius:8px;padding:6px 12px;cursor:pointer}
+.psub[aria-pressed="true"]{border-color:var(--c,var(--board));color:var(--ink);background:var(--card);box-shadow:inset 0 -3px 0 var(--c,var(--board))}
+.psub.only{cursor:default}
+.prac{border-top:1px solid var(--line);padding-top:12px}
+.pcount{font-size:13px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.05em}
+.pq{font-size:19px;margin:10px 0 14px;line-height:1.5}
+.pq .big{font-family:var(--f-mono);font-size:30px;font-weight:700;color:var(--ink);white-space:nowrap}
+.pq .hint,.prac .hint{font-size:14px;color:var(--ink2)}
+.pform{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pin{font:inherit;font-family:var(--f-mono);font-size:22px;width:180px;max-width:100%;padding:8px 12px;border:2px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink)}
+.pin::placeholder{font-family:var(--f-body);font-size:16px}
+.pin:focus-visible{outline:3px solid var(--c,var(--board));outline-offset:1px}
+.pkeys{display:flex;gap:6px}
+.pkeys button{font:inherit;font-family:var(--f-mono);font-size:20px;font-weight:700;width:44px;height:44px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.prac .btn{background:var(--c,var(--board));color:#fff;font-size:16px;padding:10px 18px}
+.pvf{display:flex;flex-wrap:wrap;gap:10px}
+.pvf .btn{min-width:150px;justify-content:center}
+.pfb{margin-top:14px;font-size:16px;line-height:1.5;border-radius:10px}
+.pfb:empty{display:none}
+.pfb.ok{background:#dff3e6;color:#14532d;padding:12px 14px}
+.pfb.bad{background:#fde2e2;color:#7f1d1d;padding:12px 14px}
+.pfb.err{color:var(--red);font-weight:700}
+.pfb .qbar{margin-top:10px}
+.pfin{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,0,0,.12)}
+.pfin .qmsg{color:inherit}
+.mayan{display:inline-flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px;vertical-align:middle;margin-left:12px;padding:10px 14px;background:var(--board);border-radius:10px}
+.mayan .md{display:flex;gap:6px}
+.mayan .md i{width:14px;height:14px;border-radius:50%;background:var(--chalk)}
+.mayan .mb{width:80px;height:12px;border-radius:6px;background:var(--chalk)}
+
+.sim{border-top:1px solid var(--line);padding-top:12px}
+.sim p{margin:.4em 0}
+.skeys{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.skeys button,.sstep button,.sop button{font:inherit;font-family:var(--f-mono);font-size:18px;font-weight:700;min-width:44px;height:44px;padding:0 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.skeys button:hover,.sstep button:hover{border-color:var(--c,var(--board))}
+.sexp{font:inherit;font-family:var(--f-mono);font-size:22px;width:100%;padding:10px 14px;border:2px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink)}
+.sexp:focus-visible,.sstep input:focus-visible,.ssel select:focus-visible,.ssel input:focus-visible{outline:3px solid var(--c,var(--board));outline-offset:1px}
+.sex{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0;font-size:14px;color:var(--ink2)}
+.sexb{font:inherit;font-family:var(--f-mono);font-size:14px;border:1px dashed var(--line);background:transparent;color:var(--ink);border-radius:8px;padding:4px 8px;cursor:pointer}
+.sout{margin-top:12px}
+.swrap{overflow-x:auto;margin:10px 0}
+.stab{border-collapse:collapse;font-family:var(--f-mono);font-size:15px;text-align:center}
+.stab th,.stab td{border:1px solid var(--line);padding:6px 12px;white-space:nowrap}
+.stab th{background:var(--blue-soft);color:var(--ink)}
+.stab .res{background:var(--chalk);color:#1b2340;font-weight:700}
+.stab td.tv{color:#14532d}.stab td.tf{color:#b91c1c}
+.stab td.res.tv,.stab td.res.tf{color:#1b2340}
+.stab.sinfo th:first-child{text-align:left}
+.snote{font-size:15px;color:var(--ink2);line-height:1.5}
+.snote b{color:var(--ink)}
+.sbig{font-family:var(--f-mono);font-size:20px;line-height:1.5;overflow-wrap:anywhere}
+.serr{color:var(--red);font-weight:700}
+.srow{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:flex-end}
+.sstep{display:flex;align-items:center;gap:6px}
+.sstep span{font-size:14px;font-weight:700;color:var(--ink2);margin-right:4px}
+.sstep input{font:inherit;font-family:var(--f-mono);font-size:20px;width:84px;height:44px;text-align:center;border:2px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink)}
+.sop{display:flex;gap:6px}
+.sop button[aria-pressed="true"]{background:var(--c,var(--board));border-color:var(--c,var(--board));color:#fff}
+.sfr{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px}
+.ssel{display:flex;flex-direction:column;gap:4px;font-size:14px;font-weight:700;color:var(--ink2)}
+.ssel select,.ssel input{font:inherit;font-size:16px;height:44px;padding:0 10px;border:2px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);min-width:120px}
+.mstack{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+.mlev{display:flex;align-items:center;gap:16px;border-bottom:1px dashed var(--line);padding:6px 0}
+.mgl{width:110px;min-height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;background:var(--board);border-radius:10px;padding:8px}
+.mgl .md{display:flex;gap:6px}.mgl .md i{width:14px;height:14px;border-radius:50%;background:var(--chalk)}
+.mgl .mb{width:76px;height:12px;border-radius:6px;background:var(--chalk)}
+.mgl .mshell{width:50px;height:24px;border-radius:50%;border:4px solid var(--chalk)}
+.mtx{font-family:var(--f-mono);font-size:16px}
+.rsvg{width:100%;min-width:420px;height:auto;display:block}
+.rsvg .rl{stroke:var(--ink2);stroke-width:2}
+.rsvg .rt{fill:var(--ink2);font-family:var(--f-mono);font-size:14px;text-anchor:middle}
+.rsvg .r0{fill:var(--ink);font-weight:700}
+.rsvg .rlab{fill:var(--c,var(--board));font-weight:700;font-size:16px}
+.rsvg .rarc{fill:none;stroke:var(--c,var(--board));stroke-width:3}
+.rsvg .rpa{fill:var(--ink2)}.rsvg .rpb{fill:var(--c,var(--board))}
+.fbars{display:flex;flex-direction:column;gap:12px;margin:10px 0}
+.fbars>div{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.fbars>div>b{font-family:var(--f-mono);font-size:18px;width:52px}
+.fbar{display:flex;flex:1 1 220px;max-width:420px;height:34px;border:2px solid var(--ink2);border-radius:6px;overflow:hidden}
+.fbar span{flex:1;border-right:1.5px solid var(--ink2)}.fbar span:last-child{border-right:none}
+.fbar .fa{background:var(--c,var(--board))}.fbar .fb2{background:var(--chalk)}
+.psq{display:grid;gap:2px;margin:10px 0;aspect-ratio:1;max-width:100%}
+.psq i{background:var(--c,var(--board));border-radius:2px;aspect-ratio:1}
+.ustairs{display:flex;align-items:flex-end;gap:4px;min-width:460px;padding-top:6px}
+.ustep{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;border:1.5px solid var(--line);border-radius:8px 8px 0 0;background:var(--paper);padding:6px 2px;font-size:13px}
+.ustep:nth-child(1){height:120px}.ustep:nth-child(2){height:106px}.ustep:nth-child(3){height:92px}.ustep:nth-child(4){height:78px}.ustep:nth-child(5){height:64px}.ustep:nth-child(6){height:50px}.ustep:nth-child(7){height:40px}
+.ustep b{font-family:var(--f-mono);font-size:15px}.ustep small{color:var(--ink2)}
+.ustep.upas{background:var(--blue-soft)}
+.ustep.ude{background:var(--chalk);border-color:#e0b400;color:#1b2340}.ustep.ude small{color:#1b2340}
+.ustep.ua{background:var(--c,var(--board));border-color:var(--c,var(--board));color:#fff}.ustep.ua small{color:#fff}
+.osteps{list-style:none;padding:0;margin:10px 0;display:flex;flex-direction:column;gap:6px;counter-reset:o}
+.osteps li{display:grid;grid-template-columns:minmax(0,1fr);gap:2px;border-left:4px solid var(--c,var(--board));padding:6px 12px;background:var(--paper);border-radius:0 8px 8px 0}
+.osteps li span{font-size:13px;color:var(--ink2)}
+.osteps li b{font-family:var(--f-mono);font-size:19px;overflow-wrap:anywhere}
+.osteps li.o0{border-left-color:var(--chalk)}
+
+.ihead{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between;margin:12px 0 6px}
+.ipts{font-family:var(--f-display);font-size:44px;font-weight:800;color:var(--ink);line-height:1}
+.imax{font-size:15px;color:var(--ink2);margin-left:6px}
+.ibar{height:10px;border-radius:999px;background:var(--blue-soft);overflow:hidden;margin:6px 0}
+.ibar.big{height:14px;margin-bottom:16px}
+.ibar i{display:block;height:100%;background:linear-gradient(90deg,#cd7f32,#c0c0c0,#e5b80b);border-radius:999px}
+.igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.icard{border:1px solid var(--line);border-top:5px solid var(--c);border-radius:10px;padding:12px;background:var(--paper);min-width:0}
+.ict{font-weight:700;font-size:15px;line-height:1.3;margin-bottom:8px}
+.imeds{display:flex;gap:10px;margin-bottom:8px}
+.med{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:50%;font-weight:800;font-size:16px;color:#1b2340;box-shadow:inset 0 -4px 0 rgba(0,0,0,.18),0 2px 4px rgba(0,0,0,.18);position:relative}
+.med.bronce{background:radial-gradient(circle at 35% 30%,#f3c69a,#cd7f32 60%,#9a5a1f)}
+.med.plata{background:radial-gradient(circle at 35% 30%,#ffffff,#c0c0c0 60%,#8e8e8e)}
+.med.oro{background:radial-gradient(circle at 35% 30%,#fff3b0,#e5b80b 60%,#b38600)}
+.med.esp{background:radial-gradient(circle at 35% 30%,#d9c8ff,#7c5cff 60%,#4b2fc9);color:#fff}
+.med.off{background:var(--blue-soft);color:var(--ink2);box-shadow:inset 0 0 0 2px var(--line);opacity:.7}
+.icrit{list-style:none;padding:0;margin:0;font-size:13px;color:var(--ink2);display:flex;flex-direction:column;gap:3px}
+.icrit li.ok{color:#15803d}
+.ih3{font-family:var(--f-display);font-size:19px;margin:18px 0 8px}
+.iesp{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.iespc{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--paper)}
+.iespc.ok{border-color:#7c5cff}
+.iside strong{display:block;font-size:16px}
+.itoast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,140%);z-index:60;background:var(--board);color:#fff;border:3px solid var(--chalk);border-radius:14px;padding:12px 18px;font-size:15px;box-shadow:0 10px 30px rgba(0,0,0,.3);transition:transform .35s;max-width:calc(100vw - 32px)}
+.itoast.show{transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){.itoast{transition:none}}
+.iextra{display:flex;flex-direction:column;align-items:center;background:var(--chalk);color:#1b2340;border-radius:10px;padding:6px 14px}
+.iextra span{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.iextra b{font-family:var(--f-display);font-size:26px}
+.iscale td,.iscale th{text-align:center}
+.ev-d b.rng{font-size:19px;white-space:nowrap;padding:5px 0}
+.rsvg.sfit{min-width:0}
+.pkeys{flex-wrap:wrap}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="formulas" aria-hidden="true"><span style="top:8%;right:4%">(a + b)²</span><span style="top:44%;right:20%">3x + 5 = 20</span><span style="top:66%;right:3%">x² − 9 = (x + 3)(x − 3)</span><span style="top:24%;right:32%">2x(x − 1)</span></div>
+  <div class="wrap">
+  <div class="hero-main">
+    <a class="home" href="https://ramosmelecioraciel-profe.github.io/">← Todas mis asignaturas</a>
+    <div class="eyebrow">Preparatoria Oficial Núm. 252 · Segundo semestre · Introducción al álgebra</div>
+    <h1>Pensamiento Matemático <span class="num">II</span></h1>
+    <p class="lede">El lenguaje de las letras: aprende a escribir, operar y factorizar expresiones algebraicas, y úsalas para resolver situaciones de tu vida. Cada color es un propósito formativo.</p>
+    <div class="who"><span>Docente: <b>Raciel Ramos Melecio</b></span><span>Asignatura: <b>Pensamiento Matemático II</b></span></div>
+    <svg class="nline" viewBox="0 0 520 70" role="img" aria-label="Balanza en equilibrio: 2x + 3 = 11">
+      <polygon points="250,66 270,66 260,24" fill="#c9d3ff"/><line x1="90" y1="24" x2="430" y2="24" stroke="#c9d3ff" stroke-width="4" stroke-linecap="round"/>
+      <path d="M60 40 h120 l-12 20 h-96 z" fill="none" stroke="#c9d3ff" stroke-width="2"/><path d="M340 40 h120 l-12 20 h-96 z" fill="none" stroke="#c9d3ff" stroke-width="2"/>
+      <line x1="120" y1="24" x2="120" y2="40" stroke="#c9d3ff" stroke-width="2"/><line x1="400" y1="24" x2="400" y2="40" stroke="#c9d3ff" stroke-width="2"/>
+      <g font-family="JetBrains Mono, monospace" font-size="16" text-anchor="middle" fill="#ffd23f"><text x="120" y="56">2x + 3</text><text x="400" y="56">11</text><text x="260" y="16">=</text></g>
+    </svg>
+  </div>
+  <nav class="tiles" aria-label="Propósitos formativos">
+    <a class="tile" data-pf="1" href="#pf1"><span class="sym">x + 3</span><span><span class="tn">PF1</span><span class="tt">Lenguaje algebraico</span></span></a>
+    <a class="tile" data-pf="2" href="#pf2"><span class="sym">3x²y</span><span><span class="tn">PF2</span><span class="tt">Expresiones algebraicas</span></span></a>
+    <a class="tile" data-pf="3" href="#pf3"><span class="sym">2x(x − 5)</span><span><span class="tn">PF3</span><span class="tt">Monomios y binomios</span></span></a>
+    <a class="tile" data-pf="4" href="#pf4"><span class="sym">(x + 3)²</span><span><span class="tn">PF4</span><span class="tt">Trinomios y polinomios</span></span></a>
+    <a class="tile" data-pf="5" href="#pf5"><span class="sym">0.8x</span><span><span class="tn">PF5</span><span class="tt">Álgebra en la vida diaria</span></span></a>
+    <a class="tile" data-pf="6" href="#pf6"><span class="sym">a = b</span><span><span class="tn">PF6</span><span class="tt">Igualdad y ecuación</span></span></a>
+    </nav>
+</div></header>
+
+<div class="gate" id="who-gate" hidden>
+  <form class="gate-card" id="who-form" novalidate>
+    <p class="lbl">Antes de entrar</p>
+    <h2>¿Quién eres?</h2>
+    <p>Escribe tu nombre y tu grupo. Solo lo pedimos una vez en este celular o computadora.</p>
+    <label for="who-nombre">Nombre completo<input id="who-nombre" type="text" autocomplete="name" maxlength="80" required></label>
+    <label for="who-grupo">Grupo<input id="who-grupo" type="text" placeholder="ej. 2° 1" maxlength="20" required></label>
+    <p class="gate-note">El profesor registra qué días entras al blog y qué videos o archivos abres, para dar seguimiento a tu estudio. No se guarda nada más.</p>
+    <button class="btn" type="submit">Entrar</button>
+    <p class="reg-msg err" id="who-msg" aria-live="polite"></p>
+  </form>
+</div>
+<p class="whoami" id="whoami" hidden>Entraste como <b id="whoami-n"></b> · <button type="button" id="whoami-x">No soy yo</button></p>
+<div class="wrap cols">
+<main>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Secciones"><button type="button" role="tab" class="tab" id="tab-videos" data-tab="videos" aria-selected="false">Temas</button><button type="button" role="tab" class="tab" id="tab-autoeval" data-tab="autoeval" aria-selected="false">Autoevaluación</button><button type="button" role="tab" class="tab" id="tab-insignias" data-tab="insignias" aria-selected="false">Insignias</button><button type="button" role="tab" class="tab" id="tab-simuladores" data-tab="simuladores" aria-selected="false">Simuladores</button><button type="button" role="tab" class="tab" id="tab-practica" data-tab="practica" aria-selected="false">Práctica</button><button type="button" role="tab" class="tab" id="tab-fechas" data-tab="fechas" aria-selected="false">Fechas</button><button type="button" role="tab" class="tab" id="tab-programa" data-tab="programa" aria-selected="false">Programa</button><button type="button" role="tab" class="tab" id="tab-materiales" data-tab="materiales" aria-selected="false">Materiales</button></nav>
+
+  <div class="feed">
+  <article id="avisos" data-k="evaluacion" class="pinned">
+    <div class="meta"><span class="tag">fijo</span><span class="tag">avisos por correo</span></div>
+    <h2><a href="#avisos">Recibe recordatorios por correo</a></h2>
+    <p>Regístrate y te avisaremos por correo <b>3 días y 1 día antes</b> de cada evaluación de Pensamiento Matemático II, con los temas que debes repasar.</p>
+    <form id="reg-form" class="reg" novalidate>
+      <input type="hidden" name="asignatura" value="PM2">
+      <div class="reg-row">
+        <label for="reg-nombre">Nombre completo<input id="reg-nombre" name="nombre" type="text" autocomplete="name" maxlength="80" required></label>
+        <label for="reg-grupo" class="sm">Grupo<input id="reg-grupo" name="grupo" type="text" placeholder="ej. 2° 1" maxlength="20" required></label>
+      </div>
+      <label for="reg-correo">Correo electrónico<input id="reg-correo" name="correo" type="email" autocomplete="email" maxlength="120" required><span class="reg-hint">Usa de preferencia un correo de <b>Gmail</b>. Los de Hotmail u Outlook a veces no reciben los avisos; si usas uno, revisa la carpeta de correo no deseado.</span></label>
+      <label class="chk" for="reg-acepto"><input id="reg-acepto" name="acepto" type="checkbox" value="si" required><span>Acepto que mi nombre, grupo y correo se usen solo para enviarme avisos de esta clase. Los datos los guarda el profesor y no se comparten. Puedo darme de baja desde cualquier correo.</span></label>
+      <button class="btn" id="reg-enviar" type="submit">Registrarme</button>
+      <p class="reg-msg" id="reg-msg" aria-live="polite"></p>
+    </form>
+  </article>
+
+  <article id="calendario" data-k="calendario">
+    <div class="meta"><span class="tag">2026-2027</span><span class="tag">calendario escolar</span></div>
+    <h2><a href="#calendario">Calendario escolar 2026-2027</a></h2>
+    <p>Calendario de Media Superior del Estado de México con los días sin clases, las vacaciones y las fechas de esta materia: evaluaciones y temas.</p>
+    <div class="cal-next" id="cal-next"></div>
+    <div class="cal-nav"><button type="button" class="calbtn" id="cal-prev" aria-label="Mes anterior">←</button><strong id="cal-title"></strong><button type="button" class="calbtn" id="cal-sig" aria-label="Mes siguiente">→</button></div>
+    <div class="cal-wrap"><table class="cal" id="cal-grid" aria-describedby="cal-title"></table></div>
+    <div class="cal-leg"><span><i class="k vac"></i>Vacaciones</span><span><i class="k susp"></i>Sin clases</span><span><i class="k jor"></i>Jornada docente</span><span><i class="k hito"></i>Inicio / fin</span><span><i class="k eval"></i>Evaluación</span><span><i class="k tema"></i>Tema en clase</span></div>
+    <ul class="cal-list" id="cal-list"></ul>
+    <p class="cal-src">Fuente: calendario de Media Superior 2026-2027 de la SECTI del Estado de México. Si la escuela anuncia un cambio, se actualizará aquí.</p>
+  </article>
+
+  <article id="evaluaciones" data-k="evaluacion" class="pinned">
+    <div class="meta"><span class="tag">fijo</span><span class="tag">evaluaciones</span></div>
+    <h2><a href="#evaluaciones">Fechas de evaluación</a></h2>
+    <p>Aquí aparecen los exámenes y entregas del semestre, con los temas que debes repasar. Las fechas ya aplicadas se marcan en gris.</p>
+    <div id="ev-list" class="ev-list" aria-live="polite"><p class="ev-empty">Todavía no hay fechas publicadas. El profesor las agregará aquí.</p></div>
+  </article>
+
+  
+  <article id="insignias" data-k="insignias">
+    <div class="meta"><span class="tag">mi avance</span><span class="tag">insignias</span></div>
+    <h2><a href="#insignias">Mis insignias</a></h2>
+    <p>Gana medallas por cada propósito formativo: <b>bronce</b> por ver el video o usar el simulador del tema, <b>plata</b> por practicar y <b>oro</b> por dominar el tema. También hay insignias especiales por constancia.</p>
+    <p class="note"><b>Actividad extra:</b> tus insignias suman puntos adicionales a tu calificación del parcial. Son voluntarias: no restan, solo suman.</p>
+    <div class="swrap"><table class="stab sinfo iscale"><tr><th>Puntos de insignias</th><th>Valor extra</th></tr><tr><td>10 a 19</td><td>+0.2</td></tr><tr><td>20 a 29</td><td>+0.4</td></tr><tr><td>30 a 39</td><td>+0.6</td></tr><tr><td>40 a 50</td><td>+1.0</td></tr></table></div>
+    <div id="ins-area" class="ins"></div>
+  </article>
+
+  <article id="simuladores" data-k="simuladores">
+    <div class="meta"><span class="tag">interactivo</span><span class="tag">simuladores</span></div>
+    <h2><a href="#simuladores">Simuladores</a></h2>
+    <p>Un simulador por propósito formativo: cambia los valores y mira qué pasa. Sirven para entender el tema antes de practicar.</p>
+    <div class="qchips" id="sim-temas" role="group" aria-label="Elegir simulador"></div>
+    <div id="sim-area" class="sim"></div>
+  </article>
+
+  <article id="practica" data-k="practica">
+    <div class="meta"><span class="tag">ejercicios sin límite</span><span class="tag">práctica</span></div>
+    <h2><a href="#practica">Práctica sin límite</a></h2>
+    <p>Elige un tema y resuelve rondas de 10 ejercicios. Cada ejercicio es nuevo, se revisa al momento y te explica cómo se resuelve. Practica todas las veces que quieras.</p>
+    <div class="qchips" id="prac-temas" role="group" aria-label="Elegir tema"></div>
+    <div class="psubs" id="prac-sub"></div>
+    <div id="prac" class="prac"><div id="prac-area"><p class="ev-empty">Elige un tema para empezar.</p></div></div>
+  </article>
+
+  <article id="autoevaluacion" data-k="autoeval">
+    <div class="meta"><span class="tag">5 preguntas</span><span class="tag">autoevaluación</span></div>
+    <h2><a href="#autoevaluacion">Autoevaluaciones</a></h2>
+    <p>Elige un tema y contesta 5 preguntas. Al terminar verás tu calificación y la explicación de cada respuesta. Puedes intentarlo las veces que quieras; el profesor ve tus resultados para saber qué temas reforzar.</p>
+    <div class="qchips" role="group" aria-label="Elegir tema"><button type="button" class="qchip" data-pf="1" data-q="pf1" aria-pressed="false"><b>PF1</b> Lenguaje algebraico</button><button type="button" class="qchip" data-pf="2" data-q="pf2" aria-pressed="false"><b>PF2</b> Expresiones algebraicas</button><button type="button" class="qchip" data-pf="3" data-q="pf3" aria-pressed="false"><b>PF3</b> Monomios y binomios</button><button type="button" class="qchip" data-pf="4" data-q="pf4" aria-pressed="false"><b>PF4</b> Trinomios y polinomios</button><button type="button" class="qchip" data-pf="5" data-q="pf5" aria-pressed="false"><b>PF5</b> Álgebra en la vida diaria</button><button type="button" class="qchip" data-pf="6" data-q="pf6" aria-pressed="false"><b>PF6</b> Igualdad y ecuación</button></div>
+    <div id="quiz" class="quiz" aria-live="polite"><p class="ev-empty">Elige un tema para empezar.</p></div>
+  </article>
+
+  <article id="programa" data-k="programa">
+    <div class="meta"><span class="tag">PF1–PF6</span><span class="tag">programa</span></div>
+    <h2><a href="#programa">Programa del semestre: propósitos y contenidos formativos</a></h2>
+    <p>Pensamiento Matemático II · Introducción al álgebra. <b>Meta educativa:</b> que entiendas el lenguaje algebraico como un medio de representación de situaciones cotidianas y escolares para estimular el pensamiento abstracto. Son seis propósitos formativos; en cada uno verás qué se espera que logres y los contenidos que estudiaremos.</p>
+    <div class="pf-list">
+    <section class="pf" id="pf1" data-pf="1">
+      <div class="pf-h"><span class="pf-n">PF1</span><h3>Lenguaje algebraico</h3></div>
+      <p class="pf-p"><span class="lbl">Propósito formativo</span>Representa operaciones aritméticas utilizadas en situaciones de interés, mediante letras y símbolos, para comprender el lenguaje algebraico.</p>
+      <div class="lbl">Contenidos formativos</div>
+      <ul class="pf-c"><li>Definición de: suma, producto, razón, cociente, diferencia y residuo</li><li>Símbolos y letras utilizados en el lenguaje algebraico</li><li>Concepto de incógnita</li><li>Términos y expresiones algebraicas</li><li>Representación de expresiones de lenguaje común a expresiones algebraicas</li></ul>
+      <p class="pf-l">Recursos: <a href="#tema-lenguaje-algebraico">Tema</a> · <a href="#simuladores">Simulador</a> · <a href="#practica">Práctica</a></p>
+    </section>
+    <section class="pf" id="pf2" data-pf="2">
+      <div class="pf-h"><span class="pf-n">PF2</span><h3>Expresiones algebraicas</h3></div>
+      <p class="pf-p"><span class="lbl">Propósito formativo</span>Comprende la clasificación de las expresiones algebraicas para construir e identificar monomios, binomios, trinomios y polinomios.</p>
+      <div class="lbl">Contenidos formativos</div>
+      <ul class="pf-c"><li>Clasificación de expresiones algebraicas (monomio, binomio, trinomio y polinomio)</li><li>Componentes de un monomio: coeficiente, variable, exponente positivo y grado</li><li>Representación de situaciones reales con monomios y polinomios</li></ul>
+      <p class="pf-l">Recursos: <a href="#tema-expresiones-algebraicas">Tema</a> · <a href="#simuladores">Simulador</a> · <a href="#practica">Práctica</a></p>
+    </section>
+    <section class="pf" id="pf3" data-pf="3">
+      <div class="pf-h"><span class="pf-n">PF3</span><h3>Monomios y binomios</h3></div>
+      <p class="pf-p"><span class="lbl">Propósito formativo</span>Aplica la aritmética y el manejo del álgebra para realizar operaciones con monomios y binomios, referentes a situaciones de interés, a partir del análisis de sus componentes.</p>
+      <div class="lbl">Contenidos formativos</div>
+      <ul class="pf-c"><li>Suma, resta, multiplicación y división con monomios</li><li>Aplicación de las reglas de los exponentes y los signos</li><li>Aplicación de operaciones con fracciones</li><li>Factorización de monomios</li><li>Binomio y trinomio simple</li></ul>
+      <p class="pf-l">Recursos: <a href="#tema-monomios-binomios">Tema</a> · <a href="#simuladores">Simulador</a> · <a href="#practica">Práctica</a></p>
+    </section>
+    <section class="pf" id="pf4" data-pf="4">
+      <div class="pf-h"><span class="pf-n">PF4</span><h3>Trinomios y polinomios</h3></div>
+      <p class="pf-p"><span class="lbl">Propósito formativo</span>Aplica la aritmética y el manejo del álgebra para realizar operaciones con trinomios y polinomios, referentes a situaciones de interés, a partir del análisis de sus componentes.</p>
+      <div class="lbl">Contenidos formativos</div>
+      <ul class="pf-c"><li>Suma, resta, multiplicación y división con polinomios</li><li>Aplicación de las reglas de los exponentes y los signos</li><li>Aplicación de operaciones con fracciones</li><li>Productos notables</li><li>Factorización de polinomios</li><li>Trinomio cuadrado perfecto</li></ul>
+      <p class="pf-l">Recursos: <a href="#tema-polinomios">Tema</a> · <a href="#simuladores">Simulador</a> · <a href="#practica">Práctica</a></p>
+    </section>
+    <section class="pf" id="pf5" data-pf="5">
+      <div class="pf-h"><span class="pf-n">PF5</span><h3>Álgebra en la vida diaria</h3></div>
+      <p class="pf-p"><span class="lbl">Propósito formativo</span>Aplica el álgebra en situaciones de interés para comprender su relevancia en otras áreas del conocimiento, fenómenos naturales o en distintas esferas de la vida humana.</p>
+      <div class="lbl">Contenidos formativos</div>
+      <ul class="pf-c"><li>Cálculo de un presupuesto personal (ingresos, gastos, ahorros, etc.)</li><li>Ajuste de proporciones en recetas según número de personas</li><li>Hallar precios finales aplicando porcentajes y ecuaciones en compras con descuento</li></ul>
+      <p class="pf-l">Recursos: <a href="#tema-algebra-vida-diaria">Tema</a> · <a href="#simuladores">Simulador</a> · <a href="#practica">Práctica</a></p>
+    </section>
+    <section class="pf" id="pf6" data-pf="6">
+      <div class="pf-h"><span class="pf-n">PF6</span><h3>Igualdad y ecuación</h3></div>
+      <p class="pf-p"><span class="lbl">Propósito formativo</span>Comprende el concepto de ecuación a partir de las igualdades matemáticas para encontrar el valor de una incógnita utilizando situaciones de interés.</p>
+      <div class="lbl">Contenidos formativos</div>
+      <ul class="pf-c"><li>Concepto de igualdad e identidad algebraica</li><li>Relaciones de igualdad entre números reales</li><li>Propiedades de igualdad: reflexiva, simétrica, transitiva, uniformidad</li></ul>
+      <p class="pf-l">Recursos: <a href="#tema-igualdad-ecuacion">Tema</a> · <a href="#simuladores">Simulador</a> · <a href="#practica">Práctica</a></p>
+    </section>
+    </div>
+    <p class="cal-src">Fuente: Marco Curricular Común de la Educación Media Superior, Modelo Educativo 2025, Pensamiento Matemático (SEP, COSFAC), tabla 2.</p>
+  </article>
+
+    <article id="tema-lenguaje-algebraico" data-k="video" data-pf="1">
+    <div class="meta"><span class="tag pfc">PF1</span><span class="tag">tema</span></div>
+    <h2><a href="#tema-lenguaje-algebraico">PF1 · Lenguaje algebraico</a></h2>
+    <p>¿Qué es el álgebra? Es una forma de escribir con letras y símbolos lo que ya sabes decir con palabras. Una letra puede representar un número que no conocemos (incógnita) o que cambia (variable).</p>
+    <div class="swrap"><table class="stab sinfo"><tr><th>Lenguaje común</th><th>Lenguaje algebraico</th></tr><tr><td>El doble de un número</td><td><b>2x</b></td></tr><tr><td>Un número aumentado en 5</td><td><b>x + 5</b></td></tr><tr><td>La mitad de un número</td><td><b>x/2</b></td></tr><tr><td>El cuadrado de un número, menos 3</td><td><b>x² − 3</b></td></tr><tr><td>La suma de un número y su consecutivo</td><td><b>x + (x + 1)</b></td></tr></table></div>
+    <h3>Para recordar</h3>
+    <ul><li><b>Suma</b>: resultado de sumar. <b>Diferencia</b>: de restar. <b>Producto</b>: de multiplicar. <b>Cociente</b>: de dividir.</li><li><b>Residuo</b>: lo que sobra en una división no exacta: 17 ÷ 5 da cociente 3 y residuo 2.</li><li><b>Razón</b>: compara dos cantidades dividiendo, como 3/4.</li><li>Entre número y letra no se escribe el ×: 3 · x se escribe 3x.</li></ul>
+    <details class="reto"><summary>Reto rápido</summary>
+      <ol><li>El triple de un número</li><li>Un número disminuido en 7</li><li>Si x = 2, ¿cuánto vale 3x + 1?</li><li>Residuo de 23 ÷ 4</li></ol>
+      <p>Respuestas: 3x · x − 7 · 7 · 3</p>
+    </details>
+    <p class="note">El video y la presentación de este tema se publicarán aquí. Mientras, usa el <a href="#simuladores">simulador</a> y la <a href="#practica">práctica sin límite</a>.</p>
+      <p class="qlink"><a href="#auto-pf1">✎ Haz la autoevaluación de este tema</a></p>
+  </article>
+
+  <article id="tema-expresiones-algebraicas" data-k="video" data-pf="2">
+    <div class="meta"><span class="tag pfc">PF2</span><span class="tag">tema</span></div>
+    <h2><a href="#tema-expresiones-algebraicas">PF2 · Expresiones algebraicas</a></h2>
+    <p>Una expresión algebraica está formada por términos separados por + o −. Según cuántos términos tenga, recibe un nombre.</p>
+    <div class="swrap"><table class="stab sinfo"><tr><th>Ejemplo</th><th>Clasificación</th></tr><tr><td>5x²</td><td><b>Monomio (1 término)</b></td></tr><tr><td>3a − 2b</td><td><b>Binomio (2 términos)</b></td></tr><tr><td>x² + 2x + 1</td><td><b>Trinomio (3 términos)</b></td></tr><tr><td>x³ − x² + 4x − 9</td><td><b>Polinomio (4 o más)</b></td></tr></table></div>
+    <h3>Para recordar</h3>
+    <ul><li>En <b>−7x³</b>: el coeficiente es −7, la variable es x y el exponente es 3.</li><li>El <b>grado de un monomio</b> es la suma de los exponentes de sus letras: 4x²y³ es de grado 5.</li><li>El <b>grado de un polinomio</b> es el mayor grado de sus términos.</li><li>Si no se ve el coeficiente, vale 1: en x², el coeficiente es 1.</li></ul>
+    <details class="reto"><summary>Reto rápido</summary>
+      <ol><li>¿Cuántos términos tiene 4x − 1?</li><li>Coeficiente de −x⁵</li><li>Grado de 2x³y</li><li>Perímetro de un cuadrado de lado x</li></ol>
+      <p>Respuestas: 2 · −1 · 4 · 4x</p>
+    </details>
+    <p class="note">El video y la presentación de este tema se publicarán aquí. Mientras, usa el <a href="#simuladores">simulador</a> y la <a href="#practica">práctica sin límite</a>.</p>
+      <p class="qlink"><a href="#auto-pf2">✎ Haz la autoevaluación de este tema</a></p>
+  </article>
+
+  <article id="tema-monomios-binomios" data-k="video" data-pf="3">
+    <div class="meta"><span class="tag pfc">PF3</span><span class="tag">tema</span></div>
+    <h2><a href="#tema-monomios-binomios">PF3 · Monomios y binomios</a></h2>
+    <p>Con monomios se opera como con números, cuidando los signos y las leyes de los exponentes.</p>
+    <div class="swrap"><table class="stab sinfo"><tr><th>Ejemplo</th><th>Resultado</th></tr><tr><td>3x² + 5x²</td><td><b>8x²</b></td></tr><tr><td>(2x³)(−4x²)</td><td><b>−8x⁵</b></td></tr><tr><td>12x⁵ ÷ 3x²</td><td><b>4x³</b></td></tr><tr><td>2x(3x − 4)</td><td><b>6x² − 8x</b></td></tr><tr><td>6x² + 9x</td><td><b>3x(2x + 3)</b></td></tr></table></div>
+    <h3>Para recordar</h3>
+    <ul><li>Solo se suman o restan <b>términos semejantes</b> (misma letra y mismo exponente).</li><li>Al multiplicar se <b>suman</b> los exponentes; al dividir se <b>restan</b>.</li><li>Signos: más por más y menos por menos dan más; signos distintos dan menos.</li><li><b>Factorizar</b> es lo contrario de multiplicar: se saca el factor común.</li></ul>
+    <details class="reto"><summary>Reto rápido</summary>
+      <ol><li>4x − 9x</li><li>(3x)(5x²)</li><li>10x⁴ ÷ 2x</li><li>Factoriza 5x² − 10x</li></ol>
+      <p>Respuestas: −5x · 15x³ · 5x³ · 5x(x − 2)</p>
+    </details>
+    <p class="note">El video y la presentación de este tema se publicarán aquí. Mientras, usa el <a href="#simuladores">simulador</a> y la <a href="#practica">práctica sin límite</a>.</p>
+      <p class="qlink"><a href="#auto-pf3">✎ Haz la autoevaluación de este tema</a></p>
+  </article>
+
+  <article id="tema-polinomios" data-k="video" data-pf="4">
+    <div class="meta"><span class="tag pfc">PF4</span><span class="tag">tema</span></div>
+    <h2><a href="#tema-polinomios">PF4 · Trinomios y polinomios</a></h2>
+    <p>Para multiplicar polinomios, cada término del primero multiplica a cada término del segundo. Algunos productos son tan comunes que tienen regla: los productos notables.</p>
+    <div class="swrap"><table class="stab sinfo"><tr><th>Ejemplo</th><th>Resultado</th></tr><tr><td>(x + 3)(x + 5)</td><td><b>x² + 8x + 15</b></td></tr><tr><td>(x + 4)²</td><td><b>x² + 8x + 16</b></td></tr><tr><td>(x − 6)²</td><td><b>x² − 12x + 36</b></td></tr><tr><td>(x + 7)(x − 7)</td><td><b>x² − 49</b></td></tr><tr><td>x² + 7x + 12</td><td><b>(x + 3)(x + 4)</b></td></tr></table></div>
+    <h3>Para recordar</h3>
+    <ul><li><b>Binomio al cuadrado</b>: (a + b)² = a² + 2ab + b². ¡No es a² + b²!</li><li><b>Binomios conjugados</b>: (a + b)(a − b) = a² − b².</li><li>Un <b>trinomio cuadrado perfecto</b> se factoriza como binomio al cuadrado: x² + 10x + 25 = (x + 5)².</li><li>Para factorizar x² + bx + c busca dos números que multiplicados den c y sumados den b.</li></ul>
+    <details class="reto"><summary>Reto rápido</summary>
+      <ol><li>(x + 2)(x + 6)</li><li>(x + 1)²</li><li>(x + 9)(x − 9)</li><li>Factoriza x² − 16</li></ol>
+      <p>Respuestas: x² + 8x + 12 · x² + 2x + 1 · x² − 81 · (x + 4)(x − 4)</p>
+    </details>
+    <p class="note">El video y la presentación de este tema se publicarán aquí. Mientras, usa el <a href="#simuladores">simulador</a> y la <a href="#practica">práctica sin límite</a>.</p>
+      <p class="qlink"><a href="#auto-pf4">✎ Haz la autoevaluación de este tema</a></p>
+  </article>
+
+  <article id="tema-algebra-vida-diaria" data-k="video" data-pf="5">
+    <div class="meta"><span class="tag pfc">PF5</span><span class="tag">tema</span></div>
+    <h2><a href="#tema-algebra-vida-diaria">PF5 · Álgebra en la vida diaria</a></h2>
+    <p>El álgebra sirve para tomar decisiones con tu dinero, en la cocina o en las compras. Con una letra representas lo que no sabes y planteas una ecuación.</p>
+    <div class="swrap"><table class="stab sinfo"><tr><th>Ejemplo</th><th>Planteamiento</th></tr><tr><td>Presupuesto</td><td><b>ahorro = ingreso − gastos</b></td></tr><tr><td>Receta para 4 → para 6</td><td><b>cantidad × 6/4</b></td></tr><tr><td>Precio con 25% de descuento</td><td><b>0.75x</b></td></tr><tr><td>Pagaste $450 con 25% de descuento</td><td><b>0.75x = 450 → x = $600</b></td></tr></table></div>
+    <h3>Para recordar</h3>
+    <ul><li>Porcentaje significa “de cada cien”: 25% = 0.25.</li><li>Con descuento d%, pagas (100 − d)% del precio: 30% de descuento → 0.7x.</li><li>En una proporción directa, si una cantidad se duplica, la otra también.</li><li>Revisa que tu resultado tenga sentido: un precio con descuento siempre es menor.</li></ul>
+    <details class="reto"><summary>Reto rápido</summary>
+      <ol><li>15% de $400</li><li>Receta para 2 → para 5 (100 g)</li><li>$800 con 40% de descuento</li><li>Ahorras $250 al mes, ¿meses para $1 500?</li></ol>
+      <p>Respuestas: $60 · 250 g · $480 · 6</p>
+    </details>
+    <p class="note">El video y la presentación de este tema se publicarán aquí. Mientras, usa el <a href="#simuladores">simulador</a> y la <a href="#practica">práctica sin límite</a>.</p>
+      <p class="qlink"><a href="#auto-pf5">✎ Haz la autoevaluación de este tema</a></p>
+  </article>
+
+  <article id="tema-igualdad-ecuacion" data-k="video" data-pf="6">
+    <div class="meta"><span class="tag pfc">PF6</span><span class="tag">tema</span></div>
+    <h2><a href="#tema-igualdad-ecuacion">PF6 · Igualdad y ecuación</a></h2>
+    <p>Una igualdad dice que dos expresiones valen lo mismo. Si se cumple para cualquier valor de la letra es una identidad; si solo para algunos, es una ecuación.</p>
+    <div class="swrap"><table class="stab sinfo"><tr><th>Igualdad</th><th>Propiedad</th></tr><tr><td>a = a</td><td><b>Reflexiva</b></td></tr><tr><td>Si a = b, entonces b = a</td><td><b>Simétrica</b></td></tr><tr><td>Si a = b y b = c, entonces a = c</td><td><b>Transitiva</b></td></tr><tr><td>Si a = b, entonces a + c = b + c</td><td><b>Uniformidad</b></td></tr></table></div>
+    <h3>Para recordar</h3>
+    <ul><li>Una ecuación es como una <b>balanza</b>: lo que hagas de un lado, hazlo del otro.</li><li>3x + 4 = 19 → resta 4: 3x = 15 → divide entre 3: x = 5.</li><li>Comprueba siempre sustituyendo: 3(5) + 4 = 19 ✔.</li><li>2(x + 1) = 2x + 2 es una identidad: se cumple para todo x.</li></ul>
+    <details class="reto"><summary>Reto rápido</summary>
+      <ol><li>x + 8 = 3</li><li>5x = 35</li><li>2x − 1 = 9</li><li>¿Identidad o ecuación? x + x = 2x</li></ol>
+      <p>Respuestas: −5 · 7 · 5 · identidad</p>
+    </details>
+    <p class="note">El video y la presentación de este tema se publicarán aquí. Mientras, usa el <a href="#simuladores">simulador</a> y la <a href="#practica">práctica sin límite</a>.</p>
+      <p class="qlink"><a href="#auto-pf6">✎ Haz la autoevaluación de este tema</a></p>
+  </article>
+
+  <article id="materiales-pm2" data-k="cuadernillo">
+    <div class="meta"><span class="tag">PF1–PF6</span><span class="tag">materiales</span></div>
+    <h2><a href="#materiales-pm2">Cuadernillo y presentaciones</a></h2>
+    <p>Aquí se publicarán el cuadernillo de ejercicios de Pensamiento Matemático II y las presentaciones de los seis propósitos formativos, en PDF para abrirlos en cualquier celular o computadora.</p>
+    <p class="note">Mientras tanto, cada tema tiene ejemplos, un reto rápido, un simulador y ejercicios sin límite.</p>
+  </article>
+
+  <article id="bienvenida" data-k="aviso">
+    <div class="meta"><span class="tag">aviso</span></div>
+    <h2><a href="#bienvenida">Bienvenidos a Pensamiento Matemático II</a></h2>
+    <p>En este semestre damos el paso de la aritmética al álgebra. Aquí encontrarás los temas, simuladores, práctica sin límite, autoevaluaciones y las fechas de evaluación.</p>
+    <h3>Cómo usarlo</h3>
+    <ol>
+      <li>Busca el propósito formativo que estamos viendo en la lista de temas.</li>
+      <li>Lee el tema, juega con su simulador y resuelve una ronda de práctica.</li>
+      <li>Cuando se abra la autoevaluación, contéstala para saber cómo vas.</li>
+      <li>Si una explicación no te queda clara, anota tu duda y tráela a la siguiente clase.</li>
+    </ol>
+  </article>
+
+  </div>
+</main>
+
+<aside><div class="side">
+  <a class="btn reg-side" href="#avisos">✉ Recibir avisos por correo</a>
+  <div class="box iside" id="ins-side"></div>
+  <div class="box next" id="ev-next"><p class="lbl">Próxima evaluación</p><p class="ev-none">Sin fechas por ahora.</p></div>
+  <h2>Temas del semestre</h2>
+  <ol class="pfs">
+    <li data-pf="1"><span class="n">1</span><div><b>Lenguaje algebraico</b><span>Suma, producto, cociente y residuo; incógnita; pasar del lenguaje común al algebraico.</span><a href="#tema-lenguaje-algebraico">Ver tema</a><a href="#pf1">Contenidos</a></div></li>
+    <li data-pf="2"><span class="n">2</span><div><b>Expresiones algebraicas</b><span>Monomio, binomio, trinomio y polinomio; coeficiente, exponente y grado.</span><a href="#tema-expresiones-algebraicas">Ver tema</a><a href="#pf2">Contenidos</a></div></li>
+    <li data-pf="3"><span class="n">3</span><div><b>Monomios y binomios</b><span>Operaciones con monomios, leyes de los exponentes y factor común.</span><a href="#tema-monomios-binomios">Ver tema</a><a href="#pf3">Contenidos</a></div></li>
+    <li data-pf="4"><span class="n">4</span><div><b>Trinomios y polinomios</b><span>Operaciones con polinomios, productos notables y factorización.</span><a href="#tema-polinomios">Ver tema</a><a href="#pf4">Contenidos</a></div></li>
+    <li data-pf="5"><span class="n">5</span><div><b>Álgebra en la vida diaria</b><span>Presupuesto personal, recetas y descuentos con porcentajes y ecuaciones.</span><a href="#tema-algebra-vida-diaria">Ver tema</a><a href="#pf5">Contenidos</a></div></li>
+    <li data-pf="6"><span class="n">6</span><div><b>Igualdad y ecuación</b><span>Igualdad e identidad; propiedades de la igualdad; valor de una incógnita.</span><a href="#tema-igualdad-ecuacion">Ver tema</a><a href="#pf6">Contenidos</a></div></li>
+  </ol>
+  <div class="box"><p><b>¿Dudas?</b></p><p>Pregúntale al profesor en clase o anota tu pregunta en el cuaderno para revisarla juntos.</p></div>
+</div></aside>
+</div>
+
+<footer><div class="wrap">Pensamiento Matemático II · Preparatoria Oficial Núm. 252 · Prof. Raciel Ramos Melecio · <a href="https://ramosmelecioraciel-profe.github.io/" style="color:inherit">Todas mis asignaturas</a></div></footer>
+
+<script>
+(function(){
+  // Filtros
+  const chips=[...document.querySelectorAll('.chip')], posts=[...document.querySelectorAll('article')];
+  chips.forEach(c=>c.addEventListener('click',()=>{
+    chips.forEach(x=>x.setAttribute('aria-pressed',x===c?'true':'false'));
+    const f=c.dataset.f; posts.forEach(p=>{p.hidden=!(f==='all'||p.dataset.k===f)});
+  }));
+})();
+</script>
+
+
+<script>
+(function(){
+  const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const DIA=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  function hoy(){const d=new Date();d.setHours(0,0,0,0);return d;}
+  function parse(f){const [y,m,d]=f.split('-').map(Number);return new Date(y,m-1,d);}
+  function cuando(dias){return dias===0?'Hoy':dias===1?'Mañana':dias<0?'Aplicada':'En '+dias+' días';}
+  const MESL=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  function rango(e){ if(!e.f) return `${DIA[e.d.getDay()]} ${e.d.getDate()} de ${MESL[e.d.getMonth()]}`;
+    return e.d.getMonth()===e.f.getMonth()?`Del ${e.d.getDate()} al ${e.f.getDate()} de ${MESL[e.f.getMonth()]}`:`Del ${e.d.getDate()} de ${MESL[e.d.getMonth()]} al ${e.f.getDate()} de ${MESL[e.f.getMonth()]}`; }
+  function estado(e,h){ const ini=Math.round((e.d-h)/864e5), fin=Math.round(((e.f||e.d)-h)/864e5);
+    if(fin<0) return {t:'Aplicada',c:'past'}; if(ini<=0) return {t:e.f?'En curso':'Hoy',c:'soon'};
+    return {t:cuando(ini),c:ini<=7?'soon':''}; }
+  function pintar(evs){
+    const h=hoy();
+    evs=evs.filter(e=>e&&e.fecha).map(e=>Object.assign({},e,{d:parse(e.fecha),f:e.fin?parse(e.fin):null})).sort((a,b)=>a.d-b.d);
+    const list=document.getElementById('ev-list'), next=document.getElementById('ev-next');
+    if(!evs.length) return;
+    list.innerHTML=evs.map(e=>{
+      const st=estado(e,h);
+      const dd=e.f?`<span>${MES[e.d.getMonth()]}</span><b class="rng">${e.d.getDate()}–${e.f.getDate()}</b><span>${MES[e.f.getMonth()]}</span>`:`<span>${DIA[e.d.getDay()].slice(0,3)}</span><b>${e.d.getDate()}</b><span>${MES[e.d.getMonth()]}</span>`;
+      return `<div class="ev ${st.c}"><div class="ev-d">${dd}</div>
+        <div class="ev-t"><strong>${esc(e.titulo)}</strong><small>${esc([rango(e),e.tipo,e.pf].filter(Boolean).join(' · '))}</small>${e.temas?`<small>Repasa: ${esc(e.temas)}</small>`:''}</div>
+        <span class="ev-s">${st.t}</span></div>`;}).join('');
+    const prox=evs.find(e=>(e.f||e.d)>=h);
+    next.innerHTML='<p class="lbl">Próxima evaluación</p>'+(prox?`<strong>${esc(prox.titulo)}</strong><p class="ev-none" style="margin:.2em 0">${rango(prox)}</p><span class="when">${estado(prox,h).t}</span> · <a href="#evaluaciones">Ver todas</a>`:'<p class="ev-none">No hay evaluaciones próximas.</p>');
+  }
+  fetch('evaluaciones.json',{cache:'no-store'}).then(r=>r.ok?r.json():[]).then(pintar).catch(()=>{});
+})();
+</script>
+
+<script>
+(function(){
+  const URL='https://script.google.com/macros/s/AKfycbwHqdoeheOWDYq9cho9NqCHgZV3_IqR1XM55QhPgdY1jZ782HI7Cm27zMWuopqCCfnC5w/exec';
+  const f=document.getElementById('reg-form'); if(!f) return;
+  const msg=document.getElementById('reg-msg'), btn=document.getElementById('reg-enviar');
+  const say=(t,c)=>{msg.textContent=t;msg.className='reg-msg '+(c||'');};
+  f.addEventListener('submit',async ev=>{
+    ev.preventDefault();
+    const d=new FormData(f);
+    const nombre=(d.get('nombre')||'').trim(), grupo=(d.get('grupo')||'').trim(), correo=(d.get('correo')||'').trim();
+    if(!nombre) return say('Escribe tu nombre completo.','err');
+    if(!grupo) return say('Escribe tu grupo.','err');
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) return say('Revisa tu correo: debe tener la forma nombre@gmail.com.','err');
+    if(!d.get('acepto')) return say('Marca la casilla de aceptación para registrarte.','err');
+    btn.disabled=true; say('Enviando…');
+    try{
+      await fetch(URL,{method:'POST',mode:'no-cors',body:new URLSearchParams(d)});
+      f.reset(); say('¡Listo! Revisa tu correo: te llegará un mensaje de bienvenida (busca también en Spam).','ok');
+    }catch(e){ say('No se pudo enviar. Revisa tu conexión a internet e inténtalo de nuevo.','err'); }
+    finally{ btn.disabled=false; }
+  });
+})();
+</script>
+
+<script>
+(function(){
+  const URL='https://script.google.com/macros/s/AKfycbwHqdoeheOWDYq9cho9NqCHgZV3_IqR1XM55QhPgdY1jZ782HI7Cm27zMWuopqCCfnC5w/exec', ASIG='PM2', KEY='alumno_pm252';
+  const get=k=>{try{return JSON.parse(localStorage.getItem(k)||'null');}catch(e){return null;}};
+  const set=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
+  const gate=document.getElementById('who-gate'), form=document.getElementById('who-form'), msg=document.getElementById('who-msg');
+  const who=document.getElementById('whoami'), whoN=document.getElementById('whoami-n');
+  let yo=get(KEY);
+  function enviar(accion,detalle){
+    if(!yo) return;
+    const b=new URLSearchParams({tipo:'acceso',nombre:yo.nombre,grupo:yo.grupo,asignatura:ASIG,accion,detalle:detalle||''});
+    try{ if(navigator.sendBeacon&&navigator.sendBeacon(URL,b)) return; }catch(e){}
+    fetch(URL,{method:'POST',mode:'no-cors',body:b,keepalive:true}).catch(()=>{});
+  }
+  function entrada(){
+    const hoy=new Date().toDateString(), k='entrada_'+ASIG;
+    let ya=null; try{ya=sessionStorage.getItem(k);}catch(e){}
+    if(ya!==hoy){ enviar('Entró al blog',location.hash.replace('#','')); try{sessionStorage.setItem(k,hoy);}catch(e){} }
+  }
+  function mostrar(){
+    if(yo){ gate.hidden=true; document.body.classList.remove('gated'); who.hidden=false; whoN.textContent=yo.nombre+' ('+yo.grupo+')'; entrada(); }
+    else { gate.hidden=false; document.body.classList.add('gated'); who.hidden=true; setTimeout(()=>document.getElementById('who-nombre').focus(),50); }
+  }
+  form.addEventListener('submit',e=>{
+    e.preventDefault();
+    const n=document.getElementById('who-nombre').value.trim().replace(/\s+/g,' '), g=document.getElementById('who-grupo').value.trim();
+    if(n.split(' ').length<2){ msg.textContent='Escribe tu nombre y al menos un apellido.'; return; }
+    if(!g){ msg.textContent='Escribe tu grupo.'; return; }
+    msg.textContent=''; yo={nombre:n,grupo:g}; set(KEY,yo); mostrar();
+  });
+  document.getElementById('whoami-x').addEventListener('click',()=>{ try{localStorage.removeItem(KEY);sessionStorage.removeItem('entrada_'+ASIG);}catch(e){} yo=null; form.reset(); mostrar(); });
+  // Videos: un registro por video y por visita
+  const vistos=new Set();
+  document.querySelectorAll('article video').forEach(v=>v.addEventListener('play',()=>{
+    const t=(v.closest('article').querySelector('h2')||{}).textContent||v.src;
+    if(!vistos.has(t)){ vistos.add(t); enviar('Vio video',t.replace(/^Video:\s*/,'')); }
+  }));
+  // Descargas y enlaces a archivos
+  document.addEventListener('click',e=>{
+    const a=e.target.closest('a[href*="archivos/"]'); if(!a) return;
+    enviar('Abrió archivo',(a.getAttribute('download')||a.getAttribute('href')).split('/').pop());
+  });
+  // Registro a avisos: reutiliza nombre y grupo
+  const rn=document.getElementById('reg-nombre'), rg=document.getElementById('reg-grupo');
+  if(rn&&rg&&yo){ rn.value=rn.value||yo.nombre; rg.value=rg.value||yo.grupo; }
+  mostrar();
+})();
+</script>
+
+<script>
+(function(){
+  const URL='https://script.google.com/macros/s/AKfycbwHqdoeheOWDYq9cho9NqCHgZV3_IqR1XM55QhPgdY1jZ782HI7Cm27zMWuopqCCfnC5w/exec', ASIG='PM2', KEY='alumno_pm252';
+  const Q=[{"id": "pf1", "pf": 1, "t": "Lenguaje algebraico", "n": "PF1", "q": [{"p": "“El triple de un número, disminuido en 4” se escribe…", "o": ["3(x − 4)", "3x − 4", "x³ − 4", "4 − 3x"], "c": 1, "e": "Primero el triple (3x) y luego se le restan 4: 3x − 4. 3(x − 4) sería “el triple de un número disminuido en 4” entendido como (x − 4) por 3."}, {"p": "¿Cómo se llama el resultado de una división?", "o": ["Producto", "Diferencia", "Cociente", "Residuo"], "c": 2, "e": "El resultado de una división es el cociente. El producto es de la multiplicación y la diferencia de la resta."}, {"p": "Al dividir 29 entre 6, el residuo es…", "o": ["4", "5", "3", "6"], "c": 1, "e": "29 = 6 × 4 + 5: el cociente es 4 y sobran 5."}, {"p": "En la ecuación 5x + 3 = 18, la x es…", "o": ["Un coeficiente", "Una incógnita", "Un exponente", "Un término independiente"], "c": 1, "e": "Es la incógnita: el valor desconocido que buscamos (aquí x = 3)."}, {"p": "Si x = 4, ¿cuánto vale 2x² − 3?", "o": ["61", "13", "29", "5"], "c": 2, "e": "2(4)² − 3 = 2(16) − 3 = 32 − 3 = 29. Primero la potencia, luego la multiplicación."}]}, {"id": "pf2", "pf": 2, "t": "Expresiones algebraicas", "n": "PF2", "q": [{"p": "4x² − 3x + 7 es un…", "o": ["Monomio", "Binomio", "Trinomio", "Polinomio de 4 términos"], "c": 2, "e": "Tiene tres términos (4x², −3x y 7): es un trinomio."}, {"p": "En −8x⁵, el coeficiente es…", "o": ["8", "−8", "5", "x"], "c": 1, "e": "El coeficiente es el número que multiplica a la letra, con su signo: −8. El 5 es el exponente."}, {"p": "El grado del monomio 3x²y⁴ es…", "o": ["2", "4", "6", "8"], "c": 2, "e": "El grado de un monomio es la suma de los exponentes de sus letras: 2 + 4 = 6."}, {"p": "¿Cuál de estas expresiones es un binomio?", "o": ["7xy", "a² − 9", "x² + 2x + 1", "5"], "c": 1, "e": "a² − 9 tiene dos términos. 7xy y 5 son monomios; x² + 2x + 1 es trinomio."}, {"p": "El perímetro de un rectángulo de base x y altura 3 es…", "o": ["2x + 6", "3x", "x + 3", "x² + 3"], "c": 0, "e": "Perímetro = x + 3 + x + 3 = 2x + 6. 3x sería el área."}]}, {"id": "pf3", "pf": 3, "t": "Monomios y binomios", "n": "PF3", "q": [{"p": "7x² − 3x² =", "o": ["4", "4x²", "10x²", "4x⁴"], "c": 1, "e": "Son términos semejantes: se restan los coeficientes (7 − 3 = 4) y la parte literal x² se queda igual."}, {"p": "(2x³)(5x²) =", "o": ["10x⁵", "7x⁵", "10x⁶", "7x⁶"], "c": 0, "e": "Se multiplican los coeficientes (2 × 5 = 10) y se suman los exponentes (3 + 2 = 5)."}, {"p": "18x⁶ ÷ 3x² =", "o": ["6x³", "15x⁴", "6x⁴", "6x⁸"], "c": 2, "e": "Se dividen los coeficientes (18 ÷ 3 = 6) y se restan los exponentes (6 − 2 = 4)."}, {"p": "3x(2x − 5) =", "o": ["6x − 15", "6x² − 5", "5x² − 15x", "6x² − 15x"], "c": 3, "e": "3x · 2x = 6x² y 3x · (−5) = −15x. El monomio multiplica a cada término."}, {"p": "Al factorizar 4x² + 6x queda…", "o": ["2x(2x + 3)", "2(2x² + 3x)", "x(4x + 6)", "4x(x + 6)"], "c": 0, "e": "El factor común más grande es 2x: 4x² ÷ 2x = 2x y 6x ÷ 2x = 3."}]}, {"id": "pf4", "pf": 4, "t": "Trinomios y polinomios", "n": "PF4", "q": [{"p": "(x + 3)(x + 5) =", "o": ["x² + 15", "x² + 8x + 15", "x² + 8x + 8", "2x + 15"], "c": 1, "e": "x·x = x², 5x + 3x = 8x y 3 × 5 = 15."}, {"p": "(x + 4)² =", "o": ["x² + 16", "x² + 4x + 16", "x² + 8x + 16", "x² + 8x + 8"], "c": 2, "e": "Binomio al cuadrado: x² + 2(4)(x) + 4² = x² + 8x + 16. ¡No olvides el término de en medio!"}, {"p": "(x + 6)(x − 6) =", "o": ["x² − 36", "x² + 36", "x² − 12x − 36", "x² − 6"], "c": 0, "e": "Binomios conjugados: el cuadrado del primero menos el cuadrado del segundo."}, {"p": "x² − 10x + 25 factorizado es…", "o": ["(x + 5)²", "(x − 5)(x + 5)", "(x − 25)²", "(x − 5)²"], "c": 3, "e": "Es un trinomio cuadrado perfecto: √x² = x, √25 = 5 y el término de en medio es −2(5)x."}, {"p": "(2x² + 3x − 1) + (x² − 5x + 4) =", "o": ["3x² − 2x + 3", "3x² + 8x + 3", "3x² − 2x − 5", "x² − 2x + 3"], "c": 0, "e": "Se juntan los semejantes: 2x² + x² = 3x², 3x − 5x = −2x y −1 + 4 = 3."}]}, {"id": "pf5", "pf": 5, "t": "Álgebra en la vida diaria", "n": "PF5", "q": [{"p": "Ganas $3 000 al mes y gastas $1 800 en comida y $700 en transporte. ¿Cuánto ahorras?", "o": ["$500", "$1 200", "$2 500", "$1 100"], "c": 0, "e": "Ahorro = ingreso − gastos = 3 000 − 1 800 − 700 = 500."}, {"p": "Una receta para 4 personas usa 300 g de arroz. ¿Cuánto se necesita para 6 personas?", "o": ["400 g", "450 g", "500 g", "600 g"], "c": 1, "e": "Para 1 persona: 300 ÷ 4 = 75 g. Para 6: 75 × 6 = 450 g."}, {"p": "Una mochila de $600 tiene 20% de descuento. ¿Cuánto pagas?", "o": ["$120", "$580", "$480", "$720"], "c": 2, "e": "600 × 0.80 = 480. El 20% (120) es lo que te ahorras."}, {"p": "Si x es el precio original y hay 30% de descuento, el precio final es…", "o": ["x − 30", "0.3x", "1.3x", "0.7x"], "c": 3, "e": "x − 0.3x = 0.7x: pagas el 70% del precio."}, {"p": "Pagaste $360 por un pantalón con 25% de descuento. ¿Cuál era su precio original?", "o": ["$450", "$480", "$385", "$270"], "c": 1, "e": "0.75x = 360, así que x = 360 ÷ 0.75 = 480."}]}, {"id": "pf6", "pf": 6, "t": "Igualdad y ecuación", "n": "PF6", "q": [{"p": "“Si a = b, entonces b = a” es la propiedad…", "o": ["Reflexiva", "Simétrica", "Transitiva", "Uniformidad"], "c": 1, "e": "Simétrica: la igualdad se puede leer en los dos sentidos."}, {"p": "“Si x = 7, entonces x + 2 = 7 + 2” es la propiedad…", "o": ["Uniformidad", "Reflexiva", "Simétrica", "Transitiva"], "c": 0, "e": "Uniformidad: si haces la misma operación en los dos lados, la igualdad se mantiene."}, {"p": "¿Cuál es una identidad (se cumple para cualquier valor de x)?", "o": ["2x + 1 = 7", "x² = 9", "3(x + 2) = 3x + 6", "x + 5 = 2x"], "c": 2, "e": "3(x + 2) = 3x + 6 es verdadera para todo x. Las demás solo se cumplen para algunos valores: son ecuaciones."}, {"p": "Si x + 9 = 15, entonces x =", "o": ["24", "6", "−6", "9"], "c": 1, "e": "Restando 9 en los dos lados: x = 15 − 9 = 6."}, {"p": "Si 4x − 3 = 17, entonces x =", "o": ["3.5", "20", "4", "5"], "c": 3, "e": "Suma 3: 4x = 20. Divide entre 4: x = 5. Comprueba: 4(5) − 3 = 17."}]}];
+  const box=document.getElementById('quiz'), chips=[...document.querySelectorAll('.qchip')];
+  const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  function yo(){try{return JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){return null;}}
+  function enviar(det){
+    const a=yo(); if(!a) return;
+    const b=new URLSearchParams({tipo:'acceso',nombre:a.nombre,grupo:a.grupo,asignatura:ASIG,accion:'Autoevaluación',detalle:det});
+    try{ if(navigator.sendBeacon&&navigator.sendBeacon(URL,b)) return; }catch(e){}
+    fetch(URL,{method:'POST',mode:'no-cors',body:b,keepalive:true}).catch(()=>{});
+  }
+  function abrir(id,scroll){
+    const d=Q.find(x=>x.id===id); if(!d) return;
+    chips.forEach(c=>c.setAttribute('aria-pressed',c.dataset.q===id?'true':'false'));
+    box.setAttribute('data-pf',d.pf);
+    box.innerHTML='<h3>'+esc(d.n+' · '+d.t)+'</h3><form id="qform" novalidate>'+d.q.map((q,i)=>
+      '<fieldset class="qq" data-i="'+i+'"><legend><span>'+(i+1)+'.</span>'+esc(q.p)+'</legend>'+
+      q.o.map((o,j)=>'<label class="qopt"><input type="radio" name="q'+i+'" value="'+j+'"><span>'+esc(o)+'</span></label>').join('')+
+      '</fieldset>').join('')+
+      '<div class="qbar"><button class="btn" type="submit" style="background:var(--c);color:#fff">Calificar</button><span class="qmsg" id="qmsg"></span></div></form>';
+    const f=document.getElementById('qform');
+    f.addEventListener('submit',ev=>{
+      ev.preventDefault();
+      const r=d.q.map((q,i)=>{const x=f.querySelector('input[name=q'+i+']:checked');return x?+x.value:null;});
+      const faltan=r.map((v,i)=>v===null?i+1:0).filter(Boolean);
+      if(faltan.length){document.getElementById('qmsg').textContent='Te falta contestar: '+faltan.join(', ')+'.';return;}
+      let ok=0; const fallos=[];
+      d.q.forEach((q,i)=>{
+        const fs=f.querySelector('.qq[data-i="'+i+'"]'), labels=fs.querySelectorAll('.qopt');
+        labels[q.c].classList.add('right');
+        if(r[i]===q.c) ok++; else { labels[r[i]].classList.add('wrong'); fallos.push(i+1); }
+        fs.querySelectorAll('input').forEach(x=>x.disabled=true);
+        fs.insertAdjacentHTML('beforeend','<p class="qexp">'+(r[i]===q.c?'✔ ':'✘ ')+esc(q.e)+'</p>');
+      });
+      const bar=f.querySelector('.qbar');
+      const nota=ok===5?'¡Excelente!':ok>=3?'Vas bien; repasa las que fallaste.':'Repasa el tema, usa su simulador e inténtalo otra vez.';
+      bar.innerHTML='<span class="qscore">'+ok+' / 5</span><span class="qmsg">'+nota+'</span><button class="btn ghost" type="button" id="qagain" style="color:var(--c);border-color:var(--c);background:transparent">Intentar de nuevo</button>';
+      document.getElementById('qagain').addEventListener('click',()=>abrir(id,true));
+      enviar(d.n+' '+d.t+' · '+ok+'/5'+(fallos.length?' · falló: '+fallos.join(', '):''));
+    });
+    if(scroll) document.getElementById('autoevaluacion').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  // AVANCE: estado de cada tema según avance.json ("abierto", "oculto" o fecha AAAA-MM-DD)
+  const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const estado={};
+  function hoyStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  const DOCENTE=new URLSearchParams(location.search).get('docente')==='rrm252';
+  function aplicar(av){
+    if(DOCENTE){ const n=document.createElement('p'); n.className='note'; n.textContent='Modo docente: todas las autoevaluaciones están abiertas solo en esta dirección. Los alumnos las ven según el calendario.'; box.parentNode.insertBefore(n,box); }
+    chips.forEach(c=>{
+      const id=c.dataset.q, v=DOCENTE?'abierto':av[id];
+      let st='cerrado', txt='Próximamente';
+      if(v==='abierto'||(typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&v<=hoyStr())) st='abierto';
+      else if(v==='oculto') st='oculto';
+      else if(typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)){const p=v.split('-');txt='Se abre el '+(+p[2])+' de '+MESES[+p[1]-1];}
+      estado[id]=st;
+      c.hidden=st==='oculto';
+      c.disabled=st!=='abierto';
+      c.classList.toggle('locked',st==='cerrado');
+      if(st==='cerrado'){ c.title=txt; if(!c.querySelector('.lk')) c.insertAdjacentHTML('beforeend',' <span class="lk">🔒 '+txt+'</span>'); }
+      document.querySelectorAll('a[href="#auto-'+id+'"]').forEach(a=>{ const p=a.closest('.qlink')||a; p.hidden=st!=='abierto'; });
+    });
+    if(!chips.some(c=>estado[c.dataset.q]==='abierto')) box.innerHTML='<p class="ev-empty">Las autoevaluaciones se abrirán conforme avancemos en clase.</p>';
+    porHash();
+  }
+  chips.forEach(c=>c.addEventListener('click',()=>{ if(estado[c.dataset.q]==='abierto') abrir(c.dataset.q,false); }));
+  function porHash(){ const m=location.hash.match(/^#auto-(\w+)$/); if(m&&estado[m[1]]==='abierto'){ const all=document.getElementById('f-all'); if(all) all.click(); abrir(m[1],true); } }
+  window.addEventListener('hashchange',porHash);
+  chips.forEach(c=>{c.disabled=true;});
+  fetch('avance.json',{cache:'no-store'}).then(r=>r.ok?r.json():{}).catch(()=>({})).then(aplicar);
+})();
+</script>
+
+<script>
+// TEMAS-ESTADO: marca cada propósito como visto o próximo según avance.json
+(function(){
+  const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const d=new Date(), hoy=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  function badge(v){
+    if(v==='visto') return ['visto','✓ Tema visto'];
+    if(typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)){
+      if(v<=hoy) return ['visto','✓ Tema visto'];
+      const p=v.split('-'); return ['prox','Próximo tema · '+(+p[2])+' de '+MESES[+p[1]-1]];
+    }
+    if(v==='proximo') return ['prox','Próximo tema'];
+    return null;
+  }
+  fetch('avance.json',{cache:'no-store'}).then(r=>r.ok?r.json():{}).catch(()=>({})).then(av=>{
+    const t=av.temas||{};
+    Object.keys(t).forEach(k=>{
+      const b=badge(t[k]); if(!b) return;
+      const n=k.replace(/\D/g,'');
+      const html='<span class="tema-badge '+b[0]+'">'+b[1]+'</span>';
+      document.querySelectorAll('article[data-pf="'+n+'"][data-k="video"] .meta').forEach(m=>m.insertAdjacentHTML('beforeend',html));
+      document.querySelectorAll('.pfs li[data-pf="'+n+'"] b').forEach(x=>x.insertAdjacentHTML('afterend',html));
+      document.querySelectorAll('section.pf[data-pf="'+n+'"] .pf-h').forEach(x=>x.insertAdjacentHTML('beforeend',html));
+    });
+  });
+})();
+</script>
+
+<script>
+(function(){
+  const CAL=[{"a": "2026-08-31", "b": null, "t": "hito", "x": "Inicio del ciclo escolar 2026-2027"}, {"a": "2027-01-22", "b": null, "t": "hito", "x": "Fin del primer semestre"}, {"a": "2027-02-08", "b": null, "t": "hito", "x": "Inicio del segundo semestre"}, {"a": "2027-07-09", "b": null, "t": "hito", "x": "Fin del segundo semestre y del ciclo escolar"}, {"a": "2026-12-21", "b": "2027-01-08", "t": "vac", "x": "Vacaciones de invierno"}, {"a": "2027-03-22", "b": "2027-04-02", "t": "vac", "x": "Vacaciones de Semana Santa"}, {"a": "2027-07-12", "b": null, "t": "vac", "x": "Inicio del receso de verano"}, {"a": "2026-09-16", "b": null, "t": "susp", "x": "Día de la Independencia · suspensión de labores"}, {"a": "2026-11-02", "b": null, "t": "susp", "x": "Día de Muertos · suspensión de labores"}, {"a": "2026-11-16", "b": null, "t": "susp", "x": "Aniversario de la Revolución Mexicana · suspensión de labores"}, {"a": "2026-12-25", "b": null, "t": "susp", "x": "Navidad · suspensión de labores"}, {"a": "2027-01-01", "b": null, "t": "susp", "x": "Año Nuevo · suspensión de labores"}, {"a": "2027-02-01", "b": null, "t": "susp", "x": "Día de la Constitución · suspensión de labores"}, {"a": "2027-03-15", "b": null, "t": "susp", "x": "Natalicio de Benito Juárez · suspensión de labores"}, {"a": "2027-05-05", "b": null, "t": "susp", "x": "Batalla de Puebla · suspensión de labores"}, {"a": "2027-06-11", "b": null, "t": "susp", "x": "Suspensión programada · suspensión de labores"}, {"a": "2026-10-02", "b": null, "t": "jor", "x": "Jornada de Acompañamiento y Formación docente"}, {"a": "2027-01-22", "b": null, "t": "jor", "x": "Jornada de Acompañamiento y Formación docente"}, {"a": "2027-06-11", "b": null, "t": "jor", "x": "Jornada de Acompañamiento y Formación docente"}, {"a": "2027-01-25", "b": null, "t": "jor", "x": "Jornada de Formación Continua docente"}];
+  const MES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const DS=['L','M','M','J','V','S','D'];
+  const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const parse=s=>{const p=s.split('-').map(Number);return new Date(p[0],p[1]-1,p[2]);};
+  const fmt=s=>{const d=parse(s);return d.getDate()+' '+MES[d.getMonth()].slice(0,3);};
+  const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const hoy=iso(new Date());
+  let ev=CAL.slice();
+  const dia={};  // iso -> {cls, dots:Set, txt:[]}
+  function marcar(){
+    for(const k in dia) delete dia[k];
+    ev.forEach(e=>{
+      const a=parse(e.a), b=e.b?parse(e.b):a;
+      for(let d=new Date(a);d<=b;d.setDate(d.getDate()+1)){
+        const k=iso(d), o=dia[k]||(dia[k]={cls:'',dots:new Set(),txt:[]});
+        if(['vac','susp','jor','hito'].includes(e.t)){ if(!o.cls||e.t==='susp'||e.t==='vac') o.cls=e.t; }
+        else o.dots.add(e.t);
+        o.txt.push(e.x);
+      }
+    });
+  }
+  let ver=new Date(); ver.setDate(1); if(ver<new Date(2027,1,1)) ver=new Date(2027,1,1);
+  const ini=new Date(2026,7,1), fin=new Date(2027,6,1);
+  if(ver<ini) ver=new Date(ini); if(ver>fin) ver=new Date(fin);
+  function pintar(){
+    document.getElementById('cal-title').textContent=MES[ver.getMonth()]+' '+ver.getFullYear();
+    const y=ver.getFullYear(), m=ver.getMonth(), first=(new Date(y,m,1).getDay()+6)%7, n=new Date(y,m+1,0).getDate();
+    let h='<thead><tr>'+DS.map(x=>'<th scope="col">'+x+'</th>').join('')+'</tr></thead><tbody><tr>';
+    for(let i=0;i<first;i++) h+='<td class="out"></td>';
+    for(let d=1;d<=n;d++){
+      const k=iso(new Date(y,m,d)), o=dia[k];
+      const cls=[(o&&o.cls)||'', k===hoy?'hoy':''].join(' ').trim();
+      const dots=o&&o.dots.size?'<span class="dots">'+[...o.dots].map(t=>'<i class="'+t+'"></i>').join('')+'</span>':'';
+      h+='<td'+(cls?' class="'+cls+'"':'')+(o?' title="'+esc(o.txt.join(' · '))+'"':'')+'>'+d+dots+'</td>';
+      if((first+d)%7===0&&d<n) h+='</tr><tr>';
+    }
+    const rest=(7-(first+n)%7)%7; for(let i=0;i<rest;i++) h+='<td class="out"></td>';
+    document.getElementById('cal-grid').innerHTML=h+'</tr></tbody>';
+    const mm=iso(new Date(y,m,1)).slice(0,7);
+    const lista=ev.filter(e=>e.a.slice(0,7)===mm||(e.b&&e.a.slice(0,7)<mm&&e.b.slice(0,7)>=mm)).sort((p,q)=>p.a<q.a?-1:1);
+    document.getElementById('cal-list').innerHTML=lista.length?lista.map(e=>'<li><span>'+fmt(e.a)+(e.b?' – '+fmt(e.b):'')+'</span><span style="color:inherit"><i class="k '+e.t+'"></i>'+esc(e.x)+'</span></li>').join(''):'<li><span></span><span>Sin fechas especiales este mes.</span></li>';
+    document.getElementById('cal-prev').disabled=ver<=ini; document.getElementById('cal-sig').disabled=ver>=fin;
+  }
+  function proximos(){
+    const sinc=ev.filter(e=>(e.t==='susp'||e.t==='vac')&&(e.b||e.a)>=hoy).sort((p,q)=>p.a<q.a?-1:1)[0];
+    const fe=ev.filter(e=>e.t==='hito'&&e.a>=hoy).sort((p,q)=>p.a<q.a?-1:1)[0];
+    let h='';
+    if(sinc) h+='<div><small>Próximo día sin clases</small><b>'+fmt(sinc.a)+(sinc.b?' – '+fmt(sinc.b):'')+'</b>'+esc(sinc.x.replace(' · suspensión de labores',''))+'</div>';
+    if(fe) h+='<div><small>Próxima fecha del ciclo</small><b>'+fmt(fe.a)+'</b>'+esc(fe.x)+'</div>';
+    document.getElementById('cal-next').innerHTML=h;
+  }
+  document.getElementById('cal-prev').addEventListener('click',()=>{ver.setMonth(ver.getMonth()-1);pintar();});
+  document.getElementById('cal-sig').addEventListener('click',()=>{ver.setMonth(ver.getMonth()+1);pintar();});
+  marcar(); pintar(); proximos();
+  // Se suman evaluaciones y temas de esta materia
+  Promise.all([
+    fetch('evaluaciones.json',{cache:'no-store'}).then(r=>r.ok?r.json():[]).catch(()=>[]),
+    fetch('avance.json',{cache:'no-store'}).then(r=>r.ok?r.json():{}).catch(()=>({}))
+  ]).then(([evs,av])=>{
+    (evs||[]).forEach(e=>{ if(e&&e.fecha) ev.push({a:e.fecha,b:e.fin||null,t:'eval',x:e.titulo}); });
+    const nombres={pf1:'PF1 Lenguaje algebraico',pf2:'PF2 Expresiones algebraicas',pf3:'PF3 Monomios y binomios',pf4:'PF4 Trinomios y polinomios',pf5:'PF5 Álgebra en la vida diaria',pf6:'PF6 Igualdad y ecuación'};
+    const t=(av&&av.temas)||{};
+    Object.keys(t).forEach(k=>{ if(/^\d{4}-\d{2}-\d{2}$/.test(t[k]||'')) ev.push({a:t[k],b:null,t:'tema',x:'Inicia en clase: '+(nombres[k]||k)}); });
+    marcar(); pintar();
+  });
+})();
+</script>
+
+<script>
+(function(){
+  const MAP={"video": "videos", "autoeval": "autoeval", "insignias": "insignias", "simuladores": "simuladores", "practica": "practica", "evaluacion": "fechas", "calendario": "fechas", "programa": "programa", "cuadernillo": "materiales", "presentacion": "materiales", "aviso": "materiales"}, INTRO={"videos": "Un tema por propósito formativo, en orden, con ejemplos y un reto rápido. Las etiquetas indican si el tema ya se vio o cuándo se verá en clase.", "insignias": "Tu avance en medallas: bronce, plata y oro por cada propósito formativo.", "simuladores": "Herramientas interactivas para ver cómo funciona cada tema: cambia los valores y observa.", "practica": "Ejercicios nuevos cada vez, con revisión al momento. Practica cualquier tema las veces que quieras.", "autoeval": "Contesta 5 preguntas del tema que acabamos de ver. Se abren conforme avanzamos en clase.", "fechas": "Días sin clases, fechas de evaluación y registro para recibir recordatorios por correo.", "programa": "Propósitos y contenidos formativos del programa de Pensamiento Matemático II.", "materiales": "Cuadernillos y presentaciones para descargar."};
+  const tabs=[...document.querySelectorAll('.tab')], feed=document.querySelector('.feed');
+  const arts=[...feed.querySelectorAll(':scope > article')];
+  arts.forEach(a=>{ a.dataset.tab=MAP[a.dataset.k]||tabs[0].dataset.tab; });
+  // en "Fechas y avisos": calendario, evaluaciones y registro, en ese orden
+  ['calendario','evaluaciones','avisos'].forEach(id=>{ const a=document.getElementById(id); if(a) feed.appendChild(a); });
+  const p=document.createElement('p'); p.className='tab-intro'; p.id='tab-intro'; feed.parentNode.insertBefore(p,feed);
+  function show(t,scrollTo){
+    tabs.forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t?'true':'false'));
+    arts.forEach(a=>{ a.hidden=a.dataset.tab!==t; });
+    p.textContent=INTRO[t]||'';
+    try{ localStorage.setItem('tab_'+location.pathname,t); }catch(e){}
+    if(scrollTo){ const el=document.getElementById(scrollTo); if(el) setTimeout(()=>el.scrollIntoView({block:'start'}),30); }
+  }
+  function route(){
+    const h=decodeURIComponent(location.hash.slice(1));
+    if(!h){ let t=null; try{ t=localStorage.getItem('tab_'+location.pathname); }catch(e){} return show(tabs.some(b=>b.dataset.tab===t)?t:tabs[0].dataset.tab); }
+    if(tabs.some(b=>b.dataset.tab===h)) return show(h);
+    if(/^auto-/.test(h)) return show('autoeval');
+    const el=document.getElementById(h);
+    const art=el&&el.closest('.feed > article');
+    if(art) return show(art.dataset.tab,h);
+  }
+  tabs.forEach(b=>b.addEventListener('click',()=>{ history.replaceState(null,'','#'+b.dataset.tab); show(b.dataset.tab); window.scrollTo({top:document.getElementById('tabs').offsetTop-4}); }));
+  window.addEventListener('hashchange',route);
+  route();
+})();
+</script>
+<script>
+// ALG: lee expresiones algebraicas escritas por el alumno, las compara y las muestra bonitas
+window.ALG=(function(){
+  const SUPM={'⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','⁻':'-'};
+  const SUP={'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻'};
+  const sup=n=>String(n).split('').map(c=>SUP[c]||c).join('');
+  function norm(s){
+    s=String(s).replace(/[−–]/g,'-').replace(/[×·*]/g,'*').replace(/÷|:/g,'/').replace(/,/g,'.').replace(/\s+/g,'').replace(/[\[{]/g,'(').replace(/[\]}]/g,')').toLowerCase();
+    s=s.replace(/[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+/g,m=>{const d=[...m].map(c=>SUPM[c]).join('');return '^'+(d.length>1?'('+d+')':d);});
+    return s;
+  }
+  function tokens(s){
+    const t=[];let i=0;
+    while(i<s.length){const c=s[i];
+      if(/[\d.]/.test(c)){let j=i;while(j<s.length&&/[\d.]/.test(s[j]))j++;const v=+s.slice(i,j);if(!isFinite(v))return null;t.push({n:v});i=j;continue;}
+      if(/[a-z]/.test(c)){t.push({v:c});i++;continue;}
+      if('+-*/^()'.includes(c)){t.push({o:c});i++;continue;}
+      return null;
+    }
+    return t;
+  }
+  function parse(src){
+    const t=tokens(norm(src)); if(!t||!t.length) return null;
+    let i=0;const peek=()=>t[i];
+    const isO=(x,c)=>x&&x.o===c;
+    function expr(){let a=term();while(isO(peek(),'+')||isO(peek(),'-')){const o=t[i++].o;a={t:o,a,b:term()};}return a;}
+    function term(){let a=unary();
+      for(;;){const p=peek();
+        if(isO(p,'*')||isO(p,'/')){i++;a={t:p.o,a,b:unary()};continue;}
+        if(p&&(p.v||p.n!==undefined||isO(p,'('))){a={t:'*',a,b:power(),imp:1};continue;}
+        return a;}}
+    function unary(){const p=peek();if(isO(p,'-')){i++;return {t:'neg',a:unary()};}if(isO(p,'+')){i++;return unary();}return power();}
+    function power(){const a=atom();if(isO(peek(),'^')){i++;return {t:'^',a,b:unary()};}return a;}
+    function atom(){const p=peek();if(!p)throw 0;
+      if(p.n!==undefined){i++;return {t:'n',v:p.n};}
+      if(p.v){i++;return {t:'v',n:p.v};}
+      if(isO(p,'(')){i++;const a=expr();if(!isO(peek(),')'))throw 0;i++;return {t:'p',a};}
+      throw 0;}
+    try{const r=expr();if(i<t.length)return null;return r;}catch(e){return null;}
+  }
+  function ev(n,e){switch(n.t){
+    case 'n':return n.v; case 'v':return e[n.n]; case 'p':return ev(n.a,e); case 'neg':return -ev(n.a,e);
+    case '+':return ev(n.a,e)+ev(n.b,e); case '-':return ev(n.a,e)-ev(n.b,e);
+    case '*':return ev(n.a,e)*ev(n.b,e); case '/':return ev(n.a,e)/ev(n.b,e); case '^':return Math.pow(ev(n.a,e),ev(n.b,e));}}
+  function vars(n,s){s=s||new Set();if(n.t==='v')s.add(n.n);['a','b'].forEach(k=>{if(n[k])vars(n[k],s);});return s;}
+  const PTS=[1.37,-0.61,2.13,-1.83,0.77,1.91,-2.29,0.43];
+  function equiv(a,b){
+    const vs=[...new Set([...vars(a),...vars(b)])];let ok=0;
+    for(let k=0;k<6;k++){const e={};vs.forEach((v,j)=>e[v]=PTS[(k+j*3)%PTS.length]+j*0.17);
+      const x=ev(a,e),y=ev(b,e);if(!isFinite(x)&&!isFinite(y))continue;if(!isFinite(x)||!isFinite(y))return false;
+      if(Math.abs(x-y)>1e-7*Math.max(1,Math.abs(x),Math.abs(y)))return false;ok++;}
+    return ok>0;
+  }
+  const strip=n=>n.t==='p'?strip(n.a):n;
+  function terms(n){n=strip(n);return (n.t==='+'||n.t==='-')?terms(n.a)+terms(n.b):1;}
+  function isProduct(n){n=strip(n);if(n.t==='neg')return isProduct(n.a);return n.t==='*'||n.t==='^';}
+  // ---- polinomios: Map clave -> {m:{x:2}, c} ----
+  const key=m=>Object.keys(m).sort().map(v=>v+m[v]).join('');
+  const P={
+    c:v=>new Map(v?[['',{m:{},c:v}]]:[]),
+    add(a,b){const r=new Map();[a,b].forEach(p=>p.forEach((t,k)=>{const o=r.get(k);const c=(o?o.c:0)+t.c;if(Math.abs(c)<1e-12)r.delete(k);else r.set(k,{m:t.m,c});}));return r;},
+    scale(a,s){const r=new Map();a.forEach((t,k)=>{if(t.c*s)r.set(k,{m:t.m,c:t.c*s});});return r;},
+    mul(a,b){let r=new Map();a.forEach(x=>b.forEach(y=>{const m=Object.assign({},x.m);Object.keys(y.m).forEach(v=>m[v]=(m[v]||0)+y.m[v]);r=P.add(r,new Map([[key(m),{m,c:x.c*y.c}]]));}));return r;}
+  };
+  function poly(n){
+    switch(n.t){
+      case 'n':return P.c(n.v); case 'v':return new Map([[n.n+'1',{m:{[n.n]:1},c:1}]]); case 'p':return poly(n.a);
+      case 'neg':{const a=poly(n.a);return a&&P.scale(a,-1);}
+      case '+':case '-':{const a=poly(n.a),b=poly(n.b);return a&&b&&P.add(a,n.t==='+'?b:P.scale(b,-1));}
+      case '*':{const a=poly(n.a),b=poly(n.b);return a&&b&&P.mul(a,b);}
+      case '/':{const a=poly(n.a),b=poly(n.b);if(!a||!b)return null;if(b.size!==1||!b.has(''))return null;return P.scale(a,1/b.get('').c);}
+      case '^':{const a=poly(n.a),b=poly(n.b);if(!a||!b)return null;if(b.size>1||(b.size===1&&!b.has('')))return null;const e=b.size?b.get('').c:0;
+        if(!Number.isInteger(e)||e<0||e>12)return null;let r=P.c(1);for(let k=0;k<e;k++)r=P.mul(r,a);return r;}
+    }
+    return null;
+  }
+  const gcd=(a,b)=>{a=Math.abs(a);b=Math.abs(b);while(b){[a,b]=[b,a%b];}return a;};
+  function factores(n,out){n=strip(n);out=out||[];if(n.t==='neg')return factores(n.a,out);if(n.t==='*'){factores(n.a,out);factores(n.b,out);}else if(n.t==='^')factores(n.a,out);else out.push(n);return out;}
+  function factorPendiente(n){
+    for(const f of factores(n)){ if(f.t!=='+'&&f.t!=='-') continue; const p=poly(f); if(!p||p.size<2) continue;
+      const cs=[...p.values()].map(t=>t.c);
+      if(cs.every(Number.isInteger)&&cs.reduce((g,c)=>gcd(g,c),0)>1) return 'Es equivalente, pero todavía puedes sacar un factor común.';
+      const vs=new Set();p.forEach(t=>Object.keys(t.m).forEach(v=>vs.add(v)));
+      for(const v of vs) if([...p.values()].every(t=>(t.m[v]||0)>0)) return 'Es equivalente, pero todavía puedes sacar '+v+' como factor común.';
+    }
+    return null;
+  }
+  const grado=m=>Object.values(m).reduce((s,e)=>s+e,0);
+  function fmtNum(c){const r=Math.round(c*1e9)/1e9;if(Number.isInteger(r))return String(r);
+    for(let d=2;d<=12;d++){const n=r*d;if(Math.abs(n-Math.round(n))<1e-9)return Math.round(n)+'/'+d;}return String(r);}
+  const lit=m=>Object.keys(m).sort().map(v=>v+(m[v]>1?sup(m[v]):'')).join('');
+  function monoTxt(t,first){const c=t.c,l=lit(t.m),a=Math.abs(c);let s=(a===1&&l?'':fmtNum(a))+l;
+    if(first)return (c<0?'−':'')+s;return (c<0?' − ':' + ')+s;}
+  function polyTxt(p){if(!p.size)return '0';const ts=[...p.values()].sort((x,y)=>grado(y.m)-grado(x.m)||lit(x.m).localeCompare(lit(y.m)));return ts.map((t,i)=>monoTxt(t,i===0)).join('');}
+  // texto ASCII (3x^2-5x) -> bonito (3x² − 5x)
+  function pretty(s){
+    return String(s).replace(/\^\((-?\d+)\)/g,(m,d)=>sup(d)).replace(/\^(\d+)/g,(m,d)=>sup(d)).replace(/\*/g,'·')
+      .replace(/([^\s(^/])([+-])/g,'$1 $2 ').replace(/-/g,'−');
+  }
+  return {parse,ev,vars,equiv,terms,isProduct,poly,factorPendiente,grado,lit,polyTxt,fmtNum,pretty,sup,norm};
+})();
+</script>
+<script>
+(function(){
+  const URL='https://script.google.com/macros/s/AKfycbwHqdoeheOWDYq9cho9NqCHgZV3_IqR1XM55QhPgdY1jZ782HI7Cm27zMWuopqCCfnC5w/exec', ASIG='PM2', KEY='alumno_pm252';
+  const A=window.ALG;
+  // ---------- utilidades ----------
+  const R=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+  const RNZ=(a,b)=>{let v;do{v=R(a,b);}while(!v);return v;};
+  const pick=a=>a[Math.floor(Math.random()*a.length)];
+  const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+  const gcd=(a,b)=>{a=Math.abs(a);b=Math.abs(b);while(b){[a,b]=[b,a%b];}return a||1;};
+  const M=n=>String(n).replace(/-/g,'−');
+  const P=n=>n<0?'('+M(n)+')':String(n);
+  const fmt=x=>{const s=(Math.round(x*1e9)/1e9).toString();return s;};
+  const miles=n=>{const [e,d]=String(n).split('.');return e.replace(/\B(?=(\d{3})+(?!\d))/g,' ')+(d?'.'+d:'');};
+  const pr=A.pretty;
+  const vp=(v,e)=>e===0?'':e===1?v:v+'^'+e;
+  const term=(c,v)=>{if(!v)return String(c);if(c===1)return v;if(c===-1)return '-'+v;return c+v;};
+  const polyS=ts=>{let s='';ts.filter(t=>t[0]!==0).forEach((t,i)=>{const x=term(t[0],t[1]);s+=i===0?x:(x[0]==='-'?x:'+'+x);});return s||'0';};
+  function parseNum(s){
+    s=String(s).trim().replace(/−|–/g,'-').replace(/\s+/g,'').replace(/,/g,'').replace(/^\$/,'');
+    if(!s) return null;
+    const m=s.match(/^(-?\d+)\/(-?\d+)$/); if(m){const d=+m[2];if(!d)return null;return +m[1]/d;}
+    if(/^-?\d*\.?\d+$/.test(s)) return +s;
+    return null;
+  }
+  // ---------- tipos de respuesta ----------
+  const num=(v,exp)=>({tipo:'num',a:miles(fmt(v)),exp,check:r=>{const x=parseNum(r);if(x===null)return {invalid:'Escribe un número (por ejemplo 12, −5, 3/4 o 0.25).'};return {ok:Math.abs(x-v)<1e-6};}});
+  const opc=(ans,ops,exp)=>({tipo:'op',ops:shuffle(ops),a:ans,exp,check:r=>({ok:r===ans})});
+  // forma: 'libre' (cualquier forma equivalente), 'reducida' (sin términos semejantes ni paréntesis), 'factor' (factorizada)
+  const ex=(ans,exp,forma)=>({tipo:'expr',a:pr(ans),exp,check:r=>{
+    const s=A.parse(r); if(!s) return {invalid:'No entiendo tu respuesta. Escríbela como 3x^2 − 5x + 2 (usa ^ o los botones ² y ³).'};
+    const e=A.parse(ans);
+    if(!A.equiv(s,e)) return {ok:false};
+    if(forma==='factor'){ if(!A.isProduct(s)||!/\(/.test(r)) return {ok:false,casi:'Es equivalente, pero falta factorizar.'}; const m=A.factorPendiente(s); if(m) return {ok:false,casi:m}; }
+    if(forma==='reducida'){ if(/\(/.test(A.norm(r).replace(/\^\(-?\d+\)/g,''))&&!/\(/.test(ans)) return {ok:false,casi:'Es equivalente, pero falta desarrollar (quitar los paréntesis).'};
+      if(A.terms(s)>A.terms(e)) return {ok:false,casi:'Es equivalente, pero falta reducir términos semejantes.'}; }
+    return {ok:true};}});
+
+  // ---------- generadores ----------
+  const G={
+    pf1:[{t:'Traducir',f(){
+      const n=R(2,9),m=R(2,9);
+      const T=[['El doble de un número','2x'],['El triple de un número','3x'],['Un número aumentado en '+n,'x+'+n],['Un número disminuido en '+n,'x-'+n],
+        ['La mitad de un número','x/2'],['La tercera parte de un número','x/3'],['El cuadrado de un número','x^2'],['El cubo de un número','x^3'],
+        ['El doble de un número, más '+n,'2x+'+n],['El triple de un número, menos '+n,'3x-'+n],['La suma de un número y su consecutivo','x+(x+1)'],
+        ['El producto de '+n+' por un número',n+'x'],['El cociente de un número entre '+n,'x/'+n],['La diferencia entre un número y '+n,'x-'+n],
+        ['El doble de la suma de un número y '+n,'2(x+'+n+')'],['El cuadrado de la suma de un número y '+n,'(x+'+n+')^2'],
+        ['La razón entre un número y '+n,'x/'+n],[n+' veces un número, más '+m,n+'x+'+m],['La suma de los cuadrados de dos números (usa x y y)','x^2+y^2'],
+        ['El producto de dos números (usa x y y)','xy']];
+      const [f,a]=pick(T);
+      return Object.assign(ex(a,'Se escribe <b>'+pr(a)+'</b>. Cualquier forma equivalente es correcta.','libre'),{q:'Escribe en lenguaje algebraico (usa <b>x</b> para el número):<br><span class="big">'+f+'</span>'});}},
+     {t:'Vocabulario',f(){
+      if(Math.random()<.35){const b=R(3,9),c=R(2,12),r=R(1,b-1),a=b*c+r;
+        const pide=pick(['residuo','cociente']);
+        return Object.assign(num(pide==='residuo'?r:c,a+' = '+b+' × '+c+' + '+r+'. El cociente es '+c+' y el residuo (lo que sobra) es '+r+'.'),{q:'Al dividir <b>'+a+' ÷ '+b+'</b>, ¿cuál es el <b>'+pide+'</b>?'});}
+      const T=[['el resultado de una multiplicación','Producto'],['el resultado de una resta','Diferencia'],['el resultado de una división','Cociente'],
+        ['lo que sobra en una división que no es exacta','Residuo'],['la comparación de dos cantidades por medio de una división, como “3 de cada 4”','Razón'],
+        ['el resultado de una suma','Suma'],['la letra que representa un valor desconocido que queremos encontrar','Incógnita']];
+      const [d,a]=pick(T);const otros=shuffle(T.map(x=>x[1]).filter(x=>x!==a)).slice(0,3);
+      return Object.assign(opc(a,[a].concat(otros),'Se llama <b>'+a.toLowerCase()+'</b> '+d+'.'),{q:'¿Cómo se llama '+d+'?'});}},
+     {t:'Valor numérico',f(){
+      const x=RNZ(-5,5),y=RNZ(-4,4),a=R(2,7),b=RNZ(-9,9);
+      const T=[[a+'x+'+b],[a+'x^2'+(b<0?b:'+'+b)],[a+'(x'+(b<0?b:'+'+b)+')'],['x^2-'+a+'x'],[a+'x+'+R(2,5)+'y'],['x^2+y^2'],['2x^2-'+a+'x+'+R(1,9)]];
+      const e=pick(T)[0].replace('+-','-'), v=A.ev(A.parse(e),{x,y}), usaY=/y/.test(e);
+      const sus=pr(e).replace(/x/g,'('+M(x)+')').replace(/y/g,'('+M(y)+')').replace(/(\d)\(/g,'$1·(');
+      return Object.assign(num(v,'Sustituye: '+sus+' = <b>'+M(v)+'</b>. Recuerda: primero potencias, luego multiplicaciones y al final sumas y restas.'),
+        {q:'Si <b>x = '+M(x)+'</b>'+(usaY?' y <b>y = '+M(y)+'</b>':'')+', ¿cuánto vale <span class="big">'+pr(e)+'</span>?'});}}],
+    pf2:[{t:'Clasificar',f(){
+      const k=R(1,5),vs=shuffle(['x^4','x^3','x^2','x','']).slice(0,k);
+      const ts=vs.sort((p,q)=>q.length-p.length||q.localeCompare(p)).map(v=>[RNZ(-9,9),v]);
+      const nom=['Monomio','Binomio','Trinomio','Polinomio','Polinomio'][k-1];
+      return Object.assign(opc(nom,['Monomio','Binomio','Trinomio','Polinomio'],'Tiene <b>'+k+' término'+(k>1?'s':'')+'</b>: es un <b>'+nom.toLowerCase()+'</b>. Con 4 términos o más se le llama polinomio.'),
+        {q:'¿Cómo se clasifica? <span class="big">'+pr(polyS(ts))+'</span>'});}},
+     {t:'Grado',f(){
+      if(Math.random()<.5){const a=R(1,6),b=R(0,4),c=RNZ(-9,9);const s=term(c,vp('x',a)+vp('y',b));
+        return Object.assign(num(a+b,'El grado de un monomio es la suma de los exponentes de sus letras: '+a+(b?' + '+b:'')+' = '+(a+b)+'.'),{q:'¿Cuál es el grado del monomio <span class="big">'+pr(s)+'</span>?'});}
+      const es=shuffle([5,4,3,2,1,0]).slice(0,R(2,4)).sort((p,q)=>q-p);const ts=shuffle(es.map(e=>[RNZ(-9,9),vp('x',e)]));
+      return Object.assign(num(es[0],'El grado de un polinomio es el del término con el exponente más grande: '+es[0]+'.'),{q:'¿Cuál es el grado del polinomio <span class="big">'+pr(polyS(ts))+'</span>?'});}},
+     {t:'Partes de un monomio',f(){
+      const c=pick([RNZ(-12,12),1,-1]),e=R(2,7),s=term(c,vp('x',e));
+      if(Math.random()<.6) return Object.assign(num(c,c===1?'Cuando no se ve el número, el coeficiente es 1.':c===-1?'Si solo aparece el signo menos, el coeficiente es −1.':'El coeficiente es el número que multiplica a la letra, con todo y su signo: '+M(c)+'.'),{q:'En <span class="big">'+pr(s)+'</span>, ¿cuál es el <b>coeficiente</b>?'});
+      return Object.assign(num(e,'El exponente es el número pequeño de arriba: indica cuántas veces se multiplica la letra. Aquí es '+e+'.'),{q:'En <span class="big">'+pr(s)+'</span>, ¿cuál es el <b>exponente</b>?'});}},
+     {t:'Representar situaciones',f(){
+      const n=R(2,9),m=R(5,30);
+      const T=[['Un rectángulo mide <b>x</b> de base y <b>x + '+n+'</b> de altura. Escribe su <b>perímetro</b>.','2x+2(x+'+n+')','4x+'+(2*n)],
+        ['Un rectángulo mide <b>x</b> de base y <b>'+n+'</b> de altura. Escribe su <b>área</b>.',n+'x',n+'x'],
+        ['Un cuadrado mide <b>x</b> de lado. Escribe su <b>área</b>.','x^2','x^2'],
+        ['Un cuadrado mide <b>x + '+n+'</b> de lado. Escribe su <b>perímetro</b>.','4(x+'+n+')','4x+'+(4*n)],
+        ['Compras <b>'+n+'</b> cuadernos de <b>x</b> pesos y una pluma de <b>'+m+'</b> pesos. Escribe el <b>total</b>.',n+'x+'+m,n+'x+'+m],
+        ['Tenías <b>x</b> pesos y gastaste <b>'+m+'</b>. ¿Cuánto te queda?','x-'+m,'x-'+m],
+        ['Un garrafón tiene <b>x</b> litros. ¿Cuántos litros hay en <b>'+n+'</b> garrafones?',n+'x',n+'x'],
+        ['Tu edad es <b>x</b>. Escribe la edad que tendrás dentro de <b>'+n+'</b> años.','x+'+n,'x+'+n]];
+      const [q,a,red]=pick(T);
+      return Object.assign(ex(a,'Una forma de escribirlo: <b>'+pr(a)+'</b>'+(red!==a?' = <b>'+pr(red)+'</b>':'')+'.','libre'),{q});}}],
+    pf3:[{t:'Suma y resta de monomios',f(){
+      const v=pick(['x','x^2','x^3','xy','a^2','y^2','ab']);
+      if(Math.random()<.25){const fs=pick([[1,2,1,3],[1,2,1,4],[2,3,1,6],[3,4,1,2],[1,3,1,6],[1,5,1,2]]);const s=Math.random()<.6;
+        const n=fs[0]*fs[3]+(s?1:-1)*fs[2]*fs[1],d=fs[1]*fs[3],g=gcd(n,d);const res=(n/g)+'/'+(d/g);
+        const ans=n===0?'0':(d/g===1?term(n/g,v):res+v);
+        return Object.assign(ex(ans,'Se suman las fracciones y la parte literal se queda igual: '+fs[0]+'/'+fs[1]+(s?' + ':' − ')+fs[2]+'/'+fs[3]+' = '+M(res)+'.','reducida'),
+          {q:'<span class="big">('+fs[0]+'/'+fs[1]+')'+pr(v)+(s?' + ':' − ')+'('+fs[2]+'/'+fs[3]+')'+pr(v)+' =</span>'});}
+      const k=R(2,3),cs=[];for(let i=0;i<k;i++)cs.push(RNZ(-9,9));let tot=cs.reduce((s,c)=>s+c,0);if(!tot){cs[0]+=cs[0]>0?1:-1;tot=cs.reduce((s,c)=>s+c,0);}
+      const q=polyS(cs.map(c=>[c,v]));
+      return Object.assign(ex(term(tot,v),'Son términos semejantes (misma parte literal '+pr(v)+'): se suman los coeficientes, '+cs.map((c,i)=>i?P(c):M(c)).join(' + ')+' = '+M(tot)+'.','reducida'),{q:'<span class="big">'+pr(q)+' =</span>'});}},
+     {t:'Multiplicación de monomios',f(){
+      const a=RNZ(-6,6),b=RNZ(-6,6),m=R(1,4),n=R(1,4),y1=R(0,2),y2=R(0,2);
+      const s1=term(a,vp('x',m)+vp('y',y1)),s2=term(b,vp('x',n)+vp('y',y2)),ans=term(a*b,vp('x',m+n)+vp('y',y1+y2));
+      return Object.assign(ex(ans,'Se multiplican los coeficientes ('+M(a)+' × '+P(b)+' = '+M(a*b)+') y se suman los exponentes de la misma letra (x: '+m+' + '+n+' = '+(m+n)+(y1+y2?'; y: '+y1+' + '+y2+' = '+(y1+y2):'')+').','reducida'),
+        {q:'<span class="big">('+pr(s1)+')('+pr(s2)+') =</span>'});}},
+     {t:'División de monomios',f(){
+      const a=RNZ(-6,6),b=RNZ(-5,5),m=R(1,4),n=R(1,4);
+      const ans=term(b,vp('x',n)),num_=term(a*b,vp('x',m+n)),den=term(a,vp('x',m));
+      return Object.assign(ex(ans,'Se dividen los coeficientes ('+M(a*b)+' ÷ '+P(a)+' = '+M(b)+') y se restan los exponentes (x: '+(m+n)+' − '+m+' = '+n+').','reducida'),
+        {q:'<span class="big">'+pr(num_)+' ÷ '+(a<0?'(':'')+pr(den)+(a<0?')':'')+' =</span>'});}},
+     {t:'Monomio por binomio',f(){
+      const a=RNZ(-6,6),m=R(0,2),b=RNZ(-6,6),c=RNZ(-9,9);if(!m&&Math.abs(a)===1)return G.pf3[3].f();
+      const mono=term(a,vp('x',m)),bin=polyS([[b,'x'],[c,'']]),ans=polyS([[a*b,vp('x',m+1)],[a*c,vp('x',m)]]);
+      return Object.assign(ex(ans,'Se multiplica '+pr(mono)+' por cada término: '+pr(mono)+' · '+pr(term(b,'x'))+' = '+pr(term(a*b,vp('x',m+1)))+' y '+pr(mono)+' · '+P(c)+' = '+pr(term(a*c,vp('x',m)))+'.','reducida'),
+        {q:'<span class="big">'+pr(mono)+'('+pr(bin)+') =</span>'});}},
+     {t:'Factor común',f(){
+      let a,b;do{a=R(1,6);b=RNZ(-9,9);}while(gcd(a,b)!==1);const k=R(1,6),m=R(1,2);if(k===1&&m===0)return G.pf3[4].f();
+      const fuera=term(k,vp('x',m)),dentro=polyS([[a,'x'],[b,'']]),q=polyS([[k*a,vp('x',m+1)],[k*b,vp('x',m)]]);
+      return Object.assign(ex(fuera+'('+dentro+')','El factor común es <b>'+pr(fuera)+'</b> (el mayor número que divide a los coeficientes y la letra con el menor exponente). Divide cada término entre él: '+pr(fuera)+'('+pr(dentro)+').','factor'),
+        {q:'Factoriza sacando el factor común: <span class="big">'+pr(q)+'</span>'});}}],
+    pf4:[{t:'Suma y resta de polinomios',f(){
+      const p=[RNZ(-6,6),RNZ(-9,9),RNZ(-9,9)],q=[RNZ(-6,6),RNZ(-9,9),RNZ(-9,9)],s=Math.random()<.5;
+      const r=p.map((c,i)=>c+(s?1:-1)*q[i]);const V=['x^2','x',''];
+      const ps=polyS(p.map((c,i)=>[c,V[i]])),qs=polyS(q.map((c,i)=>[c,V[i]])),ans=polyS(r.map((c,i)=>[c,V[i]]));
+      return Object.assign(ex(ans,(s?'':'Al restar se cambian los signos del segundo polinomio. ')+'Se juntan los términos semejantes: x²: '+M(r[0])+', x: '+M(r[1])+', números: '+M(r[2])+'.','reducida'),
+        {q:'<span class="big">('+pr(ps)+') '+(s?'+':'−')+' ('+pr(qs)+') =</span>'});}},
+     {t:'Producto de binomios',f(){
+      const a=pick([1,1,2,3]),b=RNZ(-9,9),c=pick([1,1,2]),d=RNZ(-9,9);
+      const ans=polyS([[a*c,'x^2'],[a*d+b*c,'x'],[b*d,'']]);
+      return Object.assign(ex(ans,'Cada término del primero por cada término del segundo: '+pr(term(a*c,'x^2'))+', '+pr(term(a*d,'x'))+', '+pr(term(b*c,'x'))+' y '+M(b*d)+'; luego se juntan los términos en x.','reducida'),
+        {q:'<span class="big">('+pr(polyS([[a,'x'],[b,'']]))+')('+pr(polyS([[c,'x'],[d,'']]))+') =</span>'});}},
+     {t:'Productos notables',f(){
+      const a=R(1,9),b=pick([1,1,2,3]),k=R(0,2);const bx=term(b,'x');
+      if(k===0) return Object.assign(ex(polyS([[b*b,'x^2'],[2*a*b,'x'],[a*a,'']]),'Binomio al cuadrado: el cuadrado del primero ('+pr(term(b*b,'x^2'))+'), más el doble del primero por el segundo ('+pr(term(2*a*b,'x'))+'), más el cuadrado del segundo ('+a*a+').','reducida'),{q:'<span class="big">('+pr(bx)+' + '+a+')² =</span>'});
+      if(k===1) return Object.assign(ex(polyS([[b*b,'x^2'],[-2*a*b,'x'],[a*a,'']]),'Binomio al cuadrado con resta: cuadrado del primero, <b>menos</b> el doble del primero por el segundo, <b>más</b> el cuadrado del segundo.','reducida'),{q:'<span class="big">('+pr(bx)+' − '+a+')² =</span>'});
+      return Object.assign(ex(polyS([[b*b,'x^2'],[-a*a,'']]),'Binomios conjugados: el cuadrado del primero menos el cuadrado del segundo (los términos en x se cancelan).','reducida'),{q:'<span class="big">('+pr(bx)+' + '+a+')('+pr(bx)+' − '+a+') =</span>'});}},
+     {t:'Factorización',f(){
+      const k=R(0,2);
+      if(k===0){const a=RNZ(-9,9);return Object.assign(ex('(x'+(a<0?a:'+'+a)+')^2','Es un trinomio cuadrado perfecto: x² y '+(a*a)+' son cuadrados (de x y de '+Math.abs(a)+') y el término de en medio es el doble de su producto. Queda (x '+(a<0?'−':'+')+' '+Math.abs(a)+')².','factor'),
+        {q:'Factoriza: <span class="big">'+pr(polyS([[1,'x^2'],[2*a,'x'],[a*a,'']]))+'</span>'});}
+      if(k===1){const a=R(1,12);return Object.assign(ex('(x+'+a+')(x-'+a+')','Es una diferencia de cuadrados: x² − '+(a*a)+' = (x + '+a+')(x − '+a+').','factor'),{q:'Factoriza: <span class="big">x² − '+(a*a)+'</span>'});}
+      let p,q;do{p=RNZ(-9,9);q=RNZ(-9,9);}while(p+q===0||p===q);
+      return Object.assign(ex('(x'+(p<0?p:'+'+p)+')(x'+(q<0?q:'+'+q)+')','Busca dos números que multiplicados den '+M(p*q)+' y sumados den '+M(p+q)+': son '+M(p)+' y '+M(q)+'.','factor'),
+        {q:'Factoriza: <span class="big">'+pr(polyS([[1,'x^2'],[p+q,'x'],[p*q,'']]))+'</span>'});}},
+     {t:'División entre monomio',f(){
+      const k=RNZ(-4,4),c=[RNZ(-5,5),RNZ(-6,6),RNZ(-6,6)],m=R(1,2);if(Math.abs(k)===1)return G.pf4[4].f();
+      const q=polyS([[k*c[0],vp('x',m+2)],[k*c[1],vp('x',m+1)],[k*c[2],vp('x',m)]]),d=term(k,vp('x',m)),ans=polyS([[c[0],'x^2'],[c[1],'x'],[c[2],'']]);
+      return Object.assign(ex(ans,'Se divide cada término entre '+pr(d)+': coeficientes entre '+M(k)+' y exponentes de x menos '+m+'.','reducida'),
+        {q:'<span class="big">('+pr(q)+') ÷ '+(k<0?'(':'')+pr(d)+(k<0?')':'')+' =</span>'});}}],
+    pf5:[{t:'Presupuesto',f(){
+      const I=pick([2000,2500,3000,3500,4000,4500,5000,6000]);
+      if(Math.random()<.5){const g1=pick([600,800,900,1000,1200]),g2=pick([200,300,400,500]),g3=pick([100,150,200,250]);const v=I-g1-g2-g3;
+        return Object.assign(num(v,'Ahorro = ingreso − gastos: '+miles(I)+' − '+miles(g1)+' − '+g2+' − '+g3+' = '+miles(v)+'.'),{q:'Al mes recibes <b>$'+miles(I)+'</b>. Gastas <b>$'+miles(g1)+'</b> en comida, <b>$'+g2+'</b> en transporte y <b>$'+g3+'</b> en datos del celular. ¿Cuánto <b>ahorras</b>? <span class="hint">(solo el número)</span>'});}
+      const p=pick([5,10,15,20,25]);const v=I*p/100;
+      if(Math.random()<.5) return Object.assign(num(v,'Ahorro = '+p+'% de '+miles(I)+' = '+miles(I)+' × '+(p/100)+' = '+miles(v)+'.'),{q:'Recibes <b>$'+miles(I)+'</b> al mes y ahorras el <b>'+p+'%</b>. ¿Cuánto ahorras al mes?'});
+      const meta=v*pick([3,4,5,6,8,10]);return Object.assign(num(meta/v,'Ecuación: '+miles(v)+'·m = '+miles(meta)+' → m = '+miles(meta)+' ÷ '+miles(v)+' = '+(meta/v)+' meses.'),{q:'Ahorras <b>$'+miles(v)+'</b> cada mes. ¿En cuántos meses juntas <b>$'+miles(meta)+'</b>?'});}},
+     {t:'Recetas',f(){
+      const n=pick([2,4,5,6]),ing=pick([['g de harina',[100,150,200,250,300,400]],['g de arroz',[150,200,300,400]],['mL de leche',[200,250,300,500]],['g de azúcar',[50,100,150,200]]]);
+      const per=pick(ing[1])/n;let m;do{m=R(2,12);}while(m===n);const q=per*n,v=per*m;
+      if(!Number.isInteger(v))return G.pf5[1].f();
+      return Object.assign(num(v,'Primero para 1 persona: '+q+' ÷ '+n+' = '+fmt(per)+'. Luego para '+m+': '+fmt(per)+' × '+m+' = '+fmt(v)+'. (Es una proporción directa: '+q+'/'+n+' = x/'+m+'.)'),
+        {q:'Una receta para <b>'+n+' personas</b> lleva <b>'+q+' '+ing[0]+'</b>. ¿Cuánto se necesita para <b>'+m+' personas</b>?'});}},
+     {t:'Descuentos',f(){
+      const d=pick([10,15,20,25,30,40,50]),base=pick([200,240,300,360,400,480,500,600,800,1200]);const F=base*(100-d)/100;
+      if(!Number.isInteger(F))return G.pf5[2].f();
+      if(Math.random()<.5) return Object.assign(num(F,'Precio final = '+miles(base)+' − '+d+'% de '+miles(base)+' = '+miles(base)+' × '+((100-d)/100)+' = '+miles(F)+'.'),{q:'Unos tenis cuestan <b>$'+miles(base)+'</b> y tienen <b>'+d+'% de descuento</b>. ¿Cuánto pagas?'});
+      return Object.assign(num(base,'Si x es el precio original: '+((100-d)/100)+'x = '+miles(F)+', así que x = '+miles(F)+' ÷ '+((100-d)/100)+' = '+miles(base)+'.'),{q:'Pagaste <b>$'+miles(F)+'</b> por una mochila que tenía <b>'+d+'% de descuento</b>. ¿Cuál era su <b>precio original</b>?'});}}],
+    pf6:[{t:'Propiedades de la igualdad',f(){
+      const L=pick([['a','b','c'],['x','y','z'],['m','n','p']]),n=R(2,15),k=R(2,9);
+      const T=[[L[0]+' = '+L[0],'Reflexiva','Todo es igual a sí mismo.'],
+        ['Si '+L[0]+' = '+L[1]+', entonces '+L[1]+' = '+L[0],'Simétrica','Una igualdad se puede leer en los dos sentidos.'],
+        ['Si x = '+n+', entonces '+n+' = x','Simétrica','Una igualdad se puede leer en los dos sentidos.'],
+        ['Si '+L[0]+' = '+L[1]+' y '+L[1]+' = '+L[2]+', entonces '+L[0]+' = '+L[2],'Transitiva','Si dos cosas son iguales a una tercera, son iguales entre sí.'],
+        ['Si x = '+n+', entonces x + '+k+' = '+n+' + '+k,'Uniformidad','Si sumas (o restas, multiplicas o divides) lo mismo en los dos lados, la igualdad se mantiene.'],
+        ['Si 2x = '+(2*n)+', entonces 2x ÷ 2 = '+(2*n)+' ÷ 2','Uniformidad','Si haces la misma operación en los dos lados, la igualdad se mantiene.'],
+        [n+' = '+n,'Reflexiva','Todo es igual a sí mismo.']];
+      const [s,a,e]=pick(T);
+      return Object.assign(opc(a,['Reflexiva','Simétrica','Transitiva','Uniformidad'],'Propiedad <b>'+a.toLowerCase()+'</b>: '+e),{q:'¿Qué propiedad de la igualdad es?<br><span class="big">'+s+'</span>'});}},
+     {t:'¿Identidad o ecuación?',f(){
+      const a=R(2,9),b=R(1,9),c=R(3,6);
+      const T=[[a+'(x + '+b+') = '+a+'x + '+(a*b),1],['(x + '+b+')² = x² + '+(2*b)+'x + '+(b*b),1],['x + x = 2x',1],[c+'x − x = '+(c-1)+'x',1],['(x + '+b+')(x − '+b+') = x² − '+(b*b),1],
+        [a+'x + '+b+' = '+(a*c+b),0],['x² = '+(b*b),0],['x + '+a+' = 2x',0],[a+'(x + 1) = '+(a*(c+1)),0],['x − '+b+' = '+c,0]];
+      const [s,id]=pick(T);
+      return Object.assign(opc(id?'Identidad':'Ecuación',['Identidad','Ecuación'],id?'Es una <b>identidad</b>: se cumple para cualquier valor de x (prueba con x = 1 y con x = 2).':'Es una <b>ecuación</b>: solo se cumple para ciertos valores de x, que son la solución.'),{q:'¿Es una identidad o una ecuación?<br><span class="big">'+s+'</span>'});}},
+     {t:'Valor de la incógnita',f(){
+      const x=RNZ(-9,12),a=R(2,9),b=RNZ(-15,15),k=R(0,4);
+      const S=v=>v<0?'− '+(-v):'+ '+v;
+      if(k===0) return Object.assign(num(x,'Uniformidad: resta '+P(b)+' en los dos lados. x = '+M(x+b)+' − '+P(b)+' = '+M(x)+'.'),{q:'<span class="big">x '+S(b)+' = '+M(x+b)+'</span><br>¿Cuánto vale x?'});
+      if(k===1) return Object.assign(num(x,'Uniformidad: divide los dos lados entre '+a+'. x = '+M(a*x)+' ÷ '+a+' = '+M(x)+'.'),{q:'<span class="big">'+a+'x = '+M(a*x)+'</span><br>¿Cuánto vale x?'});
+      if(k===2) return Object.assign(num(a*x,'Uniformidad: multiplica los dos lados por '+a+'. x = '+M(x)+' × '+a+' = '+M(a*x)+'.'),{q:'<span class="big">x / '+a+' = '+M(x)+'</span><br>¿Cuánto vale x?'});
+      return Object.assign(num(x,'1) Resta '+P(b)+' en los dos lados: '+a+'x = '+M(a*x)+'. 2) Divide entre '+a+': x = '+M(x)+'. Comprueba: '+a+'('+M(x)+') '+S(b)+' = '+M(a*x+b)+'.'),{q:'<span class="big">'+a+'x '+S(b)+' = '+M(a*x+b)+'</span><br>¿Cuánto vale x?'});}}]
+  };
+  const NOMBRES={pf1:'PF1 Lenguaje algebraico',pf2:'PF2 Expresiones algebraicas',pf3:'PF3 Monomios y binomios',pf4:'PF4 Polinomios',pf5:'PF5 Álgebra en la vida diaria',pf6:'PF6 Igualdad y ecuación'};
+
+  // ---------- interfaz ----------
+  const box=document.getElementById('prac'), sel=document.getElementById('prac-temas');
+  let tema=null, sub=0, ronda=null, actual=null;
+  const RONDA=10;
+  function yo(){try{return JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){return null;}}
+  function enviar(det){const a=yo();if(!a)return;const b=new URLSearchParams({tipo:'acceso',nombre:a.nombre,grupo:a.grupo,asignatura:ASIG,accion:'Práctica',detalle:det});
+    try{if(navigator.sendBeacon&&navigator.sendBeacon(URL,b))return;}catch(e){} fetch(URL,{method:'POST',mode:'no-cors',body:b,keepalive:true}).catch(()=>{});}
+  sel.innerHTML=Object.keys(G).map(k=>'<button type="button" class="qchip" data-pf="'+k.slice(2)+'" data-t="'+k+'" aria-pressed="false"><b>'+k.toUpperCase()+'</b> '+NOMBRES[k].replace(/^PF\d /,'')+'</button>').join('');
+  sel.querySelectorAll('.qchip').forEach(c=>c.addEventListener('click',()=>elegir(c.dataset.t,0)));
+  function elegir(t,s){
+    if(ronda&&ronda.n>0&&ronda.n<RONDA) enviarRonda(true);
+    tema=t; sub=s;
+    sel.querySelectorAll('.qchip').forEach(c=>c.setAttribute('aria-pressed',c.dataset.t===t?'true':'false'));
+    box.setAttribute('data-pf',t.slice(2));
+    ronda={n:0,ok:0};
+    pintarSub(); nuevo();
+  }
+  function pintarSub(){
+    const subs=G[tema];
+    document.getElementById('prac-sub').innerHTML=subs.length>1?subs.map((g,i)=>'<button type="button" class="psub" aria-pressed="'+(i===sub)+'" data-i="'+i+'">'+g.t+'</button>').join(''):'<span class="psub only">'+subs[0].t+'</span>';
+    document.querySelectorAll('#prac-sub button').forEach(b=>b.addEventListener('click',()=>{ if(ronda.n>0&&ronda.n<RONDA) enviarRonda(true); sub=+b.dataset.i; ronda={n:0,ok:0}; pintarSub(); nuevo(); }));
+  }
+  function enviarRonda(incompleta){ if(ronda&&ronda.n>0) enviar(NOMBRES[tema]+' · '+G[tema][sub].t+' · '+ronda.ok+'/'+ronda.n+(incompleta?' (incompleta)':'')); }
+  const KEYS={expr:['x','y','²','³','^','(',')','+','−','/'],num:['−','/','.']};
+  function nuevo(){
+    actual=G[tema][sub].f();
+    let zona;
+    if(actual.tipo==='op') zona='<div class="pvf">'+actual.ops.map(o=>'<button type="button" class="btn pans" data-v="'+o+'">'+o+'</button>').join('')+'</div>';
+    else zona='<form id="pform" class="pform" novalidate autocomplete="off"><input id="pin" class="pin" inputmode="text" autocapitalize="off" spellcheck="false" aria-label="Tu respuesta" placeholder="Respuesta"><div class="pkeys">'+KEYS[actual.tipo].map(k=>'<button type="button" data-k="'+k+'">'+k+'</button>').join('')+'</div><button class="btn" type="submit">Revisar</button></form>'+
+      (actual.tipo==='expr'?'<p class="hint">Escribe potencias con ^ o con los botones: 3x^2 o 3x². Para multiplicar basta con juntar: 2x(x + 3).</p>':'');
+    document.getElementById('prac-area').innerHTML='<div class="pcount">Ejercicio '+(ronda.n+1)+' de '+RONDA+' · Aciertos: '+ronda.ok+'</div><div class="pq">'+actual.q+'</div>'+zona+'<div id="pfb" class="pfb" aria-live="polite"></div>';
+    if(actual.tipo==='op'){ document.querySelectorAll('.pans').forEach(b=>b.addEventListener('click',()=>revisar(b.dataset.v))); }
+    else{ const f=document.getElementById('pform'),i=document.getElementById('pin');
+      f.addEventListener('submit',e=>{e.preventDefault();revisar(i.value);});
+      document.querySelectorAll('.pkeys button').forEach(k=>k.addEventListener('click',()=>{i.value+=k.dataset.k;i.focus();}));
+      if(window.matchMedia('(pointer:fine)').matches) i.focus(); }
+  }
+  function revisar(r){
+    const fb=document.getElementById('pfb');
+    const res=actual.check(r);
+    if(res.invalid){ fb.className='pfb err'; fb.textContent=res.invalid; return; }
+    ronda.n++; if(res.ok) ronda.ok++;
+    document.querySelectorAll('#prac-area input, #prac-area .pans, #prac-area .pkeys button, #prac-area form .btn').forEach(x=>x.disabled=true);
+    fb.className='pfb '+(res.ok?'ok':'bad');
+    fb.innerHTML=(res.ok?'<b>✔ ¡Correcto!</b> ':'<b>✘ '+(res.casi||'No es correcto.')+'</b> La respuesta es <b>'+String(actual.a).replace(/-/g,'−')+'</b>. ')+actual.exp+
+      '<div class="qbar">'+(ronda.n<RONDA?'<button type="button" class="btn" id="psig">Siguiente</button>':'')+'</div>';
+    if(ronda.n<RONDA){ const s=document.getElementById('psig'); s.addEventListener('click',nuevo); s.focus(); }
+    else fin();
+  }
+  function fin(){
+    enviarRonda(false);
+    const ok=ronda.ok, msg=ok>=9?'¡Excelente! Dominas este tema.':ok>=7?'Muy bien. Haz otra ronda para afinar.':ok>=5?'Vas bien; repasa el tema y vuelve a intentarlo.':'Repasa el tema y el simulador, y haz otra ronda.';
+    document.getElementById('pfb').insertAdjacentHTML('beforeend','<div class="pfin"><span class="qscore">'+ok+' / '+RONDA+'</span><span class="qmsg">'+msg+'</span><button type="button" class="btn" id="potra">Otra ronda</button></div>');
+    document.getElementById('potra').addEventListener('click',()=>{ronda={n:0,ok:0};nuevo();});
+  }
+  window.addEventListener('pagehide',()=>{ if(ronda&&ronda.n>0&&ronda.n<RONDA) enviarRonda(true); });
+})();
+</script>
+<script>
+(function(){
+  const URL='https://script.google.com/macros/s/AKfycbwHqdoeheOWDYq9cho9NqCHgZV3_IqR1XM55QhPgdY1jZ782HI7Cm27zMWuopqCCfnC5w/exec', ASIG='PM2', KEY='alumno_pm252';
+  const A=window.ALG;
+  const $=s=>document.querySelector(s), area=$('#sim-area'), sel=$('#sim-temas');
+  const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const M=n=>String(n).replace(/-/g,'−');
+  const fmt=x=>{if(!isFinite(x))return '—';const r=Math.round(x*1e6)/1e6;return M(r.toString());};
+  const gcd=(a,b)=>{a=Math.abs(a);b=Math.abs(b);while(b){[a,b]=[b,a%b];}return a||1;};
+  const miles=n=>{const s=String(Math.round(n*100)/100);const [e,d]=s.split('.');return e.replace(/\B(?=(\d{3})+(?!\d))/g,' ')+(d?'.'+d:'');};
+  const usados=new Set();
+  function uso(id){ if(usados.has(id))return; usados.add(id); let a=null; try{a=JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){} if(!a)return;
+    const b=new URLSearchParams({tipo:'acceso',nombre:a.nombre,grupo:a.grupo,asignatura:ASIG,accion:'Usó simulador',detalle:NOM[id]});
+    try{if(navigator.sendBeacon&&navigator.sendBeacon(URL,b))return;}catch(e){} fetch(URL,{method:'POST',mode:'no-cors',body:b,keepalive:true}).catch(()=>{}); }
+  const NOM={pf1:'PF1 Valor numérico',pf2:'PF2 Clasificador de expresiones',pf3:'PF3 Modelo de área',pf4:'PF4 Productos notables',pf5:'PF5 Descuentos y recetas',pf6:'PF6 Balanza de ecuaciones'};
+  const step=(id,label,min,max,v)=>'<div class="sstep"><span>'+label+'</span><button type="button" data-s="'+id+'" data-d="-1" aria-label="Menos">−</button><input id="'+id+'" type="number" min="'+min+'" max="'+max+'" value="'+v+'" inputmode="numeric"><button type="button" data-s="'+id+'" data-d="1" aria-label="Más">+</button></div>';
+  function wireSteps(cb){
+    area.querySelectorAll('.sstep button').forEach(b=>b.addEventListener('click',()=>{const i=$('#'+b.dataset.s);const v=Math.max(+i.min,Math.min(+i.max,(+i.value||0)+ +b.dataset.d));i.value=v;cb();}));
+    area.querySelectorAll('.sstep input').forEach(i=>i.addEventListener('input',()=>{cb();}));
+  }
+  const iv=id=>{const i=$('#'+id);let v=Math.round(+i.value);if(!isFinite(v))v=+i.min>0?+i.min:0;return Math.max(+i.min,Math.min(+i.max,v));};
+  const teclas=(keys,inp,cb)=>{area.querySelectorAll('.skeys button').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.k;
+    if(k==='C')inp.value='';else if(k==='⌫')inp.value=inp.value.slice(0,-1);else inp.value+=k;cb();}));};
+  const kb=keys=>'<div class="skeys">'+keys.map(k=>'<button type="button" data-k="'+k+'">'+k+'</button>').join('')+'<button type="button" data-k="⌫" aria-label="Borrar uno">⌫</button><button type="button" data-k="C">Borrar</button></div>';
+  const coef=(c,l)=>c===1&&l?l:c===-1&&l?'−'+l:M(c)+l;
+
+  // ================= PF1 Valor numérico =================
+  function pf1(){
+    area.innerHTML='<p>Escribe una expresión con <b>x</b> (y si quieres <b>y</b>), elige el valor de las letras y mira cómo se sustituye paso a paso.</p>'+
+      kb(['x','y','²','³','^','(',')','+','−','·','/','1','2','3','4','5','6','7','8','9','0'])+
+      '<input id="v-exp" class="sexp" value="2x² − 3x + 5" aria-label="Expresión" autocomplete="off" autocapitalize="off" spellcheck="false">'+
+      '<div class="sex">Ejemplos: '+['3x + 4','x² − 5x','2(x + 3)','x² + y²','4x − 2y','(x + 1)²'].map(e=>'<button type="button" class="sexb">'+e+'</button>').join('')+'</div>'+
+      '<div class="srow">'+step('v-x','x =',-10,10,3)+step('v-y','y =',-10,10,2)+'</div><div id="v-out" class="sout"></div>';
+    const inp=$('#v-exp');
+    teclas(null,inp,calc); area.querySelectorAll('.sexb').forEach(b=>b.addEventListener('click',()=>{inp.value=b.textContent;calc();}));
+    inp.addEventListener('input',calc); wireSteps(calc);
+    function calc(){ uso('pf1'); const out=$('#v-out'); const n=A.parse(inp.value);
+      if(!n){ out.innerHTML='<p class="serr">Revisa la expresión: usa números, x, y, + − · / ^ y paréntesis.</p>'; return; }
+      const vs=[...A.vars(n)].filter(v=>v!=='x'&&v!=='y'); if(vs.length){ out.innerHTML='<p class="serr">En este simulador usa solo las letras x y y.</p>'; return; }
+      const x=iv('v-x'),y=iv('v-y'),usaY=A.vars(n).has('y'),v=A.ev(n,{x,y});
+      const bonita=A.pretty(A.norm(inp.value)), sus=bonita.replace(/x/g,'('+M(x)+')').replace(/y/g,'('+M(y)+')').replace(/(\d)\(/g,'$1·(').replace(/\)\(/g,')·(');
+      let tabla='';
+      if(!usaY){ const xs=[-3,-2,-1,0,1,2,3]; tabla='<div class="swrap"><table class="stab sinfo"><tr><th>x</th>'+xs.map(k=>'<th'+(k===x?' class="res"':'')+'>'+M(k)+'</th>').join('')+'</tr><tr><th>'+esc(bonita)+'</th>'+xs.map(k=>'<td'+(k===x?' class="res"':'')+'>'+fmt(A.ev(n,{x:k,y}))+'</td>').join('')+'</tr></table></div><p class="snote">La tabla muestra cómo cambia el valor de la expresión cuando cambia x: por eso a x se le llama <b>variable</b>.</p>'; }
+      out.innerHTML='<p class="sbig">'+esc(sus)+' = <b>'+fmt(v)+'</b></p><p class="snote">Se cambia cada letra por su valor entre paréntesis y se resuelve con la jerarquía: potencias, luego multiplicaciones y divisiones, al final sumas y restas.</p>'+tabla; }
+    calc();
+  }
+
+  // ================= PF2 Clasificador =================
+  function pf2(){
+    area.innerHTML='<p>Escribe una expresión algebraica y el simulador separa sus términos, te dice el coeficiente, la parte literal y el grado de cada uno, y cómo se clasifica.</p>'+
+      kb(['x','y','a','b','²','³','^','+','−','(',')'])+
+      '<input id="c-exp" class="sexp" value="−4x³ + 2x²y − 7" aria-label="Expresión" autocomplete="off" autocapitalize="off" spellcheck="false">'+
+      '<div class="sex">Ejemplos: '+['5x²','3a − 2b','x² + 2x + 1','x⁴ − 3x³ + x − 9','7xy²','2x + 3x'].map(e=>'<button type="button" class="sexb">'+e+'</button>').join('')+'</div><div id="c-out" class="sout"></div>';
+    const inp=$('#c-exp');
+    teclas(null,inp,calc); area.querySelectorAll('.sexb').forEach(b=>b.addEventListener('click',()=>{inp.value=b.textContent;calc();}));
+    inp.addEventListener('input',calc);
+    function calc(){ uso('pf2'); const out=$('#c-out'); const n=A.parse(inp.value), p=n&&A.poly(n);
+      if(!n||!p){ out.innerHTML='<p class="serr">Escribe un polinomio: números y letras con exponentes enteros positivos, sin dividir entre letras.</p>'; return; }
+      const ts=[...p.values()].sort((a,b)=>A.grado(b.m)-A.grado(a.m));
+      if(!ts.length){ out.innerHTML='<p class="snote">La expresión vale 0.</p>'; return; }
+      const k=ts.length, nom=['Monomio','Binomio','Trinomio'][k-1]||'Polinomio', gr=Math.max(...ts.map(t=>A.grado(t.m)));
+      const escrito=A.terms(n);
+      const filas=ts.map(t=>{const l=A.lit(t.m),g=A.grado(t.m);return '<tr><td><b>'+esc(A.polyTxt(new Map([['k',t]])))+'</b></td><td>'+M(A.fmtNum(t.c))+'</td><td>'+(l||'— (término independiente)')+'</td><td'+(g===gr?' class="res"':'')+'>'+g+'</td></tr>';}).join('');
+      out.innerHTML='<p class="sbig">'+esc(A.polyTxt(p))+'</p>'+(escrito>k?'<p class="snote">Primero se juntaron los términos semejantes: tenías '+escrito+' términos escritos y quedan '+k+'.</p>':'')+
+        '<div class="swrap"><table class="stab"><thead><tr><th>Término</th><th>Coeficiente</th><th>Parte literal</th><th>Grado</th></tr></thead><tbody>'+filas+'</tbody></table></div>'+
+        '<p class="snote">Tiene <b>'+k+' término'+(k>1?'s':'')+'</b>: es un <b>'+nom.toLowerCase()+'</b>. Su grado es <b>'+gr+'</b> (el mayor grado de sus términos). El grado de cada término es la suma de los exponentes de sus letras.</p>'; }
+    calc();
+  }
+
+  // ================= PF3 Modelo de área (monomio por binomio) =================
+  function pf3(){
+    area.innerHTML='<p>Multiplicar un monomio por un binomio es como calcular el área de un rectángulo partido en dos. Cambia los números y observa cada pedazo.</p>'+
+      '<p class="sbig" id="a-tit"></p><div class="srow">'+step('a-a','Monomio: coeficiente de x',1,6,2)+step('a-b','Binomio: coeficiente de x',1,6,3)+step('a-c','Binomio: número',-9,9,4)+'</div><div id="a-out" class="sout"></div>';
+    function calc(){ uso('pf3'); const a=iv('a-a'),b=iv('a-b'),c=iv('a-c');
+      const mono=coef(a,'x'), bin=coef(b,'x')+(c?(c<0?' − ':' + ')+Math.abs(c):'');
+      $('#a-tit').textContent=mono+'('+bin+')';
+      const X=46,W1=b*X,W2=Math.abs(c)*18,H=Math.min(150,a*36),ox=70,oy=26,Wt=W1+W2+ox+20;
+      let s='<svg viewBox="0 0 '+Math.max(Wt,300)+' '+(H+70)+'" class="rsvg sfit" role="img" aria-label="Rectángulo de área">';
+      s+='<rect x="'+ox+'" y="'+oy+'" width="'+W1+'" height="'+H+'" fill="var(--c)" fill-opacity=".25" stroke="var(--c)" stroke-width="2"/>';
+      if(c) s+='<rect x="'+(ox+W1)+'" y="'+oy+'" width="'+W2+'" height="'+H+'" fill="'+(c<0?'var(--red)':'var(--c)')+'" fill-opacity="'+(c<0?'.18':'.1')+'" stroke="var(--c)" stroke-width="2" stroke-dasharray="'+(c<0?'5 4':'0')+'"/>';
+      s+='<text x="'+(ox+W1/2)+'" y="16" class="rt">'+coef(b,'x')+'</text>'+(c?'<text x="'+(ox+W1+W2/2)+'" y="16" class="rt">'+M(c)+'</text>':'')+'<text x="'+(ox-10)+'" y="'+(oy+H/2+5)+'" class="rt" text-anchor="end">'+mono+'</text>';
+      s+='<text x="'+(ox+W1/2)+'" y="'+(oy+H/2+6)+'" class="rt rlab">'+coef(a*b,'x²')+'</text>'+(c?'<text x="'+(ox+W1+W2/2)+'" y="'+(oy+H/2+6)+'" class="rt rlab">'+coef(a*c,'x')+'</text>':'')+'</svg>';
+      const res=coef(a*b,'x²')+(c?(a*c<0?' − ':' + ')+coef(Math.abs(a*c),'x'):'');
+      const g=gcd(a*b,a*c||a*b);
+      $('#a-out').innerHTML='<div class="swrap">'+s+'</div><p class="sbig">'+mono+'('+bin+') = <b>'+res+'</b></p>'+
+        '<p class="snote">Cada pedazo es el monomio por un término del binomio: '+mono+' · '+coef(b,'x')+' = '+coef(a*b,'x²')+(c?' y '+mono+' · '+(c<0?'('+M(c)+')':c)+' = '+coef(a*c,'x'):'')+'. Coeficientes se multiplican y exponentes de x se suman.</p>'+
+        (c?'<p class="snote"><b>Al revés es factorizar:</b> '+res+' = '+coef(g,'x')+'('+coef(a*b/g,'x')+(a*c<0?' − ':' + ')+Math.abs(a*c/g)+'). El factor común es '+coef(g,'x')+'.</p>':''); }
+    wireSteps(calc); calc();
+  }
+
+  // ================= PF4 Productos notables =================
+  function pf4(){
+    area.innerHTML='<p>Multiplica (x + a)(x + b) con una tabla: cada casilla es un producto. Prueba con a = b (binomio al cuadrado) y con a = −b (binomios conjugados).</p>'+
+      '<p class="sbig" id="n-tit"></p><div class="srow">'+step('n-a','a',-9,9,3)+step('n-b','b',-9,9,3)+'</div><div id="n-out" class="sout"></div>';
+    function calc(){ uso('pf4'); const a=iv('n-a'),b=iv('n-b');
+      const bt=v=>v?(v<0?' − ':' + ')+Math.abs(v):'';
+      const f1='(x'+bt(a)+')', f2='(x'+bt(b)+')';
+      $('#n-tit').textContent=(a===b?f1+'²':f1+f2);
+      const cell=t=>'<td class="res">'+t+'</td>';
+      const tabla='<div class="swrap"><table class="stab"><tr><th>×</th><th>x</th>'+(b?'<th>'+M(b)+'</th>':'')+'</tr><tr><th>x</th>'+cell('x²')+(b?cell(coef(b,'x')):'')+'</tr>'+(a?'<tr><th>'+M(a)+'</th>'+cell(coef(a,'x'))+(b?cell(M(a*b)):'')+'</tr>':'')+'</table></div>';
+      const s=a+b,p=a*b;const res='x²'+(s?(s<0?' − ':' + ')+coef(Math.abs(s),'x'):'')+(p?(p<0?' − ':' + ')+Math.abs(p):'');
+      let tipo='';
+      if(a===b&&a) tipo='<p class="snote"><b>Binomio al cuadrado:</b> el resultado es un <b>trinomio cuadrado perfecto</b>. Regla: cuadrado del primero ('+'x²'+'), '+(a<0?'menos':'más')+' el doble del primero por el segundo ('+coef(2*Math.abs(a),'x')+'), más el cuadrado del segundo ('+a*a+').</p>';
+      else if(a===-b&&a) tipo='<p class="snote"><b>Binomios conjugados:</b> los términos en x se cancelan ('+coef(a,'x')+' y '+coef(b,'x')+') y queda una <b>diferencia de cuadrados</b>: x² − '+(a*a)+'.</p>';
+      else tipo='<p class="snote">Los términos en x se juntan: '+M(a)+' + '+(b<0?'('+M(b)+')':b)+' = '+M(s)+'. El número es '+M(a)+' × '+(b<0?'('+M(b)+')':b)+' = '+M(p)+'.</p>';
+      $('#n-out').innerHTML=tabla+'<p class="sbig">'+$('#n-tit').textContent+' = <b>'+res+'</b></p>'+tipo+
+        '<p class="snote"><b>Al revés es factorizar:</b> para factorizar '+res+' busca dos números que sumados den '+M(s)+' y multiplicados den '+M(p)+': son '+M(a)+' y '+M(b)+'.</p>'; }
+    wireSteps(calc); calc();
+  }
+
+  // ================= PF5 Descuentos y recetas =================
+  function pf5(){
+    area.innerHTML='<p>Usa el álgebra en la vida diaria. Arriba: el precio final con descuento. Abajo: una receta que se ajusta al número de personas.</p>'+
+      '<h3 class="ih3">Descuento</h3><div class="srow"><label class="ssel">Precio original ($)<input id="d-p" type="text" inputmode="decimal" value="800"></label>'+step('d-d','Descuento %',0,90,25)+'</div><div id="d-out" class="sout"></div>'+
+      '<h3 class="ih3">Receta de hot cakes (base: 4 personas)</h3><div class="srow">'+step('r-n','Personas',1,30,6)+'</div><div id="r-out" class="sout"></div>';
+    function calc(){ uso('pf5'); const P=+String($('#d-p').value).replace(',','.'),d=iv('d-d');
+      if(!isFinite(P)||P<=0){ $('#d-out').innerHTML='<p class="serr">Escribe un precio, por ejemplo 800.</p>'; }
+      else{ const F=P*(100-d)/100,ah=P-F;
+        $('#d-out').innerHTML='<div class="dbar" style="display:flex;height:30px;border-radius:8px;overflow:hidden;border:1px solid var(--line)"><span style="width:'+(100-d)+'%;background:var(--c);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px">Pagas $'+miles(F)+'</span><span style="width:'+d+'%;background:var(--chalk);color:#1b2340;display:flex;align-items:center;justify-content:center;font-size:14px">'+(d>=12?'Ahorras':'')+'</span></div>'+
+          '<p class="sbig">Precio final = <b>$'+miles(F)+'</b></p><p class="snote">Con x como precio original: precio final = x − '+d+'% de x = x − '+(d/100)+'x = <b>'+((100-d)/100)+'x</b>. Aquí: '+((100-d)/100)+' × '+miles(P)+' = '+miles(F)+'. Ahorras $'+miles(ah)+'.</p>'+
+          '<p class="snote"><b>Al revés (ecuación):</b> si pagaste $'+miles(F)+' con '+d+'% de descuento, el precio original sale de '+((100-d)/100)+'x = '+miles(F)+' → x = '+miles(F)+' ÷ '+((100-d)/100)+' = $'+miles(P)+'.</p>'; }
+      const n=iv('r-n'),k=n/4;const ING=[['Harina','g',250],['Leche','mL',300],['Huevos','',2],['Azúcar','g',40],['Polvo para hornear','cucharaditas',2]];
+      $('#r-out').innerHTML='<div class="swrap"><table class="stab sinfo"><tr><th>Ingrediente</th><th>4 personas</th><th class="res">'+n+' personas</th></tr>'+ING.map(i=>'<tr><td>'+i[0]+'</td><td>'+i[2]+' '+i[1]+'</td><td class="res">'+fmt(i[2]*k)+' '+i[1]+'</td></tr>').join('')+'</table></div>'+
+        '<p class="snote">Es una <b>proporción directa</b>: cantidad nueva = cantidad × '+n+'/4 = cantidad × '+fmt(k)+'. Por ejemplo, la harina: 250/4 = x/'+n+' → x = '+fmt(250*k)+' g.</p>'; }
+    wireSteps(calc); $('#d-p').addEventListener('input',calc); calc();
+  }
+
+  // ================= PF6 Balanza =================
+  function pf6(){
+    area.innerHTML='<p>Una ecuación es como una balanza en equilibrio: lo que hagas de un lado, hazlo también del otro (<b>propiedad de uniformidad</b>). Arma la ecuación ax + b = c y mira cómo se despeja x.</p>'+
+      '<p class="sbig" id="b-tit"></p><div class="srow">'+step('b-a','a',1,9,3)+step('b-b','b',-20,20,5)+step('b-c','c',-40,40,20)+'</div><div id="b-out" class="sout"></div>';
+    function calc(){ uso('pf6'); const a=iv('b-a'),b=iv('b-b'),c=iv('b-c');
+      const lhs=coef(a,'x')+(b?(b<0?' − ':' + ')+Math.abs(b):''), r=c-b, g=gcd(r,a);
+      const xs=r%a===0?M(r/a):(r<0?'−':'')+(Math.abs(r)/g)+'/'+(a/g);
+      $('#b-tit').textContent=lhs+' = '+M(c);
+      const svg='<svg viewBox="0 0 420 150" class="rsvg sfit" role="img" aria-label="Balanza en equilibrio"><polygon points="200,140 220,140 210,62" fill="var(--ink2)"/><line x1="60" y1="62" x2="360" y2="62" stroke="var(--ink2)" stroke-width="5" stroke-linecap="round"/>'+
+        '<line x1="90" y1="62" x2="90" y2="92" stroke="var(--ink2)" stroke-width="2"/><line x1="330" y1="62" x2="330" y2="92" stroke="var(--ink2)" stroke-width="2"/>'+
+        '<path d="M30 92 h120 l-14 26 h-92 z" fill="var(--c)" fill-opacity=".25" stroke="var(--c)" stroke-width="2"/><path d="M270 92 h120 l-14 26 h-92 z" fill="var(--c)" fill-opacity=".25" stroke="var(--c)" stroke-width="2"/>'+
+        '<text x="90" y="111" class="rt rlab">'+lhs+'</text><text x="330" y="111" class="rt rlab">'+M(c)+'</text></svg>';
+      const pasos=[];
+      if(b) pasos.push(['Uniformidad: '+(b>0?'resta '+b:'suma '+(-b))+' en los dos lados',coef(a,'x')+(b>0?' + '+b+' − '+b:' − '+(-b)+' + '+(-b))+' = '+M(c)+(b>0?' − '+b:' + '+(-b)),coef(a,'x')+' = '+M(r)]);
+      if(a!==1) pasos.push(['Uniformidad: divide los dos lados entre '+a,coef(a,'x')+' ÷ '+a+' = '+M(r)+' ÷ '+a,'x = '+xs]);
+      const comp=a*(r/a)+b;
+      $('#b-out').innerHTML='<div class="swrap">'+svg+'</div><ol class="osteps"><li class="o0"><span>Ecuación</span><b>'+lhs+' = '+M(c)+'</b></li>'+pasos.map(p=>'<li><span>'+p[0]+'</span><b>'+p[1]+'</b><b>'+p[2]+'</b></li>').join('')+'</ol>'+
+        '<p class="sbig">x = <b>'+xs+'</b></p><p class="snote">Comprueba sustituyendo: '+M(a)+'('+xs+')'+(b?(b<0?' − ':' + ')+Math.abs(b):'')+' = '+fmt(comp)+'. ¡La balanza sigue en equilibrio!</p>'; }
+    wireSteps(calc); calc();
+  }
+
+  const SIM={pf1,pf2,pf3,pf4,pf5,pf6};
+  sel.innerHTML=Object.keys(SIM).map(k=>'<button type="button" class="qchip" data-pf="'+k.slice(2)+'" data-s="'+k+'" aria-pressed="false"><b>'+k.toUpperCase()+'</b> '+NOM[k].replace(/^PF\d /,'')+'</button>').join('');
+  function abrir(k){ sel.querySelectorAll('.qchip').forEach(c=>c.setAttribute('aria-pressed',c.dataset.s===k?'true':'false')); area.setAttribute('data-pf',k.slice(2)); usados.add(k); SIM[k](); usados.delete(k); }
+  sel.querySelectorAll('.qchip').forEach(c=>c.addEventListener('click',()=>abrir(c.dataset.s)));
+  abrir('pf1');
+})();
+</script>
+<script>
+(function(){
+  const URL='https://script.google.com/macros/s/AKfycbwHqdoeheOWDYq9cho9NqCHgZV3_IqR1XM55QhPgdY1jZ782HI7Cm27zMWuopqCCfnC5w/exec', ASIG='PM2', KEY='alumno_pm252', PK='progreso_pm2';
+  const PF={pf1:'Lenguaje algebraico',pf2:'Expresiones algebraicas',pf3:'Monomios y binomios',pf4:'Trinomios y polinomios',pf5:'Álgebra en la vida diaria',pf6:'Igualdad y ecuación'};
+  const NIV=[['bronce','Bronce',1,'Usa el simulador del tema o ve al menos el 80% de su video'],['plata','Plata',2,'Saca 8/10 o más en una ronda de Práctica'],['oro','Oro',3,'Saca 5/5 en la autoevaluación o 10/10 en una ronda de Práctica']];
+  const ESP=[['constante','Constante',2,'Entra al blog 5 días distintos'],['cientifico','Científico',2,'Usa los 6 simuladores'],['maratonista','Maratonista',2,'Completa 5 rondas de Práctica'],['semestre','Semestre completo',2,'Gana el oro en los 6 propósitos']];
+  const MAX=6*6+ESP.reduce((s,e)=>s+e[2],0);
+  const yo=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){return null;}};
+  const blank=()=>({video:{},prac:{},auto:{},dias:[],sims:[],rondas:0,ins:{}});
+  function load(){ let p=null; try{p=JSON.parse(localStorage.getItem(PK)||'null');}catch(e){} const a=yo(); if(!p||!a||p.quien!==a.nombre+'|'+a.grupo){ p=blank(); if(a) p.quien=a.nombre+'|'+a.grupo; } return Object.assign(blank(),p); }
+  function save(p){ try{localStorage.setItem(PK,JSON.stringify(p));}catch(e){} }
+  let P=load();
+  const pfDe=t=>{const m=String(t).match(/PF\s?(\d)/i);return m?'pf'+m[1]:null;};
+  const hoy=()=>{const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();};
+
+  // ---- observa los registros que el blog ya envía ----
+  const orig=navigator.sendBeacon?navigator.sendBeacon.bind(navigator):null;
+  if(orig) navigator.sendBeacon=function(url,body){ try{ if(String(url)===URL&&body instanceof URLSearchParams) observar(body); }catch(e){} return orig(url,body); };
+  const ofetch=window.fetch.bind(window);
+  window.fetch=function(url,opts){ try{ if(String(url)===URL&&opts&&opts.body instanceof URLSearchParams&&!opts.__ins) observar(opts.body); }catch(e){} return ofetch(url,opts); };
+  let ultimo='';
+  function observar(b){
+    if(b.get('tipo')!=='acceso'||/^Insignia/.test(b.get('accion')||'')) return;
+    const firma=b.toString(); if(firma===ultimo) return; ultimo=firma;   // evita contar dos veces el mismo envío
+    P=load(); const acc=b.get('accion'), det=b.get('detalle')||'';
+    if(acc==='Entró al blog'){ const d=hoy(); if(!P.dias.includes(d)) P.dias.push(d); }
+    else if(acc==='Autoevaluación'){ const k=pfDe(det), m=det.match(/(\d)\/5/); if(k&&m) P.auto[k]=Math.max(P.auto[k]||0,+m[1]); }
+    else if(acc==='Práctica'&&!/incompleta/.test(det)){ const k=pfDe(det), m=det.match(/(\d+)\/10/); if(k&&m){ P.prac[k]=Math.max(P.prac[k]||0,+m[1]); P.rondas++; } }
+    else if(acc==='Usó simulador'){ const k=pfDe(det); if(k&&!P.sims.includes(k)) P.sims.push(k); }
+    save(P); evaluar();
+  }
+  // ---- videos: cuenta cuando se ha visto el 80% ----
+  document.querySelectorAll('article[data-k="video"][data-pf] video').forEach(v=>{
+    const k='pf'+v.closest('article').dataset.pf; let visto=new Set();
+    v.addEventListener('timeupdate',()=>{ if(!v.duration) return; visto.add(Math.floor(v.currentTime/2)); const frac=visto.size*2/v.duration;
+      P=load(); if(frac>=0.8&&(P.video[k]||0)<0.8){ P.video[k]=1; save(P); evaluar(); } });
+  });
+
+  // ---- reglas ----
+  function ganadas(p){
+    const g={};
+    Object.keys(PF).forEach(k=>{
+      if(p.video[k]||p.sims.includes(k)) g['bronce_'+k]=1;
+      if((p.prac[k]||0)>=8) g['plata_'+k]=1;
+      if((p.auto[k]||0)>=5||(p.prac[k]||0)>=10) g['oro_'+k]=1;
+    });
+    if(p.dias.length>=5) g.constante=1;
+    if(p.sims.length>=6) g.cientifico=1;
+    if(p.rondas>=5) g.maratonista=1;
+    if(Object.keys(PF).every(k=>g['oro_'+k])) g.semestre=1;
+    return g;
+  }
+  const info=id=>{ const [n,k]=id.split('_'); if(k){const x=NIV.find(z=>z[0]===n);return {nom:x[1]+' · '+k.toUpperCase()+' '+PF[k],pts:x[2],tipo:'Insignia '+x[1].toLowerCase()};} const e=ESP.find(z=>z[0]===id); return {nom:e[1],pts:e[2],tipo:'Insignia especial'}; };
+  function enviar(id){ const a=yo(); if(!a) return; const i=info(id);
+    const b=new URLSearchParams({tipo:'acceso',nombre:a.nombre,grupo:a.grupo,asignatura:ASIG,accion:i.tipo,detalle:i.nom+' · '+i.pts+' pts'});
+    try{ if(orig&&orig(URL,b)) return; }catch(e){} ofetch(URL,{method:'POST',mode:'no-cors',body:b,keepalive:true,__ins:1}).catch(()=>{}); }
+  function evaluar(){
+    P=load(); if(!yo()){ pintar(); return; }
+    const g=ganadas(P), nuevas=Object.keys(g).filter(id=>!P.ins[id]);
+    nuevas.forEach(id=>{ P.ins[id]=hoy(); enviar(id); });
+    if(nuevas.length){ save(P); aviso(nuevas); }
+    pintar();
+  }
+  function puntos(){ return Object.keys(P.ins).reduce((s,id)=>s+info(id).pts,0); }
+  const nivelTxt=pts=>pts>=40?'Experto':pts>=25?'Avanzado':pts>=10?'En progreso':'Inicial';
+  const extra=pts=>pts>=40?'+1.0':pts>=30?'+0.6':pts>=20?'+0.4':pts>=10?'+0.2':'+0';
+  // ---- interfaz ----
+  const medalla=(n,ok,t)=>'<span class="med '+n+(ok?'':' off')+'" title="'+t+'"><span>'+n[0].toUpperCase()+'</span></span>';
+  function pintar(){
+    const a=yo(), box=document.getElementById('ins-area'), side=document.getElementById('ins-side'); const pts=puntos(), tot=Object.keys(P.ins).length;
+    if(side) side.innerHTML='<p class="lbl">Mi avance</p>'+(a?'<strong>'+pts+' de '+MAX+' puntos</strong><div class="ibar"><i style="width:'+Math.round(100*pts/MAX)+'%"></i></div><p class="ev-none" style="margin:.2em 0">'+tot+' insignia'+(tot===1?'':'s')+' · Nivel '+nivelTxt(pts)+'<br>Valor extra: <b>'+extra(pts)+'</b></p><a href="#insignias">Ver mis insignias</a>':'<p class="ev-none">Entra con tu nombre para ganar insignias.</p>');
+    if(!box) return;
+    if(!a){ box.innerHTML='<p class="ev-empty">Escribe tu nombre al entrar al blog para empezar a ganar insignias.</p>'; return; }
+    let h='<div class="ihead"><div><span class="ipts">'+pts+'</span><span class="imax">/ '+MAX+' puntos</span></div><div class="iextra"><span>Valor extra</span><b>'+extra(pts)+'</b></div><div><b>Nivel '+nivelTxt(pts)+'</b><br><span class="snote">'+a.nombre+' · '+a.grupo+'</span></div></div><div class="ibar big"><i style="width:'+Math.round(100*pts/MAX)+'%"></i></div>';
+    h+='<div class="igrid">'+Object.keys(PF).map(k=>{ const n=k.slice(2);
+      return '<div class="icard" data-pf="'+n+'"><div class="ict"><span class="pf-n">'+k.toUpperCase()+'</span> '+PF[k]+'</div><div class="imeds">'+NIV.map(x=>medalla(x[0],P.ins[x[0]+'_'+k],x[1]+': '+x[3])).join('')+'</div>'+
+        '<ul class="icrit">'+NIV.map(x=>'<li class="'+(P.ins[x[0]+'_'+k]?'ok':'')+'">'+(P.ins[x[0]+'_'+k]?'✔ ':'')+'<b>'+x[1]+'</b> ('+x[2]+' pt'+(x[2]>1?'s':'')+'): '+x[3]+'</li>').join('')+'</ul></div>'; }).join('')+'</div>';
+    const prog={constante:P.dias.length+'/5 días',cientifico:P.sims.length+'/6 simuladores',maratonista:Math.min(P.rondas,5)+'/5 rondas',semestre:Object.keys(PF).filter(k=>P.ins['oro_'+k]).length+'/6 oros'};
+    h+='<h3 class="ih3">Insignias especiales</h3><div class="iesp">'+ESP.map(e=>'<div class="iespc'+(P.ins[e[0]]?' ok':'')+'"><span class="med esp'+(P.ins[e[0]]?'':' off')+'"><span>★</span></span><div><b>'+e[1]+'</b> · '+e[2]+' pts<br><span class="snote">'+e[3]+' · '+prog[e[0]]+'</span></div></div>').join('')+'</div>';
+    h+='<p class="snote">Tus insignias se guardan en este celular o computadora y le llegan a tu profesor en cuanto las ganas.</p>';
+    box.innerHTML=h;
+  }
+  function aviso(ids){
+    let t=document.getElementById('ins-toast'); if(!t){t=document.createElement('div');t.id='ins-toast';t.className='itoast';t.setAttribute('role','status');document.body.appendChild(t);}
+    t.innerHTML='<b>¡Nueva insignia!</b><br>'+ids.map(id=>info(id).nom+' (+'+info(id).pts+')').join('<br>'); t.classList.add('show');
+    clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),5000);
+  }
+  // cuando cambia la persona ("No soy yo" / identificación), recarga su progreso
+  window.addEventListener('storage',()=>{P=load();pintar();});
+  document.addEventListener('click',e=>{ if(e.target.closest('#whoami-x,#who-form .btn')) setTimeout(()=>{P=load();pintar();},300); });
+  document.addEventListener('submit',e=>{ if(e.target.id==='who-form') setTimeout(()=>{P=load();evaluar();},300); });
+  (function(){ const a=yo(); if(a){ P=load(); const d=hoy(); if(!P.dias.includes(d)){ P.dias.push(d); save(P);} } })();
+  evaluar();
+})();
+
+</script>
+</body>
+</html>
