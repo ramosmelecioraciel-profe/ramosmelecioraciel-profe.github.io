@@ -340,12 +340,13 @@ const pesoR=(g,p,id)=>{const r=rubro(g,p,id);return r?r.peso:0;};
 const pondA=(g,p)=>pesoR(g,p,'act');
 const pondP=(g,p)=>pesoR(g,p,'paec');
 const pondE=(g,p)=>{const r=rubExam(g,p);return r?r.peso:0;};
+const singular=t=>{t=String(t).trim();return /[aeiouáéíóú]s$/i.test(t)?t.slice(0,-1):/[^aeiouáéíóú]es$/i.test(t)?t.slice(0,-2):t;};
 const abrev=t=>{const w=String(t).trim().split(/\s+/);return w.length>1?w.map(x=>x[0]).join('').toUpperCase().slice(0,4):String(t).slice(0,5);};
 function etiq(g,a){   // etiqueta corta: Act 3, PAEC, Tareas 2…
   if(a.tipo==='exam'){const r=rubExam(g,a.parcial);return r?r.nombre:'Examen';}
   const rid=rubDe(a),r=rubro(g,a.parcial,rid);if(!r)return a.nombre;
   if(r.tipo==='unico')return rid==='paec'&&/PAEC/i.test(r.nombre)?'PAEC':r.nombre;
-  const k=itemsR(g,a.parcial,rid).indexOf(a)+1;return rid==='act'?'Act '+k:r.nombre+' '+k;
+  const k=itemsR(g,a.parcial,rid).indexOf(a)+1;return rid==='act'?'Act '+k:singular(r.nombre)+' '+k;
 }
 const itemsNoExam=(g,p)=>{const o=[];for(const r of rubros(g,p)){if(r.tipo==='lista')o.push(...itemsR(g,p,r.id));else if(r.tipo==='unico'){const a=itemsR(g,p,r.id)[0];if(a&&r.peso>0)o.push(a);}}return o;};
 const actMax=a=>esNum(a.max)&&a.max>0?a.max:10;                 // se califica sobre…
@@ -572,7 +573,7 @@ function vCalif(g,head){
   h+='<div class="card"><h3 style="margin-top:0">Parcial '+p+'</h3><div class="row"><span style="font-weight:700">Periodo</span><span>del</span><input type="date" class="in" id="c-pi" value="'+esc(rg.ini||'')+'" style="width:auto"><span>al</span><input type="date" class="in" id="c-pf" value="'+esc(rg.fin||'')+'" style="width:auto"></div>'+
     '<p class="muted" style="margin:4px 0 10px">El pase de lista y las faltas se cuentan dentro de este periodo.</p><h3 style="margin:6px 0 6px">Rubros y ponderación</h3>'+
     '<div class="pbar" aria-hidden="true">'+RR.map((r,i)=>'<i id="pb-'+i+'" style="width:'+r.peso+'%;background:'+col(i)+'"></i>').join('')+'</div>'+
-    RR.map((r,i)=>'<div class="prow prow2"><input class="in rnom" data-rn="'+i+'" value="'+esc(r.nombre)+'" aria-label="Nombre del rubro" style="color:'+col(i)+'" title="'+TIPOS_R[r.tipo]+'"><input type="range" id="c-r'+i+'" min="0" max="100" step="5" value="'+r.peso+'" style="accent-color:'+col(i)+'" aria-label="% de '+esc(r.nombre)+'"><input class="ninp" id="c-n'+i+'" inputmode="numeric" value="'+r.peso+'" aria-label="% de '+esc(r.nombre)+'" style="width:56px"><span>%</span>'+(RR.length>1?'<button class="btn sm sec rdel" data-rd="'+i+'" aria-label="Quitar '+esc(r.nombre)+'" title="Quitar rubro">✕</button>':'<span></span>')+'</div><div class="muted rtipo">'+TIPOS_R[r.tipo]+'</div>').join('')+
+    RR.map((r,i)=>'<div class="prow prow2"><input class="in rnom" data-rn="'+i+'" value="'+esc(r.nombre)+'" aria-label="Nombre del rubro" style="color:'+col(i)+'" title="'+TIPOS_R[r.tipo]+'"><input type="range" id="c-r'+i+'" min="0" max="100" step="5" value="'+r.peso+'" style="accent-color:'+col(i)+'" aria-label="% de '+esc(r.nombre)+'"><input class="ninp" id="c-n'+i+'" inputmode="numeric" value="'+r.peso+'" aria-label="% de '+esc(r.nombre)+'" style="width:56px"><span>%</span>'+(RR.length>1?'<button class="btn sm sec rdel" data-rd="'+i+'" aria-label="Quitar '+esc(r.nombre)+'" title="Quitar rubro">✕</button>':'<span></span>')+'</div>'+(r.tipo==='examen'?'<div class="muted rtipo">Examen</div>':'<div class="rtipo"><select class="in" data-rt="'+i+'" aria-label="Tipo de '+esc(r.nombre)+'" style="width:auto;padding:2px 6px;font-size:12px"><option value="lista"'+(r.tipo==='lista'?' selected':'')+'>Varias actividades (1, 2, 3…)</option><option value="unico"'+(r.tipo==='unico'?' selected':'')+'>Una calificación por alumno</option></select></div>')).join('')+
     '<details id="r-addw" style="margin-top:8px"><summary>+ Agregar rubro</summary><div class="row" style="margin-top:8px"><input class="in" id="r-nom" placeholder="Ej. Exposición, Tareas, Portafolio" style="flex:2;min-width:160px"><select class="in" id="r-tipo" style="flex:1;min-width:160px"><option value="unico">Una calificación por alumno</option><option value="lista">Varias actividades</option>'+(rubExam(g,p)?'':'<option value="examen">Examen</option>')+'</select><button class="btn sm" id="r-add">Agregar</button></div><p class="muted" style="margin:4px 0 0">Empieza en 0 %: después mueve su deslizador.</p></details>'+
     (g.parciales>1?'<p style="margin:8px 0 0"><button class="btn sm sec" id="r-copia">Usar estos rubros en los demás parciales</button></p>':'')+
     '<p class="muted" style="margin:6px 0 0">Siempre suman 100: al mover un rubro se ajusta '+(rubExam(g,p)?'el '+esc(rubExam(g,p).nombre):'el último')+'. Toca un nombre para cambiarlo.</p>'+
@@ -584,7 +585,9 @@ function vCalif(g,head){
   RR.forEach((r,i)=>{const c=col(i);
     h+='<div class="muted" style="font-weight:800;margin:12px 0 4px;color:'+c+'">'+esc(r.nombre)+' · '+r.peso+' %</div>';
     if(r.tipo==='lista'){const it=itemsR(g,p,r.id),VV=valoresR(g,p,r.id);
-      if(!it.length){h+='<p class="muted" style="margin:0 0 6px">Sin actividades todavía.</p>';return;}
+      const addB='<button class="btn sm sec" data-addr="'+r.id+'" style="margin:0 0 6px">+ Agregar a '+esc(r.nombre)+'</button>';
+      if(!it.length){h+='<p class="muted" style="margin:0 0 6px">Sin actividades todavía.</p>'+addB;return;}
+      h+=addB;
       const ok=Math.abs(VV.total-r.peso)<0.01;h+='<p class="'+(ok?'muted':'note')+'" style="margin:0 0 6px">Valen <b>'+fpt(VV.total)+' de '+r.peso+'</b> puntos.'+(ok?'':(VV.total>r.peso?' Te pasaste: baja el valor de alguna.':' Falta asignar '+fpt(r.peso-VV.total)+' puntos: sube el valor de alguna o deja alguna en automático.'))+'</p>';
       it.forEach(x=>{h+='<div class="act" data-act="'+x.id+'"><span class="tag">'+esc(etiq(g,x))+'</span><div class="grow"><b>'+esc(x.nombre)+'</b> <span class="muted">'+fcorta(x.fecha)+' · vale '+fpt(VV.v[x.id])+' pts'+(esNum(x.valor)?'':' (auto)')+' · sobre '+actMax(x)+'</span>'+barra(x,c);});}
     else if(r.tipo==='unico'){const x=itemsR(g,p,r.id)[0];
@@ -631,6 +634,14 @@ function vCalif(g,head){
   RR.forEach((_,i)=>{$('#c-r'+i).oninput=e=>ajusta(i,+e.target.value);$('#c-r'+i).onchange=guarda;
     $('#c-n'+i).onchange=e=>{const v=num(e.target.value);if(v==null||isNaN(v)){e.target.value=P[i];return;}ajusta(i,v);guarda();};});
   app.querySelectorAll('[data-rn]').forEach(inp=>inp.onchange=()=>{const v=inp.value.trim();const r=RR[+inp.dataset.rn];if(!v){inp.value=r.nombre;return;}r.nombre=v;cambio();render();toast('Rubro renombrado: '+v);});
+  app.querySelectorAll('[data-rt]').forEach(sl=>sl.onchange=()=>{const r=RR[+sl.dataset.rt],nuevo=sl.value,it=itemsR(g,p,r.id);
+    if(nuevo===r.tipo)return;
+    if(nuevo==='unico'&&it.length>1){toast(r.nombre+' tiene '+it.length+' actividades: deja solo una para cambiarlo a "una calificación".');sl.value=r.tipo;return;}
+    it.forEach(a=>{a.tipo=nuevo==='lista'?'act':'unico';a.rub=r.id;if(nuevo==='unico')delete a.valor;});
+    r.tipo=nuevo;cambio();render();toast(nuevo==='lista'?r.nombre+' ahora acepta varias actividades: usa "+ Agregar a '+r.nombre+'"':r.nombre+' ahora es una sola calificación por alumno');});
+  app.querySelectorAll('[data-addr]').forEach(b=>b.onclick=()=>{const s2=$('#c-rub');if(s2)s2.value=b.dataset.addr;const n=$('#c-new');
+    const r=rubro(g,p,b.dataset.addr),k=itemsR(g,p,r.id).length+1;n.value=singular(r.nombre)+' '+k;
+    n.scrollIntoView({block:'center'});n.focus();n.select();toast('Escribe el nombre y pulsa "Agregar y calificar"');});
   app.querySelectorAll('[data-rd]').forEach(b=>b.onclick=()=>{const i=+b.dataset.rd,r=RR[i];
     const it=r.tipo==='examen'?(ex?[ex]:[]):itemsR(g,p,r.id),con=it.some(a=>Object.values(a.notas||{}).some(esNum));
     if(!confirm('¿Quitar el rubro "'+r.nombre+'" del parcial '+p+'?'+(it.length?' Se borrarán sus '+it.length+' actividad(es)'+(con?' con sus calificaciones':'')+'.':'')+' Su '+r.peso+' % pasa a otro rubro.'))return;
