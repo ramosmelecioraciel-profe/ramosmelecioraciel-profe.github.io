@@ -340,7 +340,7 @@ const pesoR=(g,p,id)=>{const r=rubro(g,p,id);return r?r.peso:0;};
 const pondA=(g,p)=>pesoR(g,p,'act');
 const pondP=(g,p)=>pesoR(g,p,'paec');
 const pondE=(g,p)=>{const r=rubExam(g,p);return r?r.peso:0;};
-const singular=t=>{t=String(t).trim();return /[aeiouáéíóú]s$/i.test(t)?t.slice(0,-1):/[^aeiouáéíóú]es$/i.test(t)?t.slice(0,-2):t;};
+const singular=t=>{t=String(t).trim();if(/iones$/i.test(t))return t.slice(0,-5)+(t.slice(-5)===t.slice(-5).toUpperCase()?'IÓN':'ión');if(/[^aeiouáéíóú]es$/i.test(t))return t.slice(0,-2);if(/[aeiouáéíóú]s$/i.test(t))return t.slice(0,-1);return t;};
 const abrev=t=>{const w=String(t).trim().split(/\s+/);return w.length>1?w.map(x=>x[0]).join('').toUpperCase().slice(0,4):String(t).slice(0,5);};
 function etiq(g,a){   // etiqueta corta: Act 3, PAEC, Tareas 2…
   if(a.tipo==='exam'){const r=rubExam(g,a.parcial);return r?r.nombre:'Examen';}
@@ -429,7 +429,7 @@ function limpiarNombres(txt){return txt.split(/\r?\n/).map(s=>s.replace(/^\s*\d+
 const num=s=>{s=String(s).trim().replace(',','.');if(s==='')return null;const n=Number(s);return isFinite(n)?n:NaN;};
 
 /* ---------- vistas ---------- */
-let listaFecha=hoy(),actSel=null,soloRiesgo=false,qNom='';
+let listaFecha=hoy(),actSel=null,soloRiesgo=false,qNom='',rubSel={};
 const buscadorHtml=()=>'<div class="row" style="margin:-4px 0 12px"><input class="in" id="q-nom" type="search" placeholder="🔍 Buscar alumno por nombre o apellido" value="'+esc(qNom)+'" style="flex:1;min-width:200px" aria-label="Buscar alumno" autocomplete="off"><span class="muted" id="q-cnt"></span></div>';
 function aplicarBusqueda(){
   const q=normal(qNom),vis=new Set(),tot=new Set();
@@ -578,7 +578,10 @@ function vCalif(g,head){
     (g.parciales>1?'<p style="margin:8px 0 0"><button class="btn sm sec" id="r-copia">Usar estos rubros en los demás parciales</button></p>':'')+
     '<p class="muted" style="margin:6px 0 0">Siempre suman 100: al mover un rubro se ajusta '+(rubExam(g,p)?'el '+esc(rubExam(g,p).nombre):'el último')+'. Toca un nombre para cambiarlo.</p>'+
     '<h3>Entregas tardías</h3>'+reglaHtml('c-pen',penParcial(g,p),false)+'<p class="muted" style="margin:4px 0 0">Se aplica al alumno que marques con ⏰ al calificar. Cada actividad puede tener su propia regla.</p></div>';
-  if(listas.length)h+='<div class="card"><h3 style="margin-top:0">Nueva actividad</h3><div class="row">'+(listas.length>1?'<select class="in" id="c-rub" style="flex:1;min-width:130px" aria-label="Rubro">'+listas.map(r=>'<option value="'+r.id+'">'+esc(r.nombre)+'</option>').join('')+'</select>':'')+'<input class="in" id="c-new" placeholder="Ej. MCM y MCD" style="flex:2;min-width:180px"><input type="date" class="in" id="c-fecha" value="'+hoy()+'" style="flex:1;min-width:140px"><button class="btn" id="c-add">Agregar y calificar</button></div>'+
+  const rs=listas.find(r=>r.id===rubSel[g.id])||listas[0],sugerir=r=>singular(r.nombre)+' '+(itemsR(g,p,r.id).length+1);
+  if(listas.length)h+='<div class="card"><h3 style="margin-top:0">Nueva '+(listas.length>1?'actividad o '+esc(listas.slice(1).map(r=>singular(r.nombre).toLowerCase()).join(' o ')):'actividad')+'</h3>'+
+    (listas.length>1?'<div class="tabs" role="tablist" aria-label="¿Qué vas a agregar?" style="margin:0 0 10px">'+listas.map(r=>'<button type="button" role="tab" class="tab'+(r===rs?' on':'')+'" aria-selected="'+(r===rs)+'" data-rubsel="'+r.id+'">'+esc(singular(r.nombre))+'</button>').join('')+'</div>':'')+
+    '<input type="hidden" id="c-rub" value="'+rs.id+'"><div class="row"><input class="in" id="c-new" placeholder="Ej. '+esc(sugerir(rs))+'" style="flex:2;min-width:180px"><input type="date" class="in" id="c-fecha" value="'+hoy()+'" style="flex:1;min-width:140px"><button class="btn" id="c-add">Agregar y calificar</button></div>'+
     (itemsNoExam(g,p).length>=MAX_ACT?'<p class="note">Tu formato de Excel tiene lugar para '+MAX_ACT+' columnas de actividades por parcial.</p>':'')+'</div>';
   h+='<h3>Actividades del parcial '+p+'</h3>';
   const barra=(x,c)=>{const n=al.filter(y=>esNum(x.notas[y.id])).length;return '<div class="bar" style="margin-top:6px"><i style="width:'+(al.length?Math.round(100*n/al.length):0)+'%;background:'+c+'"></i></div></div><span class="muted">'+n+'/'+al.length+'</span></div>';};
@@ -615,7 +618,7 @@ function vCalif(g,head){
   else if(!pen.length)h+='<p class="muted">Todos entregaron todo a tiempo y sin faltas. 🎉</p>';
   else{h+='<div class="tw"><table><tbody>'+pen.map(([x,pd,td,ff,rr,ob])=>'<tr class="click" data-h="a/'+g.id+'/'+x.id+'"><td class="nm">'+esc(x.nombre)+'</td><td style="white-space:normal"><span class="chips">'+pd.map(a=>'<span class="chip pen" title="'+esc(a.nombre)+'">'+esc(etiq(g,a))+'</span>').join('')+td.map(a=>'<span class="chip" title="'+esc(a.nombre)+'" style="background:#fff1d6;color:#7a4b00">⏰ '+esc(etiq(g,a))+'</span>').join('')+(ff.length?'<span class="chip inf" title="'+ff.map(fcorta).join(', ')+'">📅 '+ff.length+' falta'+(ff.length>1?'s':'')+'</span>':'')+(ob.length?'<span class="chip" style="background:#efe7ff;color:#4c1d95" title="'+esc(ob.map(o=>fcorta(o.fecha)+': '+o.texto).join(' | '))+'">📝 '+ob.length+' obs.</span>':'')+'</span></td></tr>').join('')+'</tbody></table></div>';}
   app.innerHTML=h;wireCalifTabs(g);wireBuscador();
-  if($('#c-add')){$('#c-add').onclick=()=>{const n=$('#c-new').value.trim();if(!n){toast('Escribe el nombre de la actividad');return;}
+  if($('#c-add')){$('#c-add').onclick=()=>{const n=$('#c-new').value.trim()||$('#c-new').placeholder.replace(/^Ej\.\s*/,'');if(!n){toast('Escribe el nombre de la actividad');return;}
     const rid=$('#c-rub')?$('#c-rub').value:listas[0].id;
     const x={id:uid(),parcial:p,tipo:'act',rub:rid,nombre:n,fecha:$('#c-fecha').value||hoy(),notas:{}};g.acts.push(x);actSel=x.id;cambio();render();setTimeout(()=>{const i=app.querySelector('.ninp[data-a]');if(i)i.focus();},60);};
     $('#c-new').onkeydown=e=>{if(e.key==='Enter')$('#c-add').click();};}
@@ -639,7 +642,10 @@ function vCalif(g,head){
     if(nuevo==='unico'&&it.length>1){toast(r.nombre+' tiene '+it.length+' actividades: deja solo una para cambiarlo a "una calificación".');sl.value=r.tipo;return;}
     it.forEach(a=>{a.tipo=nuevo==='lista'?'act':'unico';a.rub=r.id;if(nuevo==='unico')delete a.valor;});
     r.tipo=nuevo;cambio();render();toast(nuevo==='lista'?r.nombre+' ahora acepta varias actividades: usa "+ Agregar a '+r.nombre+'"':r.nombre+' ahora es una sola calificación por alumno');});
-  app.querySelectorAll('[data-addr]').forEach(b=>b.onclick=()=>{const s2=$('#c-rub');if(s2)s2.value=b.dataset.addr;const n=$('#c-new');
+  app.querySelectorAll('[data-rubsel]').forEach(b=>b.onclick=()=>{rubSel[g.id]=b.dataset.rubsel;$('#c-rub').value=b.dataset.rubsel;
+    app.querySelectorAll('[data-rubsel]').forEach(x=>{const on=x===b;x.classList.toggle('on',on);x.setAttribute('aria-selected',on);});
+    const r=rubro(g,p,b.dataset.rubsel);$('#c-new').placeholder='Ej. '+singular(r.nombre)+' '+(itemsR(g,p,r.id).length+1);$('#c-new').focus();});
+  app.querySelectorAll('[data-addr]').forEach(b=>b.onclick=()=>{const t2=app.querySelector('[data-rubsel="'+b.dataset.addr+'"]');if(t2)t2.click();const s2=$('#c-rub');if(s2)s2.value=b.dataset.addr;rubSel[g.id]=b.dataset.addr;const n=$('#c-new');
     const r=rubro(g,p,b.dataset.addr),k=itemsR(g,p,r.id).length+1;n.value=singular(r.nombre)+' '+k;
     n.scrollIntoView({block:'center'});n.focus();n.select();toast('Escribe el nombre y pulsa "Agregar y calificar"');});
   app.querySelectorAll('[data-rd]').forEach(b=>b.onclick=()=>{const i=+b.dataset.rd,r=RR[i];
