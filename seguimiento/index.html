@@ -382,6 +382,18 @@ function notaEf(g,a,aid){   // calificación que cuenta (con penalización si en
 }
 const esTarde=(a,aid)=>!!(a.tarde&&a.tarde[aid]);
 function calFinal(total){const r=Math.round(total);return r<60?5:Math.min(10,Math.round(r/10));}
+function copiarRubros(src,dst,q,dq){   // copia los rubros del parcial q de src al parcial dq de dst. Devuelve '' o el motivo por el que no se pudo
+  const S1=rubros(src,q),V=rubros(dst,dq);
+  // un rubro con el mismo nombre se considera el mismo: sus actividades pasan al rubro copiado
+  V.forEach(r=>{const m=S1.find(x=>normal(x.nombre)===normal(r.nombre)&&x.id!==r.id&&x.tipo!=='examen'&&r.tipo!=='examen');
+    if(m)itemsR(dst,dq,r.id).forEach(a=>{a.rub=m.id;a.tipo=m.tipo==='lista'?'act':'unico';});});
+  const sobran=V.filter(r=>!S1.some(x=>x.id===r.id||normal(x.nombre)===normal(r.nombre))&&(r.tipo==='examen'?examP(dst,dq):itemsR(dst,dq,r.id).length));
+  if(sobran.length)return 'tiene actividades en '+sobran.map(r=>r.nombre).join(', ');
+  if(!S1.some(x=>x.tipo==='examen')&&examP(dst,dq))return 'tiene examen capturado';
+  const unicos=S1.filter(x=>x.tipo==='unico').find(x=>itemsR(dst,dq,x.id).length>1);
+  if(unicos)return unicos.nombre+' tiene varias actividades';
+  dst.rub=dst.rub||{};dst.rub[dq]=S1.map(r=>Object.assign({},r));return '';
+}
 function calif(g,aid,p){
   const RR=rubros(g,p),ac=actsP(g,p),ex=examP(g,p),det={},pend=[];let hay=false,total=0,exam=null,hayEx=false;
   for(const r of RR){
@@ -576,6 +588,10 @@ function vCalif(g,head){
     RR.map((r,i)=>'<div class="prow prow2"><input class="in rnom" data-rn="'+i+'" value="'+esc(r.nombre)+'" aria-label="Nombre del rubro" style="color:'+col(i)+'" title="'+TIPOS_R[r.tipo]+'"><input type="range" id="c-r'+i+'" min="0" max="100" step="5" value="'+r.peso+'" style="accent-color:'+col(i)+'" aria-label="% de '+esc(r.nombre)+'"><input class="ninp" id="c-n'+i+'" inputmode="numeric" value="'+r.peso+'" aria-label="% de '+esc(r.nombre)+'" style="width:56px"><span>%</span>'+(RR.length>1?'<button class="btn sm sec rdel" data-rd="'+i+'" aria-label="Quitar '+esc(r.nombre)+'" title="Quitar rubro">✕</button>':'<span></span>')+'</div>'+(r.tipo==='examen'?'<div class="muted rtipo">Examen</div>':'<div class="rtipo"><select class="in" data-rt="'+i+'" aria-label="Tipo de '+esc(r.nombre)+'" style="width:auto;padding:2px 6px;font-size:12px"><option value="lista"'+(r.tipo==='lista'?' selected':'')+'>Varias actividades (1, 2, 3…)</option><option value="unico"'+(r.tipo==='unico'?' selected':'')+'>Una calificación por alumno</option></select></div>')).join('')+
     '<details id="r-addw" style="margin-top:8px"><summary>+ Agregar rubro</summary><div class="row" style="margin-top:8px"><input class="in" id="r-nom" placeholder="Ej. Exposición, Tareas, Portafolio" style="flex:2;min-width:160px"><select class="in" id="r-tipo" style="flex:1;min-width:160px"><option value="unico">Una calificación por alumno</option><option value="lista">Varias actividades</option>'+(rubExam(g,p)?'':'<option value="examen">Examen</option>')+'</select><button class="btn sm" id="r-add">Agregar</button></div><p class="muted" style="margin:4px 0 0">Empieza en 0 %: después mueve su deslizador.</p></details>'+
     (g.parciales>1?'<p style="margin:8px 0 0"><button class="btn sm sec" id="r-copia">Usar estos rubros en los demás parciales</button></p>':'')+
+    (S.grupos.length>1?'<details style="margin-top:8px"><summary>Copiar estos rubros a otros grupos</summary><p class="muted" style="margin:6px 0">Se copian los rubros y porcentajes de los '+g.parciales+' parciales de este grupo. Lo ya capturado no se borra.</p>'+
+      [...S.grupos].filter(x=>x!==g).sort((a,b)=>(normal(matNom(a.materia))===normal(matNom(g.materia))?0:1)-(normal(matNom(b.materia))===normal(matNom(g.materia))?0:1)||a.nombre.localeCompare(b.nombre,'es',{numeric:true}))
+      .map(x=>'<label class="row" style="gap:6px;margin:4px 0;font-weight:600"><input type="checkbox" data-gdst="'+x.id+'"'+(normal(matNom(x.materia))===normal(matNom(g.materia))?' checked':'')+'> Grupo '+esc(x.nombre)+' <span class="muted">· '+esc(matNom(x.materia))+'</span></label>').join('')+
+      '<p style="margin:8px 0 0"><button class="btn sm" id="r-grupos">Copiar a los grupos marcados</button></p></details>':'')+
     '<p class="muted" style="margin:6px 0 0">Siempre suman 100: al mover un rubro se ajusta '+(rubExam(g,p)?'el '+esc(rubExam(g,p).nombre):'el último')+'. Toca un nombre para cambiarlo.</p>'+
     '<h3>Entregas tardías</h3>'+reglaHtml('c-pen',penParcial(g,p),false)+'<p class="muted" style="margin:4px 0 0">Se aplica al alumno que marques con ⏰ al calificar. Cada actividad puede tener su propia regla.</p></div>';
   const rs=listas.find(r=>r.id===rubSel[g.id])||listas[0],sugerir=r=>singular(r.nombre)+' '+(itemsR(g,p,r.id).length+1);
@@ -657,12 +673,15 @@ function vCalif(g,head){
     if(RR.some(r=>normal(r.nombre)===normal(n))){toast('Ya hay un rubro con ese nombre');return;}
     const nuevo={id:t==='examen'?'exam':uid(),nombre:n,tipo:t,peso:0};const j=RR.findIndex(r=>r.tipo==='examen');
     if(t==='examen'||j<0)RR.push(nuevo);else RR.splice(j,0,nuevo);cambio();render();toast('Rubro "'+n+'" agregado: mueve su deslizador para darle porcentaje');};
-  if($('#r-copia'))$('#r-copia').onclick=()=>{if(!confirm('¿Usar estos rubros y porcentajes en los demás parciales? Los rubros que no existan allá se crean; los que sobren allá se quitan si no tienen actividades.'))return;
-    for(let q=1;q<=g.parciales;q++){if(q===p)continue;const viejo=rubros(g,q);
-      const conAct=viejo.filter(r=>!RR.some(x=>x.id===r.id)&&(r.tipo==='examen'?examP(g,q):itemsR(g,q,r.id).length));
-      if(conAct.length){toast('El parcial '+q+' tiene actividades en '+conAct.map(r=>r.nombre).join(', ')+': quítalas primero');continue;}
-      g.rub[q]=RR.map(r=>Object.assign({},r));}
-    cambio();render();toast('Rubros copiados');};
+  if($('#r-copia'))$('#r-copia').onclick=()=>{if(!confirm('¿Usar estos rubros y porcentajes en los demás parciales de este grupo? Lo ya capturado no se borra.'))return;
+    const no=[];for(let q=1;q<=g.parciales;q++){if(q===p)continue;const m=copiarRubros(g,g,p,q);if(m)no.push('Parcial '+q+': '+m);}
+    cambio();render();toast(no.length?'No se pudo en '+no.join(' · ')+'. Quita esas actividades primero.':'Rubros copiados a los demás parciales');};
+  if($('#r-grupos'))$('#r-grupos').onclick=()=>{
+    const sel=[...app.querySelectorAll('[data-gdst]:checked')].map(x=>grupo(x.dataset.gdst)).filter(Boolean);
+    if(!sel.length){toast('Marca al menos un grupo');return;}
+    if(!confirm('¿Copiar los rubros y porcentajes de este grupo (los '+g.parciales+' parciales) a: '+sel.map(x=>x.nombre).join(', ')+'? Lo ya capturado no se borra.'))return;
+    const no=[];sel.forEach(d=>{for(let q=1;q<=Math.min(g.parciales,d.parciales);q++){const m=copiarRubros(g,d,q,q);if(m)no.push(d.nombre+' P'+q+': '+m);}});
+    cambio();render();toast(no.length?'Copiado, excepto '+no.join(' · '):'Rubros copiados a '+sel.length+' grupo'+(sel.length>1?'s':''));};
   const cambiaPer=()=>{const i=$('#c-pi').value,f=$('#c-pf').value;if(i&&f&&i>f){toast('La fecha de inicio debe ser antes del fin');return;}g.periodos[p]={ini:i,fin:f};cambio();render();toast('Periodo del parcial '+p+' actualizado');};
   $('#c-pi').onchange=cambiaPer;$('#c-pf').onchange=cambiaPer;
   wireRegla('c-pen',r=>{g.pen[p]=r;cambio();render();toast('Regla de entregas tardías actualizada');});
