@@ -114,6 +114,36 @@ details{background:var(--card);border:1px solid var(--line);border-radius:12px;p
 summary{font-weight:800;cursor:pointer}
 .empty-st{text-align:center;padding:30px 10px;color:var(--ink2)}
 .hidden{display:none!important}
+.inc{border:1px solid var(--line);border-left:6px solid var(--c);border-radius:12px;background:var(--card);padding:10px 12px;margin-bottom:10px}
+.inc .ih{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;font-weight:800;color:var(--ink2)}
+.inc .inm{font-weight:800;margin:6px 0 2px}.inc .inm a{color:var(--ink);text-decoration:none}.inc .inm a:hover{text-decoration:underline}
+.inc .ide{white-space:pre-wrap}.inc .iseg{margin-top:6px;font-size:14px;color:var(--ink2);background:#f8f5ee;border-radius:8px;padding:6px 8px}
+.inc .iact{margin-top:8px;gap:6px}.inc .iact .btn{padding:5px 10px;font-size:13px}
+.incal{display:flex;flex-wrap:wrap;gap:6px;max-height:230px;overflow:auto;padding:6px;border:1.5px solid var(--line);border-radius:10px;background:var(--paper);margin-top:6px}
+.pick{border:1.5px solid var(--line);background:var(--card);border-radius:99px;padding:6px 12px;font-size:13px;font-weight:700;cursor:pointer;color:var(--ink)}
+.picks .pick{border-color:var(--c);color:var(--c)}
+.pick.on{background:var(--board);border-color:var(--board);color:#fff}.picks .pick.on{background:var(--c);color:#fff}
+.incfil .in{width:auto;flex:1;min-width:150px;padding:8px 10px}
+details.incform>summary{list-style:none}
+.istat{grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}.istat div{padding:6px 8px}.istat b{font-size:19px}.istat span{font-size:11px;display:block;line-height:1.15;}details.incform[open]>summary{margin-bottom:4px}
+#print{display:none}
+@media print{
+  @page{size:letter;margin:12mm}
+  body{background:#fff}body>*:not(#print){display:none!important}
+  #print{display:block;color:#000;font:11pt/1.35 Nunito,Arial,sans-serif}
+  #print .pe{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid #1d3557;padding-bottom:6px;margin-bottom:8px}
+  #print .pesc{font-weight:800;font-size:10pt;text-transform:uppercase;letter-spacing:.04em;color:#1d3557}
+  #print h1{margin:2px 0 0;font-size:17pt}#print .pdat{font-size:9pt;color:#444}
+  #print table{border-collapse:collapse;width:100%;font-size:9.5pt}
+  #print .pk td,#print .pk th{border:1px solid #999;padding:5px 7px;text-align:left;white-space:normal}
+  #print .pa th{width:28%;background:#eef1f6;vertical-align:top}
+  #print .pres{margin:8px 0;font-size:10pt}
+  #print .pt th{background:#1d3557!important;color:#fff;font-size:8.5pt;text-transform:none;letter-spacing:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #print .pt td,#print .pt th{border:1px solid #888;padding:4px 5px;vertical-align:top;white-space:normal}
+  #print .pt td.c{text-align:center}#print .pt tr{break-inside:avoid}
+  #print .pf{display:flex;gap:24px;margin-top:46px;break-inside:avoid}#print .pf div{flex:1;text-align:center;font-size:9.5pt}
+  #print .pf span{display:block;border-top:1px solid #000;margin-bottom:3px}
+}
 </style>
 </head>
 <body>
@@ -127,6 +157,7 @@ summary{font-weight:800;cursor:pointer}
 <div id="subt" class="subt"></div>
 <main id="app"></main>
 <div id="toast" role="status" aria-live="polite"></div>
+<div id="print"></div>
 
 <script>
 (function(){
@@ -177,7 +208,7 @@ function migrar(d){
     if(g.semestre==null)g.semestre='';
     g.acts=(g.acts||[]).map(a=>{a=Object.assign({tipo:'act'},a);if(a.tipo==='paec'){a.tipo='unico';a.rub='paec';}return a;});
     g.rub=g.rub||{};
-    g.extra=g.extra||{};g.obs=g.obs||[];g.asis=g.asis||{};g.pond=g.pond||{};
+    g.extra=g.extra||{};g.obs=g.obs||[];g.inc=g.inc||[];g.asis=g.asis||{};g.pond=g.pond||{};
     delete g.crit;
   });
   d.v=2;return d;
@@ -416,6 +447,9 @@ function alertas(g,aid){
   const p=pHoy(g),c=calif(g,aid,p);
   if(c.pend.length>=2)o.push(c.pend.length+' actividades pendientes');
   if(c.hayExam&&c.fin!=null&&c.fin<6)o.push('Parcial '+p+': '+c.fin);
+  const I=incDeAlumno(g,aid).filter(z=>incNeg(z.o)),Ip=I.filter(z=>parcialDe(g,z.o.fecha)===p);
+  if(I.some(z=>z.o.grav==='grave'&&(z.o.estado||'abierta')==='abierta'))o.push('Incidencia grave en seguimiento');
+  else if(Ip.length>=3)o.push(Ip.length+' incidencias en el parcial');
   return o;
 }
 const chips=a=>a.length?'<span class="chips">'+a.map(x=>'<span class="chip">'+esc(x)+'</span>').join('')+'</span>':'';
@@ -513,20 +547,20 @@ function vNuevo(base){
     if(b){
       if([b,...hermanos(b)].some(x=>normal(matNom(x.materia))===normal(matNom(m)))){toast('Ese grupo ya tiene esa asignatura');return;}
       const g={id:uid(),materia:m,nombre:b.nombre,semestre:b.semestre||'',parciales:b.parciales,periodos:JSON.parse(JSON.stringify(b.periodos)),pen:{},
-        alumnos:b.alumnos.map(a=>Object.assign({},a)),asis:{},acts:[],extra:{},obs:[]};
+        alumnos:b.alumnos.map(a=>Object.assign({},a)),asis:{},acts:[],extra:{},obs:[],inc:[]};
       if(b.waOrient)g.waOrient=b.waOrient;
       S.grupos.push(g);cambio();toast('Asignatura agregada al grupo '+b.nombre);location.hash='g/'+g.id+'/lista';return;
     }
     const nom=$('#n-nom').value.trim();if(!nom){toast('Escribe el grupo');return;}
     const g={id:uid(),materia:m,nombre:nom,semestre:$('#n-sem').value.trim(),parciales:3,periodos:nuevosPeriodos(),pen:{},
-      alumnos:limpiarNombres($('#n-al').value).map(n=>({id:uid(),nombre:n.toUpperCase()})),asis:{},acts:[],extra:{},obs:[]};
+      alumnos:limpiarNombres($('#n-al').value).map(n=>({id:uid(),nombre:n.toUpperCase()})),asis:{},acts:[],extra:{},obs:[],inc:[]};
     if(hermanos(g).some(x=>normal(matNom(x.materia))===normal(matNom(m)))){toast('Ya existe ese grupo con esa asignatura');return;}
     S.grupos.push(g);cambio();toast('Grupo creado');location.hash='g/'+g.id+'/lista';
   };
 }
 
 function tabsGrupo(g,t){
-  const T=[['lista','Pase de lista'],['calif','Calificaciones'],['alumnos','Alumnos'],['notas','Observaciones'],['grupo','Grupo']];
+  const T=[['lista','Pase de lista'],['calif','Calificaciones'],['alumnos','Alumnos'],['notas','Observaciones'],['inc','Incidencias'],['grupo','Grupo']];
   return '<nav class="tabs" aria-label="Secciones del grupo">'+T.map(x=>'<a class="tab" href="#g/'+g.id+'/'+x[0]+'"'+(x[0]===t?' aria-current="page"':'')+'>'+x[1]+'</a>').join('')+'</nav>';
 }
 function vGrupo(g,t){
@@ -539,6 +573,7 @@ function vGrupo(g,t){
   if(t==='insignias')return vInsignias(g,head);
   if(t==='alumnos')return vAlumnos(g,head);
   if(t==='notas')return vNotas(g,head);
+  if(t==='inc')return vInc(g,head);
   if(t==='grupo')return vGrupoAjustes(g,head);
   vLista(g,head);
 }
@@ -629,10 +664,10 @@ function vCalif(g,head){
   h+='</tbody></table></div>';
 
   const pen=pendientesYTarde(g,p);
-  h+='<div class="row" style="justify-content:space-between;margin-top:18px"><h3 style="margin:0">Faltantes, tardías, faltas y observaciones</h3>'+(pen.length?'<span class="row"><button class="btn sm" id="c-wa" style="background:#128c4a">📲 Reporte a orientación (WhatsApp)</button><button class="btn sm sec" id="c-copen">Copiar</button></span>':'')+'</div>';
+  h+='<div class="row" style="justify-content:space-between;margin-top:18px"><h3 style="margin:0">Faltantes, tardías, faltas, observaciones e incidencias</h3>'+(pen.length?'<span class="row"><button class="btn sm" id="c-wa" style="background:#128c4a">📲 Reporte a orientación (WhatsApp)</button><button class="btn sm sec" id="c-copen">Copiar</button></span>':'')+'</div>';
   if(!itemsNoExam(g,p).length&&!pen.length)h+='<p class="muted">Sin actividades ni faltas todavía.</p>';
   else if(!pen.length)h+='<p class="muted">Todos entregaron todo a tiempo y sin faltas. 🎉</p>';
-  else{h+='<div class="tw"><table><tbody>'+pen.map(([x,pd,td,ff,rr,ob])=>'<tr class="click" data-h="a/'+g.id+'/'+x.id+'"><td class="nm">'+esc(x.nombre)+'</td><td style="white-space:normal"><span class="chips">'+pd.map(a=>'<span class="chip pen" title="'+esc(a.nombre)+'">'+esc(etiq(g,a))+'</span>').join('')+td.map(a=>'<span class="chip" title="'+esc(a.nombre)+'" style="background:#fff1d6;color:#7a4b00">⏰ '+esc(etiq(g,a))+'</span>').join('')+(ff.length?'<span class="chip inf" title="'+ff.map(fcorta).join(', ')+'">📅 '+ff.length+' falta'+(ff.length>1?'s':'')+'</span>':'')+(ob.length?'<span class="chip" style="background:#efe7ff;color:#4c1d95" title="'+esc(ob.map(o=>fcorta(o.fecha)+': '+o.texto).join(' | '))+'">📝 '+ob.length+' obs.</span>':'')+'</span></td></tr>').join('')+'</tbody></table></div>';}
+  else{h+='<div class="tw"><table><tbody>'+pen.map(([x,pd,td,ff,rr,ob,ic])=>'<tr class="click" data-h="a/'+g.id+'/'+x.id+'"><td class="nm">'+esc(x.nombre)+'</td><td style="white-space:normal"><span class="chips">'+pd.map(a=>'<span class="chip pen" title="'+esc(a.nombre)+'">'+esc(etiq(g,a))+'</span>').join('')+td.map(a=>'<span class="chip" title="'+esc(a.nombre)+'" style="background:#fff1d6;color:#7a4b00">⏰ '+esc(etiq(g,a))+'</span>').join('')+(ff.length?'<span class="chip inf" title="'+ff.map(fcorta).join(', ')+'">📅 '+ff.length+' falta'+(ff.length>1?'s':'')+'</span>':'')+(ob.length?'<span class="chip" style="background:#efe7ff;color:#4c1d95" title="'+esc(ob.map(o=>fcorta(o.fecha)+': '+o.texto).join(' | '))+'">📝 '+ob.length+' obs.</span>':'')+(ic&&ic.length?'<span class="chip" title="'+esc(ic.map(o=>fcorta(o.fecha)+': '+o.tipo).join(' | '))+'">⚠️ '+ic.length+' incid.</span>':'')+'</span></td></tr>').join('')+'</tbody></table></div>';}
   app.innerHTML=h;wireCalifTabs(g);wireBuscador();
   if($('#c-add')){$('#c-add').onclick=()=>{const n=$('#c-new').value.trim()||$('#c-new').placeholder.replace(/^Ej\.\s*/,'');if(!n){toast('Escribe el nombre de la actividad');return;}
     const rid=$('#c-rub')?$('#c-rub').value:listas[0].id;
@@ -803,23 +838,25 @@ function pendientesYTarde(g,p){
   const h=hoy(),dias=Object.keys(g.asis).filter(f=>parcialDe(g,f)===p&&f<=h).sort();
   return activos(g).map(x=>{const c=calif(g,x.id,p);const ff=dias.filter(f=>g.asis[f].m[x.id]==='F'),rr=dias.filter(f=>g.asis[f].m[x.id]==='R');
     const ob=(g.obs||[]).filter(o=>o.aid===x.id&&o.fecha<=h&&parcialDe(g,o.fecha)===p).sort((a,b)=>a.fecha.localeCompare(b.fecha));
-    return [x,c.pend,itemsNoExam(g,p).filter(a=>esTarde(a,x.id)),ff,rr,ob];}).filter(z=>z[1].length||z[2].length||z[3].length||z[5].length);
+    const ic=(g.inc||[]).filter(o=>o.aids.includes(x.id)&&o.fecha<=h&&parcialDe(g,o.fecha)===p&&incNeg(o)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+    return [x,c.pend,itemsNoExam(g,p).filter(a=>esTarde(a,x.id)),ff,rr,ob,ic];}).filter(z=>z[1].length||z[2].length||z[3].length||z[5].length||z[6].length);
 }
 function reporteOrientacion(g,p){
   const ac=actsP(g,p),pen=pendientesYTarde(g,p),total=activos(g).length;
-  const nP=pen.filter(z=>z[1].length).length,nT=pen.filter(z=>z[2].length).length,nF=pen.filter(z=>z[3].length).length,nO=pen.filter(z=>z[5].length).length;
+  const nP=pen.filter(z=>z[1].length).length,nT=pen.filter(z=>z[2].length).length,nF=pen.filter(z=>z[3].length).length,nO=pen.filter(z=>z[5].length).length,nI=pen.filter(z=>z[6].length).length;
   const dias=Object.keys(g.asis).filter(f=>parcialDe(g,f)===p&&f<=hoy()).length;
   const numAct=a=>etiq(g,a),todas=itemsNoExam(g,p);
   let t='*Reporte para Orientación*\n'+matNom(g.materia)+' · Grupo '+g.nombre+(g.semestre?' · Semestre '+g.semestre:'')+'\nParcial '+p+' · '+fcorta(hoy())+'\n\n';
   if(todas.length)t+='_Actividades del parcial:_\n'+todas.map(a=>etiq(g,a)+(normal(etiq(g,a))===normal(a.nombre)?'':': '+a.nombre)+(a.fecha?' ('+fcorta(a.fecha)+')':'')).join('\n')+'\n\n';
-  t+='Alumnos con actividades sin entregar: *'+nP+'* de '+total+'\nAlumnos con entregas a destiempo: *'+nT+'*\nAlumnos con faltas: *'+nF+'* (de '+dias+' clases registradas en el parcial hasta hoy)\n'+(nO?'Alumnos con observaciones: *'+nO+'*\n':'');
-  if(!pen.length)t+='\n✅ Ningún alumno con actividades pendientes, entregas a destiempo, faltas ni observaciones en este parcial hasta hoy.\n';
-  pen.forEach(([x,pd,td,ff,rr,ob],i)=>{
+  t+='Alumnos con actividades sin entregar: *'+nP+'* de '+total+'\nAlumnos con entregas a destiempo: *'+nT+'*\nAlumnos con faltas: *'+nF+'* (de '+dias+' clases registradas en el parcial hasta hoy)\n'+(nO?'Alumnos con observaciones: *'+nO+'*\n':'')+(nI?'Alumnos con incidencias: *'+nI+'*\n':'');
+  if(!pen.length)t+='\n✅ Ningún alumno con actividades pendientes, entregas a destiempo, faltas, observaciones ni incidencias en este parcial hasta hoy.\n';
+  pen.forEach(([x,pd,td,ff,rr,ob,ic],i)=>{
     t+='\n'+(i+1)+'. *'+x.nombre+'*\n';
     if(pd.length)t+='   ❌ No entregó: '+pd.map(numAct).join(', ')+'\n';
     if(td.length)t+='   ⏰ A destiempo: '+td.map(a=>numAct(a)+' ('+fcorta(a.tarde[x.id])+')').join(', ')+'\n';
     if(ff.length)t+='   📅 Faltas: *'+ff.length+'* ('+ff.map(fcorta).join(', ')+')'+(rr.length?' · Retardos: '+rr.length:'')+'\n';
     if(ob.length)t+='   📝 Observaciones:\n'+ob.map(o=>'      • '+fcorta(o.fecha)+' ('+o.tipo+'): '+o.texto.replace(/\s+/g,' ').trim()).join('\n')+'\n';
+    if(ic.length)t+='   ⚠️ Incidencias:\n'+ic.map(o=>'      • '+fcorta(o.fecha)+' ('+o.tipo+(o.grav?', '+INC_G[o.grav].n.toLowerCase():'')+'): '+o.desc.replace(/\s+/g,' ').trim()).join('\n')+'\n';
   });
   t+='\nGracias por su apoyo.';
   return t;
@@ -868,6 +905,158 @@ function listaObs(g,obs,conNombre){
 }
 function vNotas(g,head){app.innerHTML=head+formObs(g)+'<h3>Observaciones del grupo</h3>'+listaObs(g,g.obs,true);wireObs(g);}
 
+/* --- bitácora de incidencias --- */
+const INC_T={'Conducta / indisciplina':'#c62828','Uso de celular':'#d97706','Falta de respeto':'#9f1239','Agresión física o verbal':'#7f1d1d','Sin material o tarea':'#2563eb','Salida sin permiso':'#7c3aed','Uniforme / presentación':'#0e7490','Daño a instalaciones':'#a16207','Situación personal (canalizar)':'#0f766e','Positiva / reconocimiento':'#15803d','Otra':'#64748b'};
+const INC_POS='Positiva / reconocimiento';
+const INC_G={leve:{n:'Leve',c:'#a16207',b:'#fef3c7'},moderada:{n:'Moderada',c:'#c2410c',b:'#ffedd5'},grave:{n:'Grave',c:'#b91c1c',b:'#fee2e2'}};
+const INC_A=['Llamada de atención verbal','Diálogo con el alumno','Reporte a orientación','Citatorio a padres o tutores','Acuerdo o compromiso firmado','Retiro temporal del aula','Canalización a orientación o dirección','Reconocimiento frente al grupo'];
+let incF={p:'',q:'',tipo:'',est:'',aid:''},incPre=null,incEdit=null;
+const horaAhora=()=>{const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');};
+const incNeg=o=>o.tipo!==INC_POS;
+function incGrupo(g){   // incidencias de todas las asignaturas del mismo grupo
+  return [g,...hermanos(g)].flatMap(x=>(x.inc||[]).map(o=>({o,src:x})).reverse()).sort((a,b)=>(b.o.fecha+(b.o.hora||'')).localeCompare(a.o.fecha+(a.o.hora||'')));
+}
+const incNombres=z=>z.o.aids.map(id=>{const a=z.src.alumnos.find(k=>k.id===id);return a?a.nombre:'(alumno eliminado)';});
+function incDeAlumno(g,aid){
+  const x=g.alumnos.find(a=>a.id===aid);if(!x)return [];const n=normal(x.nombre);
+  return incGrupo(g).filter(z=>z.o.aids.some(id=>{const a=z.src.alumnos.find(k=>k.id===id);return a&&normal(a.nombre)===n;}));
+}
+function incFiltrar(g,f){
+  const q=normal(f.q||'');
+  return incGrupo(g).filter(z=>{const o=z.o;
+    if(f.p&&parcialDe(g,o.fecha)!==+f.p)return false;
+    if(f.tipo&&o.tipo!==f.tipo)return false;
+    if(f.est&&(o.estado||'abierta')!==f.est)return false;
+    if(f.aid){const x=g.alumnos.find(a=>a.id===f.aid);if(x&&!incNombres(z).some(n=>normal(n)===normal(x.nombre)))return false;}
+    if(q&&!normal(incNombres(z).join(' ')+' '+o.desc+' '+o.tipo).includes(q))return false;
+    return true;});
+}
+const incGravChip=o=>o.grav&&INC_G[o.grav]?'<span class="chip" style="background:'+INC_G[o.grav].b+';color:'+INC_G[o.grav].c+'">'+INC_G[o.grav].n+'</span>':'';
+const incTipoChip=o=>'<span class="chip" style="background:'+(INC_T[o.tipo]||'#64748b')+';color:#fff">'+esc(o.tipo)+'</span>';
+
+function vInc(g,head){
+  const al=activos(g),ed=incEdit&&(g.inc||[]).find(o=>o.id===incEdit);
+  const sel=new Set(ed?ed.aids:(incPre?[incPre]:[]));incPre=null;
+  const o0=ed||{fecha:hoy(),hora:horaAhora(),tipo:'Conducta / indisciplina',grav:'leve',desc:'',acc:['Llamada de atención verbal'],estado:'abierta'};
+  let h=head;
+  // ----- formulario -----
+  h+='<details class="card incform"'+(ed||sel.size||!(g.inc||[]).length?' open':'')+'><summary style="font-size:17px">'+(ed?'✏️ Editar incidencia':'➕ Registrar incidencia')+'</summary>'+
+    '<div class="row" style="margin-top:10px"><div style="flex:1;min-width:140px"><label class="f" for="i-f">Fecha</label><input type="date" class="in" id="i-f" value="'+o0.fecha+'"></div><div style="flex:1;min-width:110px"><label class="f" for="i-h">Hora</label><input type="time" class="in" id="i-h" value="'+esc(o0.hora||'')+'"></div></div>'+
+    '<label class="f" for="i-q">Alumno(s) involucrado(s) <span id="i-n" class="chip inf">'+sel.size+' elegidos</span></label><input class="in" id="i-q" placeholder="Escribe para buscar…" autocomplete="off">'+
+    '<div class="incal" id="i-al">'+al.map(a=>'<button type="button" class="pick'+(sel.has(a.id)?' on':'')+'" data-ia="'+a.id+'" aria-pressed="'+sel.has(a.id)+'">'+esc(a.nombre)+'</button>').join('')+'</div>'+
+    '<label class="f">Tipo</label><div class="chips picks" id="i-t">'+Object.keys(INC_T).map(t=>'<button type="button" class="pick'+(t===o0.tipo?' on':'')+'" style="--c:'+INC_T[t]+'" data-it="'+esc(t)+'">'+esc(t)+'</button>').join('')+'</div>'+
+    '<div id="i-gw"'+(o0.tipo===INC_POS?' class="hidden"':'')+'><label class="f">Gravedad</label><div class="chips picks" id="i-g">'+Object.keys(INC_G).map(k=>'<button type="button" class="pick'+(k===(o0.grav||'leve')?' on':'')+'" style="--c:'+INC_G[k].c+'" data-ig="'+k+'">'+INC_G[k].n+'</button>').join('')+'</div></div>'+
+    '<label class="f" for="i-d">¿Qué pasó? (hechos concretos, sin juicios)</label><textarea class="in" id="i-d" style="min-height:80px" placeholder="Ej. Durante la explicación usó el celular; se le pidió guardarlo dos veces y no lo hizo.">'+esc(o0.desc)+'</textarea>'+
+    '<label class="f">Acciones tomadas</label><div class="chips picks" id="i-a">'+INC_A.map(t=>'<button type="button" class="pick'+(o0.acc.includes(t)?' on':'')+'" style="--c:#1d3557" data-iac="'+esc(t)+'">'+esc(t)+'</button>').join('')+'</div>'+
+    '<label class="f" for="i-ao">Otra acción (opcional)</label><input class="in" id="i-ao" value="'+esc((o0.acc||[]).filter(t=>!INC_A.includes(t)).join('; '))+'">'+
+    '<p class="row" style="margin-top:12px"><button class="btn" id="i-ok">'+(ed?'Guardar cambios':'Guardar incidencia')+'</button>'+(ed?'<button class="btn sec" id="i-cancel">Cancelar</button>':'')+'</p></details>';
+  // ----- resumen y filtros -----
+  const L=incFiltrar(g,incF),neg=L.filter(z=>incNeg(z.o));
+  const cuenta={};neg.forEach(z=>incNombres(z).forEach(n=>cuenta[n]=(cuenta[n]||0)+1));
+  const reinc=Object.entries(cuenta).filter(e=>e[1]>=3).sort((a,b)=>b[1]-a[1]);
+  h+='<h3>Bitácora del grupo '+esc(g.nombre)+(hermanos(g).length?' <span class="muted">(todas tus asignaturas con este grupo)</span>':'')+'</h3>'+
+    '<div class="row incfil"><select class="in" id="if-p" aria-label="Parcial"><option value="">Todos los parciales</option>'+[...Array(g.parciales)].map((_,i)=>'<option value="'+(i+1)+'"'+(+incF.p===i+1?' selected':'')+'>Parcial '+(i+1)+'</option>').join('')+'</select>'+
+    '<select class="in" id="if-t" aria-label="Tipo"><option value="">Todos los tipos</option>'+Object.keys(INC_T).map(t=>'<option'+(incF.tipo===t?' selected':'')+'>'+esc(t)+'</option>').join('')+'</select>'+
+    '<select class="in" id="if-e" aria-label="Estado"><option value="">Abiertas y cerradas</option><option value="abierta"'+(incF.est==='abierta'?' selected':'')+'>Solo abiertas</option><option value="cerrada"'+(incF.est==='cerrada'?' selected':'')+'>Solo cerradas</option></select>'+
+    '<select class="in" id="if-a" aria-label="Alumno"><option value="">Todos los alumnos</option>'+al.map(a=>'<option value="'+a.id+'"'+(incF.aid===a.id?' selected':'')+'>'+esc(a.nombre)+'</option>').join('')+'</select>'+
+    '<input class="in" id="if-q" placeholder="🔎 Buscar en la bitácora" value="'+esc(incF.q)+'"></div>'+
+    '<div class="stat istat" style="margin:10px 0"><div><span>Total</span><b>'+neg.length+'</b></div><div><span>Abiertas</span><b>'+neg.filter(z=>(z.o.estado||'abierta')==='abierta').length+'</b></div><div><span>Graves</span><b'+(neg.some(z=>z.o.grav==='grave')?' class="low"':'')+'>'+neg.filter(z=>z.o.grav==='grave').length+'</b></div><div><span>Alumnos</span><b>'+Object.keys(cuenta).length+'</b></div><div><span>Positivas</span><b style="color:var(--A)">'+(L.length-neg.length)+'</b></div></div>'+
+    (reinc.length?'<div class="note">⚠️ <b>Reincidentes (3 o más):</b> '+reinc.map(([n,c])=>esc(n)+' <b>('+c+')</b>').join(' · ')+'</div>':'')+
+    '<div class="row" style="margin:10px 0"><button class="btn sm" id="i-print">🖨️ Imprimir / PDF</button><button class="btn sm" id="i-wa" style="background:#128c4a">📲 Enviar a orientación</button><button class="btn sm sec" id="i-csv">⬇️ Excel</button><span class="muted">Se imprime y se envía lo que estás viendo con los filtros.</span></div>';
+  h+=L.length?L.map(z=>incCard(g,z)).join(''):'<div class="card empty-st">'+((g.inc||[]).length||incGrupo(g).length?'Ninguna incidencia con estos filtros.':'Sin incidencias registradas. ¡Buen grupo!')+'</div>';
+  app.innerHTML=h;wireInc(g,sel,ed,L);
+}
+function incCard(g,z){
+  const o=z.o,ab=(o.estado||'abierta')==='abierta',nm=incNombres(z);
+  return '<div class="inc" style="--c:'+(INC_T[o.tipo]||'#64748b')+'"><div class="ih">'+fcorta(o.fecha)+(o.hora?' · '+esc(o.hora):'')+(z.src!==g?' · <span class="muted">'+esc(matNom(z.src.materia))+'</span>':'')+
+    ' '+incTipoChip(o)+' '+incGravChip(o)+' <span class="chip '+(ab?'':'ok')+'"'+(ab?' style="background:#e0ecff;color:#1e3a8a"':'')+'>'+(ab?'En seguimiento':'Cerrada')+'</span>'+(o.env?' <span class="chip ok">📲 Orientación '+fcorta(o.env)+'</span>':'')+'</div>'+
+    '<div class="inm">'+o.aids.map((id,i)=>'<a href="#a/'+z.src.id+'/'+id+'">'+esc(nm[i])+'</a>').join(', ')+'</div>'+
+    (o.desc?'<div class="ide">'+esc(o.desc)+'</div>':'')+
+    ((o.acc||[]).length?'<div class="chips" style="margin-top:6px">'+o.acc.map(t=>'<span class="chip inf">'+esc(t)+'</span>').join('')+'</div>':'')+
+    ((o.seg||[]).length?'<div class="iseg">'+o.seg.map(s=>'<div>↳ <b>'+fcorta(s.f)+':</b> '+esc(s.t)+'</div>').join('')+'</div>':'')+
+    '<div class="row iact"><button class="btn sm sec" data-iseg="'+o.id+'">＋ Seguimiento</button><button class="btn sm sec" data-icl="'+o.id+'">'+(ab?'✔ Cerrar':'↺ Reabrir')+'</button><button class="btn sm sec" data-iwa="'+o.id+'">📲 Orientación</button><button class="btn sm sec" data-iacta="'+o.id+'">🖨️ Acta</button><button class="btn sm sec" data-ied="'+o.id+'" aria-label="Editar">✏️</button><button class="btn sm sec" data-idel="'+o.id+'" aria-label="Eliminar">🗑️</button></div>'+
+    '<div class="row hidden" id="is-'+o.id+'" style="margin-top:6px"><input class="in" style="flex:1;min-width:180px" placeholder="Ej. Se habló con la mamá por teléfono; se comprometió a…" id="ist-'+o.id+'"><button class="btn sm" data-isok="'+o.id+'">Agregar</button></div></div>';
+}
+function incBuscar(g,id){for(const z of incGrupo(g))if(z.o.id===id)return z;return null;}
+function wireInc(g,sel,ed,L){
+  const one=(box,attr,cb)=>box.querySelectorAll('['+attr+']').forEach(b=>b.onclick=()=>{box.querySelectorAll('['+attr+']').forEach(x=>{x.classList.remove('on');x.setAttribute('aria-pressed','false');});b.classList.add('on');b.setAttribute('aria-pressed','true');if(cb)cb(b);});
+  app.querySelectorAll('[data-ia]').forEach(b=>b.onclick=()=>{const id=b.dataset.ia;if(sel.has(id))sel.delete(id);else sel.add(id);b.classList.toggle('on',sel.has(id));b.setAttribute('aria-pressed',sel.has(id));$('#i-n').textContent=sel.size+' elegidos';});
+  $('#i-q').oninput=()=>{const q=normal($('#i-q').value);app.querySelectorAll('[data-ia]').forEach(b=>b.classList.toggle('hidden',!!q&&!normal(b.textContent).includes(q)));};
+  one($('#i-t'),'data-it',b=>{const pos=b.dataset.it===INC_POS;$('#i-gw').classList.toggle('hidden',pos);
+    if(pos){app.querySelectorAll('[data-iac]').forEach(x=>x.classList.toggle('on',x.dataset.iac==='Reconocimiento frente al grupo'));}});
+  one($('#i-g'),'data-ig');
+  app.querySelectorAll('[data-iac]').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
+  $('#i-ok').onclick=()=>{
+    const d=$('#i-d').value.trim(),t=(app.querySelector('[data-it].on')||{}).dataset;
+    if(!sel.size){toast('Elige al menos un alumno');return;}
+    if(!d){toast('Describe brevemente qué pasó');$('#i-d').focus();return;}
+    const tipo=t?t.it:'Otra',acc=[...app.querySelectorAll('[data-iac].on')].map(b=>b.dataset.iac);
+    $('#i-ao').value.split(';').map(s=>s.trim()).filter(Boolean).forEach(s=>acc.push(s));
+    const o=ed||{id:uid(),estado:'abierta',seg:[]};
+    Object.assign(o,{fecha:$('#i-f').value||hoy(),hora:$('#i-h').value||'',aids:al2(g,sel),tipo,grav:tipo===INC_POS?'':(app.querySelector('[data-ig].on')||{dataset:{ig:'leve'}}).dataset.ig,desc:d,acc});
+    if(tipo===INC_POS&&!ed)o.estado='cerrada';
+    g.inc=g.inc||[];if(!ed)g.inc.push(o);incEdit=null;cambio();toast(ed?'Cambios guardados':'Incidencia registrada');render();
+  };
+  if($('#i-cancel'))$('#i-cancel').onclick=()=>{incEdit=null;render();};
+  const fil=()=>{incF={p:$('#if-p').value,tipo:$('#if-t').value,est:$('#if-e').value,aid:$('#if-a').value,q:$('#if-q').value};render();setTimeout(()=>{const q=$('#if-q');if(q&&document.activeElement!==q&&incF.q){q.focus();q.setSelectionRange(q.value.length,q.value.length);}},0);};
+  ['#if-p','#if-t','#if-e','#if-a'].forEach(s=>$(s).onchange=fil);
+  let tq;$('#if-q').oninput=()=>{clearTimeout(tq);tq=setTimeout(fil,350);};
+  app.querySelectorAll('[data-iseg]').forEach(b=>b.onclick=()=>{const r=$('#is-'+b.dataset.iseg);r.classList.toggle('hidden');if(!r.classList.contains('hidden'))$('#ist-'+b.dataset.iseg).focus();});
+  app.querySelectorAll('[data-isok]').forEach(b=>b.onclick=()=>{const id=b.dataset.isok,t=$('#ist-'+id).value.trim();if(!t){toast('Escribe el seguimiento');return;}
+    const z=incBuscar(g,id);if(!z)return;z.o.seg=z.o.seg||[];z.o.seg.push({f:hoy(),t});cambio();toast('Seguimiento agregado');render();});
+  app.querySelectorAll('[data-icl]').forEach(b=>b.onclick=()=>{const z=incBuscar(g,b.dataset.icl);if(!z)return;z.o.estado=(z.o.estado||'abierta')==='abierta'?'cerrada':'abierta';cambio();render();});
+  app.querySelectorAll('[data-iwa]').forEach(b=>b.onclick=()=>{const z=incBuscar(g,b.dataset.iwa);if(!z)return;z.o.env=hoy();if(!(z.o.acc||[]).includes('Reporte a orientación'))(z.o.acc=z.o.acc||[]).push('Reporte a orientación');cambio();enviarWhatsApp(z.src,incTexto1(z));render();});
+  app.querySelectorAll('[data-iacta]').forEach(b=>b.onclick=()=>{const z=incBuscar(g,b.dataset.iacta);if(z)imprimir(incActa(g,z),'Acta_incidencia_'+z.o.fecha);});
+  app.querySelectorAll('[data-ied]').forEach(b=>b.onclick=()=>{const z=incBuscar(g,b.dataset.ied);if(!z)return;if(z.src!==g){location.hash='g/'+z.src.id+'/inc';incEdit=z.o.id;return;}incEdit=z.o.id;render();window.scrollTo(0,0);});
+  app.querySelectorAll('[data-idel]').forEach(b=>b.onclick=()=>{const z=incBuscar(g,b.dataset.idel);if(!z)return;if(confirm('¿Eliminar esta incidencia de '+incNombres(z).join(', ')+'? No se puede deshacer.')){z.src.inc=z.src.inc.filter(o=>o.id!==z.o.id);cambio();render();}});
+  $('#i-print').onclick=()=>{if(!L.length){toast('No hay incidencias para imprimir');return;}imprimir(incBitacoraHtml(g,L),'Bitacora_incidencias_'+archivoSeguro(g.nombre));};
+  $('#i-wa').onclick=()=>{if(!L.length){toast('No hay incidencias para enviar');return;}L.forEach(z=>{z.o.env=z.o.env||hoy();});cambio();enviarWhatsApp(g,incTextoResumen(g,L));render();};
+  $('#i-csv').onclick=()=>{const rows=[['Fecha','Hora','Asignatura','Alumno(s)','Tipo','Gravedad','Descripción','Acciones','Seguimiento','Estado','Enviada a orientación']];
+    [...L].reverse().forEach(z=>{const o=z.o;rows.push([o.fecha,o.hora||'',matNom(z.src.materia),incNombres(z).join('; '),o.tipo,o.grav?INC_G[o.grav].n:'',o.desc,(o.acc||[]).join('; '),(o.seg||[]).map(s=>s.f+': '+s.t).join(' | '),(o.estado||'abierta')==='abierta'?'En seguimiento':'Cerrada',o.env||'']);});
+    descargar('Incidencias_'+archivoSeguro(g.nombre)+'.csv',csv(rows));};
+}
+const al2=(g,sel)=>activos(g).filter(a=>sel.has(a.id)).map(a=>a.id).concat([...sel].filter(id=>!activos(g).some(a=>a.id===id)));
+function incPeriodoTxt(g){return incF.p?'Parcial '+incF.p+(g.periodos&&g.periodos[incF.p]&&g.periodos[incF.p].ini?' ('+fcorta(g.periodos[incF.p].ini)+' a '+fcorta(g.periodos[incF.p].fin)+')':''):'Todo el semestre';}
+function incTexto1(z){const o=z.o,g=z.src,PF=S.perfil||{};
+  return '*Reporte de incidencia*\n'+matNom(g.materia)+' · Grupo '+g.nombre+(g.semestre?' · Semestre '+g.semestre:'')+'\n'+fcorta(o.fecha)+(o.hora?' · '+o.hora+' h':'')+'\n\n'+
+    '*Alumno(s):* '+incNombres(z).join(', ')+'\n*Tipo:* '+o.tipo+(o.grav?' · *Gravedad:* '+INC_G[o.grav].n:'')+'\n*Qué pasó:* '+o.desc.replace(/\s+/g,' ').trim()+
+    ((o.acc||[]).length?'\n*Acciones tomadas:* '+o.acc.join(', '):'')+((o.seg||[]).length?'\n*Seguimiento:*\n'+o.seg.map(s=>'• '+fcorta(s.f)+': '+s.t).join('\n'):'')+
+    '\n\n'+(PF.docente?'Docente: '+PF.docente+'\n':'')+'Gracias por su apoyo.';}
+function incTextoResumen(g,L){const PF=S.perfil||{},neg=L.filter(z=>incNeg(z.o));
+  let t='*Bitácora de incidencias*\nGrupo '+g.nombre+(g.semestre?' · Semestre '+g.semestre:'')+'\n'+incPeriodoTxt(g)+' · al '+fcorta(hoy())+'\n'+
+    'Incidencias: *'+neg.length+'* (graves: '+neg.filter(z=>z.o.grav==='grave').length+', en seguimiento: '+neg.filter(z=>(z.o.estado||'abierta')==='abierta').length+')\n';
+  [...L].reverse().forEach((z,i)=>{const o=z.o;t+='\n'+(i+1)+'. '+fcorta(o.fecha)+(o.hora?' '+o.hora:'')+' · *'+incNombres(z).join(', ')+'*\n   '+o.tipo+(o.grav?' ('+INC_G[o.grav].n+')':'')+(hermanos(g).length?' · '+matNom(z.src.materia):'')+'\n   '+o.desc.replace(/\s+/g,' ').trim()+'\n'+
+    ((o.acc||[]).length?'   Acciones: '+o.acc.join(', ')+'\n':'')+((o.seg||[]).length?'   Seguimiento: '+o.seg.map(s=>fcorta(s.f)+' '+s.t).join(' / ')+'\n':'')+((o.estado||'abierta')==='cerrada'?'   ✔ Cerrada\n':'');});
+  return t+'\n'+(PF.docente?'Docente: '+PF.docente+'\n':'')+'Gracias por su apoyo.';}
+
+/* --- impresión --- */
+function imprimir(html,nombre){
+  const p=$('#print');p.innerHTML=html;const t=document.title;document.title=nombre||t;
+  const fin=()=>{document.title=t;window.removeEventListener('afterprint',fin);};window.addEventListener('afterprint',fin);
+  setTimeout(()=>window.print(),60);
+}
+function incEnc(g,titulo){const PF=S.perfil||{};
+  return '<div class="pe"><div><div class="pesc">'+esc(PF.escuela||'Escuela Preparatoria Oficial Núm. 252')+'</div><h1>'+titulo+'</h1></div><div class="pdat">Impreso el '+fcorta(hoy())+' '+new Date().getFullYear()+'</div></div>'+
+    '<table class="pk"><tr><td><b>Docente:</b> '+esc(PF.docente||'')+'</td><td><b>Grupo:</b> '+esc(g.nombre)+(g.semestre?' · <b>Semestre:</b> '+esc(g.semestre):'')+'</td></tr>';}
+function firmas(n){return '<div class="pf">'+n.map(x=>'<div><span></span>'+x+'</div>').join('')+'</div>';}
+function incBitacoraHtml(g,L){const neg=L.filter(z=>incNeg(z.o));
+  let h=incEnc(g,'Bitácora de incidencias')+'<tr><td><b>Asignatura(s):</b> '+esc([...new Set(L.map(z=>matNom(z.src.materia)))].join(', '))+'</td><td><b>Periodo:</b> '+esc(incPeriodoTxt(g))+'</td></tr></table>'+
+    '<p class="pres">Incidencias: <b>'+neg.length+'</b> · Graves: <b>'+neg.filter(z=>z.o.grav==='grave').length+'</b> · Moderadas: <b>'+neg.filter(z=>z.o.grav==='moderada').length+'</b> · Leves: <b>'+neg.filter(z=>z.o.grav==='leve').length+'</b> · En seguimiento: <b>'+neg.filter(z=>(z.o.estado||'abierta')==='abierta').length+'</b>'+(L.length>neg.length?' · Reconocimientos: <b>'+(L.length-neg.length)+'</b>':'')+'</p>'+
+    '<table class="pt"><thead><tr><th>No.</th><th>Fecha</th><th>Alumno(s)</th><th>Tipo y gravedad</th><th>Descripción de los hechos</th><th>Acciones y seguimiento</th><th>Estado</th></tr></thead><tbody>';
+  [...L].reverse().forEach((z,i)=>{const o=z.o;h+='<tr><td class="c">'+(i+1)+'</td><td>'+fcorta(o.fecha)+(o.hora?'<br>'+esc(o.hora):'')+'</td><td><b>'+incNombres(z).map(esc).join('<br>')+'</b></td><td>'+esc(o.tipo)+(o.grav?'<br><b>'+INC_G[o.grav].n+'</b>':'')+(hermanos(g).length?'<br><i>'+esc(matNom(z.src.materia))+'</i>':'')+'</td><td>'+esc(o.desc)+'</td><td>'+esc((o.acc||[]).join('; '))+((o.seg||[]).length?'<br>'+o.seg.map(s=>'<i>'+fcorta(s.f)+':</i> '+esc(s.t)).join('<br>'):'')+(o.env?'<br><i>Enviada a orientación '+fcorta(o.env)+'</i>':'')+'</td><td>'+((o.estado||'abierta')==='abierta'?'En seguimiento':'Cerrada')+'</td></tr>';});
+  return h+'</tbody></table>'+firmas(['Docente','Orientación educativa','Vo. Bo. Subdirección']);}
+function incActa(g,z){const o=z.o,x=z.src;
+  return incEnc(x,'Acta de incidencia')+'<tr><td><b>Asignatura:</b> '+esc(matNom(x.materia))+'</td><td><b>Fecha y hora:</b> '+fcorta(o.fecha)+' '+o.fecha.slice(0,4)+(o.hora?' · '+esc(o.hora)+' h':'')+'</td></tr></table>'+
+    '<table class="pk pa"><tr><th>Alumno(s) involucrado(s)</th><td><b>'+incNombres(z).map(esc).join('<br>')+'</b></td></tr><tr><th>Tipo de incidencia</th><td>'+esc(o.tipo)+'</td></tr>'+(o.grav?'<tr><th>Gravedad</th><td>'+INC_G[o.grav].n+'</td></tr>':'')+
+    '<tr><th>Descripción de los hechos</th><td style="height:110px;vertical-align:top">'+esc(o.desc)+'</td></tr><tr><th>Acciones tomadas</th><td>'+esc((o.acc||[]).join('; '))+'</td></tr>'+
+    '<tr><th>Seguimiento</th><td style="height:70px;vertical-align:top">'+(o.seg||[]).map(s=>fcorta(s.f)+': '+esc(s.t)).join('<br>')+'</td></tr><tr><th>Compromisos del alumno</th><td style="height:80px"></td></tr></table>'+
+    firmas(['Docente','Alumno(s)','Padre, madre o tutor','Orientación educativa']);}
+function incReporteAlumno(g,aid){const x=g.alumnos.find(a=>a.id===aid),L=incDeAlumno(g,aid),a=asis(g,aid);
+  let h=incEnc(g,'Reporte de incidencias del alumno')+'<tr><td colspan="2"><b>Alumno:</b> '+esc(x.nombre)+' · <b>Asistencia:</b> '+(a.pct==null?'—':Math.round(a.pct)+'%')+' · <b>Faltas:</b> '+a.F+' · <b>Retardos:</b> '+a.R+'</td></tr></table>';
+  h+=L.length?'<table class="pt"><thead><tr><th>No.</th><th>Fecha</th><th>Asignatura</th><th>Tipo y gravedad</th><th>Descripción</th><th>Acciones y seguimiento</th></tr></thead><tbody>'+[...L].reverse().map((z,i)=>{const o=z.o;return '<tr><td class="c">'+(i+1)+'</td><td>'+fcorta(o.fecha)+(o.hora?'<br>'+esc(o.hora):'')+'</td><td>'+esc(matNom(z.src.materia))+'</td><td>'+esc(o.tipo)+(o.grav?'<br><b>'+INC_G[o.grav].n+'</b>':'')+'</td><td>'+esc(o.desc)+'</td><td>'+esc((o.acc||[]).join('; '))+((o.seg||[]).length?'<br>'+o.seg.map(s=>'<i>'+fcorta(s.f)+':</i> '+esc(s.t)).join('<br>'):'')+'</td></tr>';}).join('')+'</tbody></table>':'<p>Sin incidencias registradas.</p>';
+  h+='<table class="pk pa" style="margin-top:12px"><tr><th>Acuerdos y compromisos</th><td style="height:90px"></td></tr></table>';
+  return h+firmas(['Docente','Alumno','Padre, madre o tutor','Orientación educativa']);}
+
 /* --- ficha del alumno --- */
 function vFicha(g,aid){
   const x=g.alumnos.find(a=>a.id===aid);if(!x){location.hash='g/'+g.id+'/alumnos';return;}
@@ -886,8 +1075,13 @@ function vFicha(g,aid){
   const marcadas=Object.keys(g.asis).sort().reverse().filter(f=>{const c=g.asis[f].m[aid];return c&&c!=='A';});
   h+='<h3>Faltas, retardos y justificadas</h3>'+(marcadas.length?'<div class="chips">'+marcadas.map(f=>{const c=g.asis[f].m[aid];return '<span class="chip" style="background:'+({F:'#fde2e2',R:'#fff1d6',J:'#e0ecff'})[c]+';color:var(--ink)">'+c+' · '+fcorta(f)+'</span>';}).join('')+'</div>':'<p class="muted">Ninguna.</p>');
   h+='<p style="margin-top:14px"><button class="btn sm sec" id="f-copia">Copiar resumen (para padres u orientación)</button></p>';
+  const LI=incDeAlumno(g,aid);
+  h+='<h3>Incidencias'+(LI.length?' <span class="chip">'+LI.filter(z=>incNeg(z.o)).length+'</span>':'')+'</h3>'+(LI.length?LI.map(z=>'<div class="inc" style="--c:'+(INC_T[z.o.tipo]||'#64748b')+'"><div class="ih">'+fcorta(z.o.fecha)+(z.o.hora?' · '+esc(z.o.hora):'')+(z.src!==g?' · '+esc(matNom(z.src.materia)):'')+' '+incTipoChip(z.o)+' '+incGravChip(z.o)+((z.o.estado||'abierta')==='abierta'?' <span class="chip inf">En seguimiento</span>':' <span class="chip ok">Cerrada</span>')+'</div><div class="ide" style="margin-top:4px">'+esc(z.o.desc)+'</div>'+((z.o.acc||[]).length?'<div class="muted" style="margin-top:4px">Acciones: '+esc(z.o.acc.join(', '))+'</div>':'')+'</div>').join(''):'<p class="muted">Sin incidencias.</p>')+
+    '<p class="row"><button class="btn sm" id="f-inc">➕ Registrar incidencia</button><button class="btn sm sec" id="f-incp">🖨️ Reporte de incidencias (para padres u orientación)</button></p>';
   h+='<h3>Observaciones</h3>'+listaObs(g,g.obs.filter(o=>o.aid===aid),false)+formObs(g,aid);
   app.innerHTML=h;wireObs(g,aid);
+  $('#f-inc').onclick=()=>{incPre=aid;incEdit=null;location.hash='g/'+g.id+'/inc';};
+  $('#f-incp').onclick=()=>imprimir(incReporteAlumno(g,aid),'Incidencias_'+archivoSeguro(x.nombre));
   $('#f-copia').onclick=()=>{
     let t=x.nombre+'\n'+matNom(g.materia)+' · Grupo '+g.nombre+'\nAsistencia: '+(a.pct==null?'sin registro':Math.round(a.pct)+'%')+' ('+a.F+' faltas, '+a.R+' retardos)\n';
     for(let p=1;p<=g.parciales;p++){const c=calif(g,aid,p);if(c.fin==null)continue;
