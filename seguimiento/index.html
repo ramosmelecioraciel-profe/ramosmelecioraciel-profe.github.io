@@ -908,6 +908,19 @@ function vNotas(g,head){app.innerHTML=head+formObs(g)+'<h3>Observaciones del gru
 /* --- bitácora de incidencias --- */
 const INC_T={'Conducta / indisciplina':'#c62828','Uso de celular':'#d97706','Falta de respeto':'#9f1239','Agresión física o verbal':'#7f1d1d','Sin material o tarea':'#2563eb','Salida sin permiso':'#7c3aed','Uniforme / presentación':'#0e7490','Daño a instalaciones':'#a16207','Situación personal (canalizar)':'#0f766e','Positiva / reconocimiento':'#15803d','Otra':'#64748b'};
 const INC_POS='Positiva / reconocimiento';
+const INC_REF={
+ 'Conducta / indisciplina':'Durante la clase, el(la) alumno(a) ___ (platicó en voz alta, se levantó de su lugar, interrumpió la explicación). Se le pidió en ___ ocasiones que guardara orden y no atendió la indicación.',
+ 'Uso de celular':'Durante la clase, el(la) alumno(a) utilizó el celular para ___ (jugar, redes sociales, escuchar música) sin autorización. Se le pidió guardarlo ___ veces y no atendió la indicación.',
+ 'Falta de respeto':'El(la) alumno(a) se dirigió de manera irrespetuosa a ___ (docente, compañero[a]) al ___ (decir, hacer): "___". Se le solicitó modificar su actitud.',
+ 'Agresión física o verbal':'Al ___ (entrar al salón, salir de clase, durante la actividad), el(la) alumno(a) ___ (empujó, golpeó, insultó) a ___. Se intervino para separarlos y se dio aviso a ___.',
+ 'Sin material o tarea':'El(la) alumno(a) no presentó ___ (la tarea, el material, la actividad) solicitado(a) para la clase del día. Es la ___ ocasión en el parcial.',
+ 'Salida sin permiso':'El(la) alumno(a) salió del aula sin autorización a las ___ h y ___ (regresó a las ___ h, no regresó a la clase).',
+ 'Uniforme / presentación':'El(la) alumno(a) se presentó sin ___ (uniforme completo, credencial, calzado escolar), conforme a lo que marca el reglamento escolar.',
+ 'Daño a instalaciones':'El(la) alumno(a) dañó ___ (mobiliario, equipo, pared) del aula ___ al ___ (rayar, golpear, romper). Daño observado: ___.',
+ 'Situación personal (canalizar)':'Se observó al (a la) alumno(a) ___ (decaído[a], aislado[a], con malestar, llorando). Comentó que ___. Se canaliza a orientación para su atención.',
+ 'Positiva / reconocimiento':'El(la) alumno(a) destacó por ___ (apoyar a sus compañeros, su participación, su liderazgo) durante ___.',
+ 'Otra':'Describe qué pasó, cuándo, dónde y quiénes participaron: ___.'};
+const incEsRef=v=>!v.trim()||Object.values(INC_REF).includes(v);
 const INC_G={leve:{n:'Leve',c:'#a16207',b:'#fef3c7'},moderada:{n:'Moderada',c:'#c2410c',b:'#ffedd5'},grave:{n:'Grave',c:'#b91c1c',b:'#fee2e2'}};
 const INC_A=['Llamada de atención verbal','Diálogo con el alumno','Reporte a orientación','Citatorio a padres o tutores','Acuerdo o compromiso firmado','Retiro temporal del aula','Canalización a orientación o dirección','Reconocimiento frente al grupo'];
 let incF={p:'',q:'',tipo:'',est:'',aid:''},incPre=null,incEdit=null;
@@ -946,7 +959,7 @@ function vInc(g,head){
     '<div class="incal" id="i-al">'+al.map(a=>'<button type="button" class="pick'+(sel.has(a.id)?' on':'')+'" data-ia="'+a.id+'" aria-pressed="'+sel.has(a.id)+'">'+esc(a.nombre)+'</button>').join('')+'</div>'+
     '<label class="f">Tipo</label><div class="chips picks" id="i-t">'+Object.keys(INC_T).map(t=>'<button type="button" class="pick'+(t===o0.tipo?' on':'')+'" style="--c:'+INC_T[t]+'" data-it="'+esc(t)+'">'+esc(t)+'</button>').join('')+'</div>'+
     '<div id="i-gw"'+(o0.tipo===INC_POS?' class="hidden"':'')+'><label class="f">Gravedad</label><div class="chips picks" id="i-g">'+Object.keys(INC_G).map(k=>'<button type="button" class="pick'+(k===(o0.grav||'leve')?' on':'')+'" style="--c:'+INC_G[k].c+'" data-ig="'+k+'">'+INC_G[k].n+'</button>').join('')+'</div></div>'+
-    '<label class="f" for="i-d">¿Qué pasó? (hechos concretos, sin juicios)</label><textarea class="in" id="i-d" style="min-height:80px" placeholder="Ej. Durante la explicación usó el celular; se le pidió guardarlo dos veces y no lo hizo.">'+esc(o0.desc)+'</textarea>'+
+    '<label class="f" for="i-d">¿Qué pasó? (hechos concretos, sin juicios)</label><p class="muted" style="margin:2px 0 6px;font-size:13px">📝 Texto de referencia: completa los <b>___</b>, borra lo que no aplique de los paréntesis y ajusta lo necesario.</p><textarea class="in" id="i-d" style="min-height:96px">'+esc(ed?o0.desc:INC_REF[o0.tipo]||'')+'</textarea>'+
     '<label class="f">Acciones tomadas</label><div class="chips picks" id="i-a">'+INC_A.map(t=>'<button type="button" class="pick'+(o0.acc.includes(t)?' on':'')+'" style="--c:#1d3557" data-iac="'+esc(t)+'">'+esc(t)+'</button>').join('')+'</div>'+
     '<label class="f" for="i-ao">Otra acción (opcional)</label><input class="in" id="i-ao" value="'+esc((o0.acc||[]).filter(t=>!INC_A.includes(t)).join('; '))+'">'+
     '<p class="row" style="margin-top:12px"><button class="btn" id="i-ok">'+(ed?'Guardar cambios':'Guardar incidencia')+'</button>'+(ed?'<button class="btn sec" id="i-cancel">Cancelar</button>':'')+'</p></details>';
@@ -982,7 +995,11 @@ function wireInc(g,sel,ed,L){
   const one=(box,attr,cb)=>box.querySelectorAll('['+attr+']').forEach(b=>b.onclick=()=>{box.querySelectorAll('['+attr+']').forEach(x=>{x.classList.remove('on');x.setAttribute('aria-pressed','false');});b.classList.add('on');b.setAttribute('aria-pressed','true');if(cb)cb(b);});
   app.querySelectorAll('[data-ia]').forEach(b=>b.onclick=()=>{const id=b.dataset.ia;if(sel.has(id))sel.delete(id);else sel.add(id);b.classList.toggle('on',sel.has(id));b.setAttribute('aria-pressed',sel.has(id));$('#i-n').textContent=sel.size+' elegidos';});
   $('#i-q').oninput=()=>{const q=normal($('#i-q').value);app.querySelectorAll('[data-ia]').forEach(b=>b.classList.toggle('hidden',!!q&&!normal(b.textContent).includes(q)));};
+  const sigHueco=()=>{const d=$('#i-d'),k=d.value.indexOf('___');if(k>=0){d.focus();d.setSelectionRange(k,k+3);}};
+  $('#i-d').onfocus=()=>setTimeout(()=>{const d=$('#i-d');if(d.selectionStart===d.selectionEnd&&d.value.includes('___')&&incEsRef(d.value))sigHueco();},0);
+  $('#i-d').onkeydown=e=>{if(e.key==='Tab'&&!e.shiftKey&&$('#i-d').value.includes('___')){e.preventDefault();sigHueco();}};
   one($('#i-t'),'data-it',b=>{const pos=b.dataset.it===INC_POS;$('#i-gw').classList.toggle('hidden',pos);
+    const d=$('#i-d');if(incEsRef(d.value))d.value=INC_REF[b.dataset.it]||'';else if(confirm('¿Cambiar tu descripción por el texto de referencia de «'+b.dataset.it+'»?'))d.value=INC_REF[b.dataset.it]||'';
     if(pos){app.querySelectorAll('[data-iac]').forEach(x=>x.classList.toggle('on',x.dataset.iac==='Reconocimiento frente al grupo'));}});
   one($('#i-g'),'data-ig');
   app.querySelectorAll('[data-iac]').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
@@ -990,6 +1007,7 @@ function wireInc(g,sel,ed,L){
     const d=$('#i-d').value.trim(),t=(app.querySelector('[data-it].on')||{}).dataset;
     if(!sel.size){toast('Elige al menos un alumno');return;}
     if(!d){toast('Describe brevemente qué pasó');$('#i-d').focus();return;}
+    if(d.includes('___')){toast('Completa o borra los espacios ___ de la descripción');sigHueco();return;}
     const tipo=t?t.it:'Otra',acc=[...app.querySelectorAll('[data-iac].on')].map(b=>b.dataset.iac);
     $('#i-ao').value.split(';').map(s=>s.trim()).filter(Boolean).forEach(s=>acc.push(s));
     const o=ed||{id:uid(),estado:'abierta',seg:[]};
