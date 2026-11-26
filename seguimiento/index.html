@@ -909,18 +909,51 @@ function vNotas(g,head){app.innerHTML=head+formObs(g)+'<h3>Observaciones del gru
 const INC_T={'Conducta / indisciplina':'#c62828','Uso de celular':'#d97706','Falta de respeto':'#9f1239','Agresión física o verbal':'#7f1d1d','Sin material o tarea':'#2563eb','Salida sin permiso':'#7c3aed','Uniforme / presentación':'#0e7490','Daño a instalaciones':'#a16207','Situación personal (canalizar)':'#0f766e','Positiva / reconocimiento':'#15803d','Otra':'#64748b'};
 const INC_POS='Positiva / reconocimiento';
 const INC_REF={
- 'Conducta / indisciplina':'Durante la clase, el(la) alumno(a) ___ (platicó en voz alta, se levantó de su lugar, interrumpió la explicación). Se le pidió en ___ ocasiones que guardara orden y no atendió la indicación.',
- 'Uso de celular':'Durante la clase, el(la) alumno(a) utilizó el celular para ___ (jugar, redes sociales, escuchar música) sin autorización. Se le pidió guardarlo ___ veces y no atendió la indicación.',
- 'Falta de respeto':'El(la) alumno(a) se dirigió de manera irrespetuosa a ___ (docente, compañero[a]) al ___ (decir, hacer): "___". Se le solicitó modificar su actitud.',
- 'Agresión física o verbal':'Al ___ (entrar al salón, salir de clase, durante la actividad), el(la) alumno(a) ___ (empujó, golpeó, insultó) a ___. Se intervino para separarlos y se dio aviso a ___.',
- 'Sin material o tarea':'El(la) alumno(a) no presentó ___ (la tarea, el material, la actividad) solicitado(a) para la clase del día. Es la ___ ocasión en el parcial.',
- 'Salida sin permiso':'El(la) alumno(a) salió del aula sin autorización a las ___ h y ___ (regresó a las ___ h, no regresó a la clase).',
- 'Uniforme / presentación':'El(la) alumno(a) se presentó sin ___ (uniforme completo, credencial, calzado escolar), conforme a lo que marca el reglamento escolar.',
- 'Daño a instalaciones':'El(la) alumno(a) dañó ___ (mobiliario, equipo, pared) del aula ___ al ___ (rayar, golpear, romper). Daño observado: ___.',
- 'Situación personal (canalizar)':'Se observó al (a la) alumno(a) ___ (decaído[a], aislado[a], con malestar, llorando). Comentó que ___. Se canaliza a orientación para su atención.',
- 'Positiva / reconocimiento':'El(la) alumno(a) destacó por ___ (apoyar a sus compañeros, su participación, su liderazgo) durante ___.',
- 'Otra':'Describe qué pasó, cuándo, dónde y quiénes participaron: ___.'};
-const incEsRef=v=>!v.trim()||Object.values(INC_REF).includes(v);
+ 'Conducta / indisciplina':'Durante la clase, {S} ___ ({platicó|platicaron} en voz alta, se {levantó|levantaron} de su lugar, {interrumpió|interrumpieron} la explicación). Se {le} pidió en ___ ocasiones que {guardara|guardaran} orden y no {atendió|atendieron} la indicación.',
+ 'Uso de celular':'Durante la clase, {S} {utilizó|utilizaron} el celular para ___ (jugar, redes sociales, escuchar música) sin autorización. Se {le} pidió guardarlo ___ veces y no {atendió|atendieron} la indicación.',
+ 'Falta de respeto':'{Sc} se {dirigió|dirigieron} de manera irrespetuosa a ___ (docente, compañero[a]) al ___ (decir, hacer): "___". Se {le} solicitó modificar su actitud.',
+ 'Agresión física o verbal':'Al ___ (entrar al salón, salir de clase, durante la actividad), {S} ___ ({empujó|empujaron}, {golpeó|golpearon}, {insultó|insultaron}) a ___. Se intervino para separarlos y se dio aviso a ___.',
+ 'Sin material o tarea':'{Sc} no {presentó|presentaron} ___ (la tarea, el material, la actividad) solicitado(a) para la clase del día. Es la ___ ocasión en el parcial.',
+ 'Salida sin permiso':'{Sc} {salió|salieron} del aula sin autorización a las ___ h y ___ ({regresó|regresaron} a las ___ h, no {regresó|regresaron} a la clase).',
+ 'Uniforme / presentación':'{Sc} se {presentó|presentaron} sin ___ (uniforme completo, credencial, calzado escolar), conforme a lo que marca el reglamento escolar.',
+ 'Daño a instalaciones':'{Sc} {dañó|dañaron} ___ (mobiliario, equipo, pared) del aula ___ al ___ (rayar, golpear, romper). Daño observado: ___.',
+ 'Situación personal (canalizar)':'Se observó {aS} ___ (decaíd{o}, aislad{o}, con malestar, llorando). {Comentó|Comentaron} que ___. Se {canaliza|canalizan} a orientación para su atención.',
+ 'Positiva / reconocimiento':'{Sc} {destacó|destacaron} por ___ (apoyar a sus compañeros, su participación, su liderazgo) durante ___.',
+ 'Otra':'{Sc} ___ (describe qué pasó, cuándo y dónde).'};
+/* nombres: género y orden natural (Nombre Apellidos) */
+const NOM_F=new Set('ANA ANDREA ABIGAIL ADRIANA ALEJANDRA ALEXA ALICIA ALINE ALMA AMERICA AMAIRANI ANAHI ANDREINA ANGELA ANGELICA ANGIE ARACELI ARELY ARLETTE ASHLEY AYLIN BEATRIZ BELEN BERENICE BLANCA BRENDA BRISA BRITANY BRITNEY CAMILA CARLA CARMEN CAROLINA CASANDRA CATALINA CECILIA CELESTE CINTHIA CITLALI CLARA CLAUDIA CRISTINA DAFNE DANA DANIELA DAYANA DAYANE DENISSE DIANA DULCE EDITH ELENA ELIZABETH EMILY EMILIA ESMERALDA ESTEFANIA ESTHER EVA EVELYN FATIMA FERNANDA FRIDA GABRIELA GEORGINA GISELLE GLORIA GRACIELA GUADALUPE HANNA HANNIA HILDA IRENE IRIS ISABEL ISABELA ITZEL IVONNE JACQUELINE JAQUELINE JAZMIN JESSICA JIMENA JOCELYN JOSELYN JOHANA JUANA JULIA JULIETA KARLA KAREN KARINA KATIA KENIA KIMBERLY LAURA LEILANI LESLIE LETICIA LILIANA LITZY LIZBETH LIZETH LORENA LOURDES LUCIA LUISA LUZ MA. MA MAITE MARGARITA MARIA MARIANA MARIBEL MARICRUZ MARIEL MARINA MARISOL MARLEN MARTHA MAYRA MELANIE MELISSA MICHELLE MIRANDA MIREYA MONICA MONSERRAT MONSERRATH NANCY NATALIA NAYELI NICOLE NOEMI ODALYS OLIVIA PALOMA PAOLA PATRICIA PAULA PAULINA PERLA PRISCILA RAQUEL REBECA REGINA ROCIO ROSA ROSARIO RUBI RUTH SAMANTHA SARA SARAI SHERLYN SILVIA SOFIA SONIA STEPHANIE SUSANA TANIA TERESA VALENTINA VALERIA VANESSA VERONICA VICTORIA VIVIANA WENDY XIMENA YARETZI YAZMIN YESENIA YOLANDA ZOE'.split(' '));
+const NOM_M=new Set('AARON ABEL ABRAHAM ADAN ADOLFO ADRIAN AGUSTIN ALAN ALBERTO ALDO ALEJANDRO ALEXANDER ALEXIS ALFONSO ALFREDO ALONSO ANGEL ANTONIO ARMANDO ARTURO AXEL BENJAMIN BRAULIO BRANDON BRAYAN BRIAN BRYAN CARLOS CESAR CHRISTIAN CRISTIAN CRISTOBAL DAMIAN DANIEL DARIO DAVID DIEGO DYLAN EDGAR EDUARDO EFRAIN ELIAS EMILIANO EMMANUEL ENRIQUE ERICK ERIK ERNESTO ESTEBAN FABIAN FELIPE FERNANDO FRANCISCO GABRIEL GAEL GERARDO GILBERTO GONZALO GUILLERMO GUSTAVO HECTOR HUGO IAN IKER IRVING ISAAC ISAIAS ISMAEL ISRAEL IVAN JAIR JAIME JAVIER JESUS JOAQUIN JOEL JONATHAN JORGE JOSE JOSUE JUAN JULIAN JULIO KEVIN LEONARDO LEONEL LORENZO LUIS MANUEL MARCO MARCOS MARIO MARTIN MATEO MATIAS MAURICIO MAXIMILIANO MIGUEL MOISES NESTOR NICOLAS OCTAVIO OMAR OSCAR OSVALDO PABLO PEDRO RAFAEL RAMON RAUL RENE RICARDO ROBERTO RODRIGO ROGELIO ROMAN RUBEN SALVADOR SAMUEL SANTIAGO SAUL SEBASTIAN SERGIO TOMAS ULISES URIEL VICTOR YAEL'.split(' '));
+const PARTIC=new Set(['DE','DEL','LA','LAS','LOS','Y','VAN','VON','SAN','MC']);
+const sinAc=t=>t.normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase();
+function partesNombre(n){   // agrupa partículas: DE LA CRUZ → un bloque
+  const t=String(n).trim().split(/\s+/),g=[];let pre=[];
+  t.forEach(w=>{if(PARTIC.has(sinAc(w))){pre.push(w);}else{g.push(pre.concat(w).join(' '));pre=[];}});
+  if(pre.length)g.push(pre.join(' '));return g;
+}
+function analizaNombre(x){
+  const g=partesNombre(x.nombre),es=k=>g[k]&&(NOM_F.has(sinAc(g[k]))||NOM_M.has(sinAc(g[k])));
+  // listas escolares: APELLIDO APELLIDO NOMBRE(S); si no, NOMBRE(S) APELLIDOS
+  const n=g.length;let nom,ap;
+  if(n>=3){if(es(0)&&!es(2)){nom=g.slice(0,n-2);ap=g.slice(n-2);}else{nom=g.slice(2);ap=g.slice(0,2);}}
+  else if(n===2){if(es(0)&&!es(1)){nom=[g[0]];ap=[g[1]];}else{nom=[g[1]];ap=[g[0]];}}
+  else{nom=g;ap=[];}
+  const pila=sinAc(nom[0]||'');let sx=x.sx;
+  if(!sx){if(pila==='JOSE'&&nom[1]&&sinAc(nom[1])==='MARIA')sx='M';else if(NOM_F.has(pila))sx='F';else if(NOM_M.has(pila))sx='M';else sx=/A$/.test(pila)?'F':'M';}
+  const tc=s=>s.toLowerCase().split(' ').map((w,i)=>PARTIC.has(sinAc(w))&&i>0?w:w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+  return {sx,txt:tc(nom.concat(ap).join(' '))};
+}
+const unirY=a=>a.length<2?a.join(''):a.slice(0,-1).join(', ')+' y '+a[a.length-1];
+function incGram(g,ids){
+  const xs=ids.map(id=>g.alumnos.find(a=>a.id===id)).filter(Boolean).map(analizaNombre);
+  if(!xs.length)return {S:'el(la) alumno(a)',aS:'al (a la) alumno(a)',le:'le',o:'o(a)',pl:false};
+  const pl=xs.length>1,F=xs.every(z=>z.sx==='F'),nm=unirY(xs.map(z=>z.txt));
+  if(!pl)return F?{S:'la alumna '+nm,aS:'a la alumna '+nm,le:'le',o:'a',pl}:{S:'el alumno '+nm,aS:'al alumno '+nm,le:'le',o:'o',pl};
+  return F?{S:'las alumnas '+nm,aS:'a las alumnas '+nm,le:'les',o:'as',pl}:{S:'los alumnos '+nm,aS:'a los alumnos '+nm,le:'les',o:'os',pl};
+}
+function incRef(tipo,G){
+  return (INC_REF[tipo]||'').replace(/\{([^{}|]*)\|([^{}]*)\}/g,(m,a,b)=>G.pl?b:a)
+    .replace(/\{Sc\}/g,G.S.charAt(0).toUpperCase()+G.S.slice(1)).replace(/\{S\}/g,G.S).replace(/\{aS\}/g,G.aS).replace(/\{le\}/g,G.le).replace(/\{o\}/g,G.o);
+}
 const INC_G={leve:{n:'Leve',c:'#a16207',b:'#fef3c7'},moderada:{n:'Moderada',c:'#c2410c',b:'#ffedd5'},grave:{n:'Grave',c:'#b91c1c',b:'#fee2e2'}};
 const INC_A=['Llamada de atención verbal','Diálogo con el alumno','Reporte a orientación','Citatorio a padres o tutores','Acuerdo o compromiso firmado','Retiro temporal del aula','Canalización a orientación o dirección','Reconocimiento frente al grupo'];
 let incF={p:'',q:'',tipo:'',est:'',aid:''},incPre=null,incEdit=null;
@@ -956,10 +989,10 @@ function vInc(g,head){
   h+='<details class="card incform"'+(ed||sel.size||!(g.inc||[]).length?' open':'')+'><summary style="font-size:17px">'+(ed?'✏️ Editar incidencia':'➕ Registrar incidencia')+'</summary>'+
     '<div class="row" style="margin-top:10px"><div style="flex:1;min-width:140px"><label class="f" for="i-f">Fecha</label><input type="date" class="in" id="i-f" value="'+o0.fecha+'"></div><div style="flex:1;min-width:110px"><label class="f" for="i-h">Hora</label><input type="time" class="in" id="i-h" value="'+esc(o0.hora||'')+'"></div></div>'+
     '<label class="f" for="i-q">Alumno(s) involucrado(s) <span id="i-n" class="chip inf">'+sel.size+' elegidos</span></label><input class="in" id="i-q" placeholder="Escribe para buscar…" autocomplete="off">'+
-    '<div class="incal" id="i-al">'+al.map(a=>'<button type="button" class="pick'+(sel.has(a.id)?' on':'')+'" data-ia="'+a.id+'" aria-pressed="'+sel.has(a.id)+'">'+esc(a.nombre)+'</button>').join('')+'</div>'+
+    '<div class="chips" id="i-sel" style="margin-top:6px"></div><div class="incal" id="i-al">'+al.map(a=>'<button type="button" class="pick'+(sel.has(a.id)?' on':'')+'" data-ia="'+a.id+'" aria-pressed="'+sel.has(a.id)+'">'+esc(a.nombre)+'</button>').join('')+'</div>'+
     '<label class="f">Tipo</label><div class="chips picks" id="i-t">'+Object.keys(INC_T).map(t=>'<button type="button" class="pick'+(t===o0.tipo?' on':'')+'" style="--c:'+INC_T[t]+'" data-it="'+esc(t)+'">'+esc(t)+'</button>').join('')+'</div>'+
     '<div id="i-gw"'+(o0.tipo===INC_POS?' class="hidden"':'')+'><label class="f">Gravedad</label><div class="chips picks" id="i-g">'+Object.keys(INC_G).map(k=>'<button type="button" class="pick'+(k===(o0.grav||'leve')?' on':'')+'" style="--c:'+INC_G[k].c+'" data-ig="'+k+'">'+INC_G[k].n+'</button>').join('')+'</div></div>'+
-    '<label class="f" for="i-d">¿Qué pasó? (hechos concretos, sin juicios)</label><p class="muted" style="margin:2px 0 6px;font-size:13px">📝 Texto de referencia: completa los <b>___</b>, borra lo que no aplique de los paréntesis y ajusta lo necesario.</p><textarea class="in" id="i-d" style="min-height:96px">'+esc(ed?o0.desc:INC_REF[o0.tipo]||'')+'</textarea>'+
+    '<label class="f" for="i-d">¿Qué pasó? (hechos concretos, sin juicios)</label><p class="muted" style="margin:2px 0 6px;font-size:13px">📝 Texto de referencia: completa los <b>___</b>, borra lo que no aplique de los paréntesis y ajusta lo necesario.</p><textarea class="in" id="i-d" style="min-height:110px">'+esc(ed?o0.desc:incRef(o0.tipo,incGram(g,al2(g,sel))))+'</textarea>'+
     '<label class="f">Acciones tomadas</label><div class="chips picks" id="i-a">'+INC_A.map(t=>'<button type="button" class="pick'+(o0.acc.includes(t)?' on':'')+'" style="--c:#1d3557" data-iac="'+esc(t)+'">'+esc(t)+'</button>').join('')+'</div>'+
     '<label class="f" for="i-ao">Otra acción (opcional)</label><input class="in" id="i-ao" value="'+esc((o0.acc||[]).filter(t=>!INC_A.includes(t)).join('; '))+'">'+
     '<p class="row" style="margin-top:12px"><button class="btn" id="i-ok">'+(ed?'Guardar cambios':'Guardar incidencia')+'</button>'+(ed?'<button class="btn sec" id="i-cancel">Cancelar</button>':'')+'</p></details>';
@@ -993,13 +1026,25 @@ function incCard(g,z){
 function incBuscar(g,id){for(const z of incGrupo(g))if(z.o.id===id)return z;return null;}
 function wireInc(g,sel,ed,L){
   const one=(box,attr,cb)=>box.querySelectorAll('['+attr+']').forEach(b=>b.onclick=()=>{box.querySelectorAll('['+attr+']').forEach(x=>{x.classList.remove('on');x.setAttribute('aria-pressed','false');});b.classList.add('on');b.setAttribute('aria-pressed','true');if(cb)cb(b);});
-  app.querySelectorAll('[data-ia]').forEach(b=>b.onclick=()=>{const id=b.dataset.ia;if(sel.has(id))sel.delete(id);else sel.add(id);b.classList.toggle('on',sel.has(id));b.setAttribute('aria-pressed',sel.has(id));$('#i-n').textContent=sel.size+' elegidos';});
+  app.querySelectorAll('[data-ia]').forEach(b=>b.onclick=()=>{const id=b.dataset.ia;if(sel.has(id))sel.delete(id);else sel.add(id);b.classList.toggle('on',sel.has(id));b.setAttribute('aria-pressed',sel.has(id));$('#i-n').textContent=sel.size+' elegidos';pintaSel();actRef(false);});
   $('#i-q').oninput=()=>{const q=normal($('#i-q').value);app.querySelectorAll('[data-ia]').forEach(b=>b.classList.toggle('hidden',!!q&&!normal(b.textContent).includes(q)));};
+  const D=$('#i-d');let refUlt=ed?null:D.value,gramUlt=incGram(g,al2(g,sel));
+  const tipoAct=()=>(app.querySelector('[data-it].on')||{dataset:{it:'Otra'}}).dataset.it;
+  const actRef=cambioTipo=>{const G=incGram(g,al2(g,sel)),nuevo=incRef(tipoAct(),G),v=D.value;
+    if(!v.trim()||v===refUlt)D.value=nuevo;
+    else if(cambioTipo){if(confirm('¿Cambiar tu descripción por el texto de referencia de «'+tipoAct()+'»?'))D.value=nuevo;}
+    else if(gramUlt&&gramUlt.pl===G.pl){const cap=t=>t.charAt(0).toUpperCase()+t.slice(1);D.value=v.split(gramUlt.aS).join(G.aS).split(cap(gramUlt.S)).join(cap(G.S)).split(gramUlt.S).join(G.S);}
+    else{toast('Revisa la redacción: cambió el número de alumnos');refUlt=nuevo;return;}
+    refUlt=nuevo;gramUlt=G;};
+  const pintaSel=()=>{$('#i-sel').innerHTML=al2(g,sel).map(id=>{const x=g.alumnos.find(a=>a.id===id);if(!x)return '';const z=analizaNombre(x);
+      return '<button type="button" class="chip" data-isx="'+id+'" title="Toca para cambiar alumno/alumna" style="cursor:pointer;border:0;background:'+(z.sx==='F'?'#fce7f3;color:#9d174d':'#e0ecff;color:#1e3a8a')+'">'+(z.sx==='F'?'👧 alumna ':'👦 alumno ')+esc(z.txt)+' ⇄</button>';}).join('');
+    $('#i-sel').querySelectorAll('[data-isx]').forEach(b=>b.onclick=()=>{const x=g.alumnos.find(a=>a.id===b.dataset.isx);x.sx=analizaNombre(x).sx==='F'?'M':'F';cambio();pintaSel();actRef(false);});};
+  pintaSel();
   const sigHueco=()=>{const d=$('#i-d'),k=d.value.indexOf('___');if(k>=0){d.focus();d.setSelectionRange(k,k+3);}};
-  $('#i-d').onfocus=()=>setTimeout(()=>{const d=$('#i-d');if(d.selectionStart===d.selectionEnd&&d.value.includes('___')&&incEsRef(d.value))sigHueco();},0);
+  $('#i-d').onfocus=()=>setTimeout(()=>{const d=$('#i-d');if(d.selectionStart===d.selectionEnd&&d.value.includes('___')&&d.value===refUlt)sigHueco();},0);
   $('#i-d').onkeydown=e=>{if(e.key==='Tab'&&!e.shiftKey&&$('#i-d').value.includes('___')){e.preventDefault();sigHueco();}};
   one($('#i-t'),'data-it',b=>{const pos=b.dataset.it===INC_POS;$('#i-gw').classList.toggle('hidden',pos);
-    const d=$('#i-d');if(incEsRef(d.value))d.value=INC_REF[b.dataset.it]||'';else if(confirm('¿Cambiar tu descripción por el texto de referencia de «'+b.dataset.it+'»?'))d.value=INC_REF[b.dataset.it]||'';
+    actRef(true);
     if(pos){app.querySelectorAll('[data-iac]').forEach(x=>x.classList.toggle('on',x.dataset.iac==='Reconocimiento frente al grupo'));}});
   one($('#i-g'),'data-ig');
   app.querySelectorAll('[data-iac]').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
