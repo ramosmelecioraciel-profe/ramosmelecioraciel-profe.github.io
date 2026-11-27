@@ -294,7 +294,24 @@ function activarCorrector() {
   if (!k) return;
   PropertiesService.getScriptProperties().setProperty('GEMINI_KEY', k);
   const t = llamarGemini_(k, 'Corrige: "el alumno no traia su tarea"', 'Responde solo con el texto corregido.');
-  ui.alert(t.ok ? 'Listo. Corrector activado.\n\nPrueba: ' + t.texto : 'La clave no funcionó (' + t.error + '). Revisa que la copiaste completa.');
+  ui.alert(t.ok ? 'Listo. Corrector activado.\n\nPrueba: ' + t.texto : explicaErrorIA_(t.error));
+}
+function probarCorrector() {
+  // Ejecútala desde el editor de Apps Script (botón ▶ Ejecutar) para autorizar la conexión con Gemini y ver el resultado.
+  const k = PropertiesService.getScriptProperties().getProperty('GEMINI_KEY');
+  if (!k) { Logger.log('Falta la clave: usa el menú Seguimiento → Activar corrector de redacción.'); return; }
+  const t = llamarGemini_(k, 'Corrige: "el alumno no traia su tarea"', 'Responde solo con el texto corregido.');
+  Logger.log(t.ok ? 'FUNCIONA: ' + t.texto : 'ERROR: ' + t.error);
+  try { SpreadsheetApp.getUi().alert(t.ok ? 'Corrector funcionando.\n\nPrueba: ' + t.texto : explicaErrorIA_(t.error)); } catch (e) {}
+}
+function explicaErrorIA_(e) {
+  e = String(e || '');
+  if (/permis|permission|autoriza|authoriz|external_request/i.test(e))
+    return 'Falta dar permiso para conectarse a Gemini.\n\nEn Extensiones → Apps Script, elige la función "probarCorrector" arriba y pulsa ▶ Ejecutar; acepta los permisos (Configuración avanzada → Ir a … → Permitir).\n\nDetalle: ' + e;
+  if (/^clave4/.test(e) || /API key|API_KEY/i.test(e)) return 'Google rechazó la clave (' + e + '). Crea otra en aistudio.google.com/apikey y vuelve a pegarla completa.';
+  if (e === 'cuota') return 'La clave funciona, pero se alcanzó el límite gratuito por ahora. Intenta más tarde.';
+  if (e === 'modelo') return 'La clave funciona, pero el modelo no está disponible para tu cuenta.';
+  return 'No se pudo conectar con Gemini.\n\nDetalle: ' + e;
 }
 function redactar_(p) {
   const k = PropertiesService.getScriptProperties().getProperty('GEMINI_KEY');
@@ -336,7 +353,7 @@ function llamarGemini_(k, usr, sis) {
       const txt = (t || []).map(x => x.text || '').join('').trim().replace(/^["“]|["”]$/g, '');
       if (txt) return { ok: true, texto: txt };
       err = 'vacio';
-    } catch (e) { err = 'ia'; }
+    } catch (e) { err = 'ia: ' + String((e && e.message) || e).slice(0, 160); }
   }
   return { ok: false, error: err };
 }
