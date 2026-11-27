@@ -28,6 +28,7 @@ function manejar_(p) {
   const clave = PropertiesService.getScriptProperties().getProperty('CLAVE') || CLAVE_EN_CODIGO;
   if (!clave) return { ok: false, error: 'sinclave' };
   if (String(p.clave || '') !== clave) return { ok: false, error: 'clave' };
+  if (p.accion === 'redactar') return redactar_(p);   // no bloquea el guardado mientras responde la IA
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -163,6 +164,7 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu('Seguimiento')
     .addItem('Configurar mi clave', 'configurarClave')
     .addItem('Conectar hoja de insignias del blog', 'conectarBlog')
+    .addItem('Activar corrector de redacción', 'activarCorrector')
     .addItem('Actualizar resúmenes ahora', 'actualizarHojas').addToUi();
 }
 
@@ -279,4 +281,62 @@ function alertas_(g, aid) {
   if (c.pend >= 2) o.push(c.pend + ' actividades pendientes');
   if (c.hayExam && c.fin != null && c.fin < 6) o.push('Parcial ' + p + ': ' + c.fin);
   return o;
+}
+
+/* ---------- Corrector y mejora de redacción de incidencias (Gemini) ----------
+   Los nombres de los alumnos NUNCA llegan aquí: la app los cambia por [ALUMNO 1], [ALUMNA 2]… */
+function activarCorrector() {
+  const ui = SpreadsheetApp.getUi();
+  const r = ui.prompt('Activar corrector de redacción',
+    '1) Entra a https://aistudio.google.com/apikey con tu cuenta de Google.\n2) Pulsa "Create API key" (es gratis) y cópiala.\n3) Pégala aquí:', ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  const k = r.getResponseText().trim();
+  if (!k) return;
+  PropertiesService.getScriptProperties().setProperty('GEMINI_KEY', k);
+  const t = llamarGemini_(k, 'Corrige: "el alumno no traia su tarea"', 'Responde solo con el texto corregido.');
+  ui.alert(t.ok ? 'Listo. Corrector activado.\n\nPrueba: ' + t.texto : 'La clave no funcionó (' + t.error + '). Revisa que la copiaste completa.');
+}
+function redactar_(p) {
+  const k = PropertiesService.getScriptProperties().getProperty('GEMINI_KEY');
+  if (!k) return { ok: false, error: 'sinia' };
+  const texto = String(p.texto || '').slice(0, 3000);
+  if (!texto.trim()) return { ok: false, error: 'vacio' };
+  const marcas = (p.alumnos || []).join(', ');
+  const sis = p.modo === 'ortografia'
+    ? 'Eres corrector de estilo en español de México. Corrige SOLO ortografía, acentos, puntuación, mayúsculas y concordancia del texto. No cambies el sentido, no agregues ni quites información, no reescribas frases que ya estén bien. Conserva exactamente los marcadores entre corchetes como [ALUMNO 1] o [COMPAÑERA 2]. Responde únicamente con el texto corregido, sin comillas ni comentarios.'
+    : 'Eres un asistente que ayuda a un docente de bachillerato en México a redactar el registro de una incidencia escolar para la bitácora y para orientación educativa. ' +
+      'A partir de la idea del docente, escribe un párrafo de 2 a 5 oraciones en español formal, claro y objetivo, en tercera persona y en pasado. ' +
+      'Describe hechos observables (qué pasó, cuándo y dónde si se menciona, qué indicaciones se dieron y cómo respondió el alumno) y termina con la intervención del docente usando las acciones tomadas que se indican. ' +
+      'Reglas: no inventes hechos, horas, lugares, cantidades ni consecuencias que no estén en la idea o en las acciones; no uses adjetivos que juzguen la personalidad (grosero, flojo, problemático), ni diagnósticos, ni etiquetas; no incluyas saludos, títulos, fecha ni firma. ' +
+      'Conserva exactamente los marcadores entre corchetes como [ALUMNO 1], [ALUMNA 2] o [COMPAÑERO 1]: son nombres reales que la app pondrá después; respeta su género (ALUMNA = femenino) al concordar artículos, pronombres y adjetivos. ' +
+      'Si el tipo es un reconocimiento positivo, redáctalo como reconocimiento. Responde únicamente con el párrafo.';
+  const usr = (p.modo === 'ortografia' ? 'Texto:\n' + texto :
+    'Tipo de incidencia: ' + (p.tipo || 'Otra') + (p.gravedad ? '\nGravedad: ' + p.gravedad : '') +
+    '\nAlumnos involucrados: ' + (marcas || 'no indicado') +
+    '\nAcciones tomadas por el docente: ' + ((p.acciones || []).join('; ') || 'ninguna indicada') +
+    '\nIdea del docente:\n' + texto);
+  return llamarGemini_(k, usr, sis);
+}
+function llamarGemini_(k, usr, sis) {
+  const modelos = ['gemini-flash-latest', 'gemini-3.5-flash-lite'];
+  let err = 'ia';
+  for (const m of modelos) {
+    try {
+      const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent', {
+        method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'x-goog-api-key': k },
+        payload: JSON.stringify({ systemInstruction: { parts: [{ text: sis }] }, contents: [{ role: 'user', parts: [{ text: usr }] }] })
+      });
+      const c = r.getResponseCode();
+      if (c === 404) { err = 'modelo'; continue; }
+      if (c === 429) return { ok: false, error: 'cuota' };
+      if (c === 400 || c === 401 || c === 403) return { ok: false, error: 'clave' + c };
+      if (c !== 200) { err = 'ia' + c; continue; }
+      const j = JSON.parse(r.getContentText());
+      const t = (((j.candidates || [])[0] || {}).content || {}).parts;
+      const txt = (t || []).map(x => x.text || '').join('').trim().replace(/^["“]|["”]$/g, '');
+      if (txt) return { ok: true, texto: txt };
+      err = 'vacio';
+    } catch (e) { err = 'ia'; }
+  }
+  return { ok: false, error: err };
 }
