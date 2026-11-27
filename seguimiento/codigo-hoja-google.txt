@@ -34,6 +34,7 @@ function manejar_(p) {
     const cur = leer_();
     if (p.accion === 'cargar') return { ok: true, datos: cur.datos, rev: cur.rev };
     if (p.accion === 'insignias') return insignias_(p.asignatura);
+    if (p.accion === 'participacion') return participacion_(p.asignatura);
     if (p.accion === 'guardar') {
       if (!p.datos || !Array.isArray(p.datos.grupos)) return { ok: false, error: 'datos' };
       if (Number(p.base) !== -1 && cur.rev && Number(p.base) !== cur.rev)
@@ -130,6 +131,26 @@ function insignias_(asig) {
     if (f > o.ult) o.ult = f;
   });
   return { ok: true, alumnos: Object.keys(map).map(k => { const o = map[k]; return { nombre: o.nombre, grupo: o.grupo, ult: o.ult, ins: o.ins }; }) };
+}
+function participacion_(asig) {
+  // Todos los registros del blog (entradas, videos, prácticas, autoevaluaciones, simuladores e insignias) por alumno
+  const id = PropertiesService.getScriptProperties().getProperty('BLOG_ID');
+  if (!id) return { ok: false, error: 'sinblog' };
+  let h;
+  try { h = SpreadsheetApp.openById(id).getSheetByName('Accesos'); } catch (e) { return { ok: false, error: 'sinblog' }; }
+  if (!h) return { ok: false, error: 'sinblog' };
+  const n = h.getLastRow();
+  if (n < 2) return { ok: true, alumnos: [] };
+  const v = h.getRange(2, 1, n - 1, 6).getValues(), map = {};
+  v.forEach(r => {
+    if (asig && sinAcentos_(r[3]) !== sinAcentos_(asig)) return;
+    const nom = String(r[1]).trim().replace(/\s+/g, ' '), gr = String(r[2]).trim();
+    if (!nom) return;
+    const k = nom.toUpperCase() + '|' + gr.toUpperCase();
+    const f = r[0] instanceof Date ? Utilities.formatDate(r[0], 'America/Mexico_City', 'yyyy-MM-dd HH:mm') : String(r[0]).slice(0, 16);
+    (map[k] || (map[k] = { nombre: nom, grupo: gr, ev: [] })).ev.push([f, String(r[4]).slice(0, 40), String(r[5]).slice(0, 120)]);
+  });
+  return { ok: true, alumnos: Object.keys(map).map(k => map[k]) };
 }
 function configurar() {
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'actualizarHojas')

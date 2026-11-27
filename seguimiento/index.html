@@ -114,6 +114,7 @@ details{background:var(--card);border:1px solid var(--line);border-radius:12px;p
 summary{font-weight:800;cursor:pointer}
 .empty-st{text-align:center;padding:30px 10px;color:var(--ink2)}
 .hidden{display:none!important}
+.pbar{display:flex;height:22px;border-radius:8px;overflow:hidden;margin-top:10px}.pbar span{color:#fff;font-size:12px;font-weight:800;display:grid;place-items:center;min-width:18px}
 .inc{border:1px solid var(--line);border-left:6px solid var(--c);border-radius:12px;background:var(--card);padding:10px 12px;margin-bottom:10px}
 .inc .ih{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;font-weight:800;color:var(--ink2)}
 .inc .inm{font-weight:800;margin:6px 0 2px}.inc .inm a{color:var(--ink);text-decoration:none}.inc .inm a:hover{text-decoration:underline}
@@ -571,6 +572,7 @@ function vGrupo(g,t){
   setTimeout(()=>{const b=$('#h-wa');if(b)b.onclick=()=>enviarWhatsApp(g,reporteOrientacion(g,+$('#h-wap').value));},0);
   if(t==='calif')return vCalif(g,head);
   if(t==='insignias')return vInsignias(g,head);
+  if(t==='blog')return vBlog(g,head);
   if(t==='alumnos')return vAlumnos(g,head);
   if(t==='notas')return vNotas(g,head);
   if(t==='inc')return vInc(g,head);
@@ -651,7 +653,7 @@ function vCalif(g,head){
       else h+=r.peso>0?'<p style="margin:0 0 6px"><button class="btn sm sec" data-nu="'+r.id+'">+ Capturar '+esc(r.nombre)+' del parcial '+p+' (sobre '+r.peso+')</button></p>':'<p class="muted" style="margin:0 0 6px">Vale 0 %.</p>';}
   });
 
-  h+='<div class="row" style="justify-content:space-between;margin-top:18px"><h3 style="margin:0">Concentrado del parcial '+p+'</h3><span class="row"><a class="btn sm sec" href="#g/'+g.id+'/insignias">⭐ Insignias del blog</a><button class="btn sm xl" id="c-xls">⬇ Descargar parcial '+p+' (Excel)</button></span></div>';
+  h+='<div class="row" style="justify-content:space-between;margin-top:18px"><h3 style="margin:0">Concentrado del parcial '+p+'</h3><span class="row"><a class="btn sm sec" href="#g/'+g.id+'/blog">📊 Participación blog</a><a class="btn sm sec" href="#g/'+g.id+'/insignias">⭐ Insignias del blog</a><button class="btn sm xl" id="c-xls">⬇ Descargar parcial '+p+' (Excel)</button></span></div>';
   h+='<p class="muted">Cada rubro suma (calificación ÷ escala × valor) de sus actividades, sin pasar de su porcentaje. Cal. final = total ÷ 10 redondeado; menos de 60 puntos = 5. Las actividades vacías cuentan como 0. "Extra" suma décimas (por ejemplo, insignias del blog).</p>';
   const VA=valores(g,p),cols=RR.filter(r=>r.tipo!=='unico'||r.peso>0||itemsR(g,p,r.id).length);
   h+='<div class="tw"><table><thead><tr><th>N.P.</th><th>Alumno</th>'+ac.map(x=>'<th class="num" title="'+esc(x.nombre)+'">'+esc(etiq(g,x))+'<br><span style="text-transform:none;font-weight:600">'+fpt(VA.v[x.id])+' pts</span></th>').join('')+
@@ -786,7 +788,7 @@ function parecido(blog,lista){const b=tokensN(blog),a=new Set(tokensN(lista));if
 let insCache=null;
 function vInsignias(g,head){
   if(!g.pActual||g.pActual>g.parciales)g.pActual=pHoy(g);
-  let h=head+'<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">⭐ Insignias del blog → puntos extra</h3><a class="btn sm sec" href="#g/'+g.id+'/calif">← Calificaciones</a></div>'+
+  let h=head+'<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">⭐ Insignias del blog → puntos extra</h3><span class="row"><a class="btn sm sec" href="#g/'+g.id+'/blog">📊 Participación</a><a class="btn sm sec" href="#g/'+g.id+'/calif">← Calificaciones</a></span></div>'+
     '<p class="muted">Trae de tu hoja del blog las insignias de cada alumno de <b>'+esc(matNom(g.materia))+'</b> y calcula sus décimas extra: 10–19 pts = +0.2 · 20–29 = +0.4 · 30–39 = +0.6 · 40 o más = +1.0. Revisa y pulsa Aplicar.</p>'+
     '<div class="row"><label for="i-p" style="font-weight:700">Aplicar al</label><select class="in" id="i-p" style="width:auto">'+[...Array(g.parciales)].map((_,i)=>'<option value="'+(i+1)+'"'+(i+1===g.pActual?' selected':'')+'>Parcial '+(i+1)+'</option>').join('')+'</select><button class="btn sm sec" id="i-rec">↻ Volver a leer</button></div><div id="i-res" style="margin-top:12px"><p class="muted">Leyendo tu hoja del blog…</p></div></div>';
   app.innerHTML=h;
@@ -834,6 +836,109 @@ function vInsignias(g,head){
   }
   cargar();
 }
+/* --- participación en el blog --- */
+let partCache=null,partF={p:'',q:''},partAbierto=null;
+const PART_NIV={alta:{n:'Alta',c:'#15803d',b:'#dcfce7'},media:{n:'Media',c:'#1d4ed8',b:'#dbeafe'},baja:{n:'Baja',c:'#c2410c',b:'#ffedd5'},nula:{n:'Sin participación',c:'#b91c1c',b:'#fee2e2'}};
+const tipoEv=a=>/^Entr/i.test(a)?'in':/^Vio video/i.test(a)?'vid':/^Abri/i.test(a)?'arc':/^Autoeval/i.test(a)?'auto':/^Pr[aá]ctica/i.test(a)?'prac':/^Us[oó] simulador/i.test(a)?'sim':/^Insignia/i.test(a)?'ins':'otro';
+const EV_ICO={in:'🚪',vid:'🎬',arc:'📄',auto:'📝',prac:'✏️',sim:'🧪',ins:'🏅',otro:'•'};
+function emparejarBlog(g,datos){   // mismo criterio y mismas asignaciones a mano que en Insignias
+  g.insMap=g.insMap||{};const al=activos(g);
+  datos.forEach(e=>{const k=normal(e.nombre)+'|'+normal(e.grupo);e.k=k;
+    if(k in g.insMap){e.aid=g.insMap[k]||null;e.manual=true;return;}
+    const L=al.map(a=>Object.assign({a},parecido(e.nombre,a.nombre))).sort((x,y)=>y.s-x.s||y.h-x.h),b1=L[0],b2=L[1];
+    e.aid=b1&&b1.h>=2&&b1.s>=0.66&&(!b2||b1.s>b2.s||b1.h>b2.h)?b1.a.id:null;e.manual=false;});
+}
+function partResumen(g,datos,p){
+  const R={};
+  activos(g).forEach(a=>{
+    const ev=datos.filter(e=>e.aid===a.id).flatMap(e=>e.ev).filter(v=>!p||parcialDe(g,v[0].slice(0,10))===+p).sort((x,y)=>x[0].localeCompare(y[0]));
+    const de=t=>ev.filter(v=>tipoEv(v[1])===t),dist=t=>new Set(de(t).map(v=>v[2])).size;
+    const prac=de('prac').filter(v=>!/incompleta/i.test(v[2])),pn=prac.map(v=>{const m=v[2].match(/(\d+(?:\.\d+)?)\s*\/\s*10/);return m?+m[1]:null;}).filter(x=>x!=null);
+    const au=de('auto').map(v=>{const m=v[2].match(/(\d)\s*\/\s*5/);return m?+m[1]:null;}).filter(x=>x!=null);
+    const ins={};de('ins').forEach(v=>{const cl=v[2].replace(/\s*·\s*\d+(\.\d+)?\s*pts?\s*$/i,'').trim(),m=v[2].match(/(\d+(?:\.\d+)?)\s*pts?\s*$/i);if(!(cl in ins))ins[cl]={pts:m?+m[1]:0,t:v[1],f:v[0]};});
+    const nI=Object.keys(ins).length,dias=new Set(ev.map(v=>v[0].slice(0,10))).size;
+    const niv=!ev.length?'nula':(dias>=5||nI>=4)?'alta':(dias>=2||nI>=1)?'media':'baja';
+    R[a.id]={ev,dias,vid:dist('vid'),arc:dist('arc'),prac:prac.length,pProm:pn.length?pn.reduce((s,x)=>s+x,0)/pn.length:null,auto:au.length,aProm:au.length?au.reduce((s,x)=>s+x,0)/au.length:null,sim:dist('sim'),ins,nI,
+      bro:Object.values(ins).filter(o=>/bronce/i.test(o.t)).length,pla:Object.values(ins).filter(o=>/plata/i.test(o.t)).length,oro:Object.values(ins).filter(o=>/oro/i.test(o.t)).length,esp:Object.values(ins).filter(o=>/especial/i.test(o.t)).length,
+      pts:Object.values(ins).reduce((s,o)=>s+o.pts,0),ult:ev.length?ev[ev.length-1][0]:'',niv};
+  });
+  return R;
+}
+const nivChip=k=>'<span class="chip" style="background:'+PART_NIV[k].b+';color:'+PART_NIV[k].c+'">'+PART_NIV[k].n+'</span>';
+function partPF(g,R){   // insignias por propósito formativo (alumnos que la tienen)
+  const T={};Object.values(R).forEach(r=>Object.keys(r.ins).forEach(cl=>{const m=cl.match(/^(Bronce|Plata|Oro)\s*·\s*(PF\s*\d+)\s*(.*)$/i);if(!m)return;const k=m[2].replace(/\s+/g,'').toUpperCase();
+    const o=T[k]||(T[k]={nom:m[3],bronce:0,plata:0,oro:0});o[m[1].toLowerCase()]++;if(!o.nom&&m[3])o.nom=m[3];}));
+  return Object.keys(T).sort((a,b)=>+a.slice(2)-+b.slice(2)).map(k=>[k,T[k]]);
+}
+function vBlog(g,head){
+  let h=head+'<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">📊 Participación en el blog</h3><span class="row"><a class="btn sm sec" href="#g/'+g.id+'/insignias">⭐ Insignias → extra</a><a class="btn sm sec" href="#g/'+g.id+'/calif">← Calificaciones</a></span></div>'+
+    '<p class="muted">Lo que hizo cada alumno de <b>'+esc(matNom(g.materia))+'</b> en el blog: días que entró, videos, prácticas, autoevaluaciones, simuladores e insignias.</p>'+
+    '<div class="row"><select class="in" id="b-p" style="width:auto" aria-label="Periodo"><option value="">Todo el semestre</option>'+[...Array(g.parciales)].map((_,i)=>'<option value="'+(i+1)+'"'+(+partF.p===i+1?' selected':'')+'>Parcial '+(i+1)+'</option>').join('')+'</select>'+
+    '<input class="in" id="b-q" placeholder="🔎 Buscar alumno" value="'+esc(partF.q)+'" style="flex:1;min-width:160px"><button class="btn sm sec" id="b-rec">↻ Volver a leer</button></div><div id="b-res" style="margin-top:12px"><p class="muted">Leyendo tu hoja del blog…</p></div></div>';
+  app.innerHTML=h;const res=$('#b-res');let datos=null;
+  $('#b-rec').onclick=()=>{partCache=null;cargar();};
+  $('#b-p').onchange=()=>{partF.p=$('#b-p').value;pinta();};
+  let tq;$('#b-q').oninput=()=>{clearTimeout(tq);tq=setTimeout(()=>{partF.q=$('#b-q').value;pinta();},250);};
+  async function cargar(){
+    if(!C.url){res.innerHTML='<p class="note">Primero conecta tu Hoja de Google en ⚙.</p>';return;}
+    res.innerHTML='<p class="muted">Leyendo tu hoja del blog…</p>';
+    try{
+      if(!partCache||partCache.g!==g.id){const r=await api({accion:'participacion',asignatura:matNom(g.materia)});
+        if(!r.ok){res.innerHTML=r.error==='sinblog'?'<div class="note"><b>Falta conectar la hoja del blog.</b> En tu Hoja de Google de Seguimiento: menú <b>Seguimiento → Conectar hoja de insignias del blog</b>.</div>':
+          r.error==='accion'?'<div class="note"><b>Falta actualizar el código de tu Hoja de Google (una sola vez).</b><ol style="margin:6px 0 0 18px;padding:0"><li>Abre tu Hoja de Google de Seguimiento en la computadora → <b>Extensiones → Apps Script</b>.</li><li>Borra todo el código y pega el de <a href="codigo-hoja-google.txt" target="_blank" rel="noopener">codigo-hoja-google.txt</a>. Guarda (💾).</li><li><b>Implementar → Administrar implementaciones → ✏️ → Versión: Nueva versión → Implementar</b>. Así la dirección /exec no cambia.</li><li>Regresa aquí y pulsa <b>↻ Volver a leer</b>.</li></ol></div>':
+          '<p class="note">No se pudo leer ('+esc(r.error||'error')+').</p>';return;}
+        partCache={g:g.id,alumnos:r.alumnos||[]};}
+      datos=partCache.alumnos;emparejarBlog(g,datos);pinta();
+    }catch(e){res.innerHTML='<p class="note">Sin conexión con tu Hoja de Google. Intenta de nuevo con internet.</p>';}
+  }
+  function pinta(){
+    if(!datos)return;const al=activos(g),R=partResumen(g,datos,partF.p),q=normal(partF.q||'');
+    const cnt={alta:0,media:0,baja:0,nula:0};al.forEach(a=>cnt[R[a.id].niv]++);
+    const part=al.length-cnt.nula,sum=k=>al.reduce((s,a)=>s+R[a.id][k],0);
+    let t='<div class="stat istat" style="grid-template-columns:repeat(4,minmax(0,1fr))"><div><span>Participaron</span><b>'+part+'/'+al.length+'</b></div><div><span>Días promedio</span><b>'+(al.length?(sum('dias')/al.length).toFixed(1):0)+'</b></div><div><span>Insignias</span><b>'+sum('nI')+'</b></div><div><span>Prácticas</span><b>'+sum('prac')+'</b></div></div>';
+    t+='<div class="pbar" title="Distribución por nivel">'+Object.keys(PART_NIV).map(k=>cnt[k]?'<span style="flex:'+cnt[k]+';background:'+PART_NIV[k].c+'">'+cnt[k]+'</span>':'').join('')+'</div>'+
+      '<div class="chips" style="margin:6px 0 4px">'+Object.keys(PART_NIV).map(k=>nivChip(k).replace('</span>',': '+cnt[k]+'</span>')).join('')+'</div>'+
+      '<p class="muted" style="margin:0 0 10px;font-size:13px">Alta: 5 días o más, o 4+ insignias · Media: 2–4 días o alguna insignia · Baja: entró solo un día · Sin participación: ningún registro en el periodo.</p>';
+    t+='<div class="row" style="margin:8px 0"><button class="btn sm" id="b-print">🖨️ Imprimir / PDF</button><button class="btn sm" id="b-wa" style="background:#128c4a">📲 WhatsApp</button><button class="btn sm sec" id="b-csv">⬇️ Excel</button></div>';
+    const lista=al.filter(a=>!q||normal(a.nombre).includes(q));
+    t+='<div class="tw"><table><thead><tr><th>Alumno</th><th class="num" title="Días que entró">Días</th><th class="num" title="Videos vistos">🎬</th><th class="num" title="Prácticas (promedio /10)">✏️ Práct.</th><th class="num" title="Autoevaluaciones (promedio /5)">📝 Autoev.</th><th class="num" title="Simuladores usados">🧪</th><th class="num" title="Insignias bronce · plata · oro · especiales">🏅 Insignias</th><th class="num">Pts</th><th>Última</th><th>Nivel</th></tr></thead><tbody>'+
+      lista.map(a=>{const r=R[a.id];return '<tr class="click" data-b="'+a.id+'"><td class="nm">'+esc(a.nombre)+'</td><td class="num">'+(r.dias||'—')+'</td><td class="num">'+(r.vid||'—')+'</td><td class="num">'+(r.prac?r.prac+(r.pProm!=null?' <span class="muted">('+f1(r.pProm)+')</span>':''):'—')+'</td><td class="num">'+(r.auto?r.auto+(r.aProm!=null?' <span class="muted">('+f1(r.aProm)+')</span>':''):'—')+'</td><td class="num">'+(r.sim||'—')+'</td><td class="num">'+(r.nI?'🥉'+r.bro+' 🥈'+r.pla+' 🥇'+r.oro+(r.esp?' ⭐'+r.esp:''):'—')+'</td><td class="num">'+(r.pts||'—')+'</td><td>'+(r.ult?fcorta(r.ult.slice(0,10)):'—')+'</td><td>'+nivChip(r.niv)+'</td></tr>'+
+        (partAbierto===a.id?'<tr><td colspan="10" style="white-space:normal;background:#faf7f0">'+partDetalle(g,a,r)+'</td></tr>':'');}).join('')+'</tbody></table></div><p class="muted">Toca un alumno para ver su actividad. Entre paréntesis: promedio de sus prácticas (sobre 10) y autoevaluaciones (sobre 5).</p>';
+    const pf=partPF(g,R);
+    if(pf.length)t+='<h3>Insignias por propósito formativo</h3><p class="muted" style="margin-top:-6px">Cuántos alumnos tienen cada insignia: te dice qué temas practican más y cuáles reforzar.</p><div class="tw"><table><thead><tr><th>Propósito</th><th class="num">🥉 Bronce</th><th class="num">🥈 Plata</th><th class="num">🥇 Oro</th></tr></thead><tbody>'+pf.map(([k,o])=>'<tr><td class="nm">'+k+' '+esc(o.nom)+'</td><td class="num">'+o.bronce+'</td><td class="num">'+o.plata+'</td><td class="num">'+o.oro+'</td></tr>').join('')+'</tbody></table></div>';
+    const sinId=datos.filter(e=>!e.aid);
+    if(sinId.length)t+='<p class="note" style="margin-top:10px">Hay '+sinId.length+' nombre'+(sinId.length===1?'':'s')+' del blog sin identificar. Asígnalos en <a href="#g/'+g.id+'/insignias">⭐ Insignias</a> y se toman en cuenta aquí también.</p>';
+    res.innerHTML=t;
+    res.querySelectorAll('[data-b]').forEach(r=>r.onclick=()=>{partAbierto=partAbierto===r.dataset.b?null:r.dataset.b;pinta();});
+    $('#b-print').onclick=()=>imprimir(partImprimir(g,R,cnt,pf),'Participacion_blog_'+archivoSeguro(g.nombre));
+    $('#b-wa').onclick=()=>enviarWhatsApp(g,partTexto(g,R,cnt));
+    $('#b-csv').onclick=()=>{const rows=[['Alumno','Días','Videos','Archivos','Prácticas','Promedio prácticas /10','Autoevaluaciones','Promedio autoev. /5','Simuladores','Insignias','Bronce','Plata','Oro','Especiales','Puntos','Última actividad','Nivel']];
+      al.forEach(a=>{const r=R[a.id];rows.push([a.nombre,r.dias,r.vid,r.arc,r.prac,r.pProm==null?'':f1(r.pProm),r.auto,r.aProm==null?'':f1(r.aProm),r.sim,r.nI,r.bro,r.pla,r.oro,r.esp,r.pts,r.ult,PART_NIV[r.niv].n]);});
+      descargar('Participacion_blog_'+archivoSeguro(g.nombre)+'.csv',csv(rows));};
+  }
+  cargar();
+}
+function partDetalle(g,a,r){
+  if(!r.ev.length)return '<span class="muted">Sin registros en el periodo.</span>';
+  return '<div style="max-height:260px;overflow:auto;font-size:14px">'+[...r.ev].reverse().slice(0,40).map(v=>'<div>'+EV_ICO[tipoEv(v[1])]+' <b>'+fcorta(v[0].slice(0,10))+' '+esc(v[0].slice(11,16))+'</b> · '+esc(v[1])+(v[2]?' <span class="muted">— '+esc(v[2])+'</span>':'')+'</div>').join('')+(r.ev.length>40?'<div class="muted">… y '+(r.ev.length-40)+' registros más</div>':'')+'</div>'+
+    '<p class="row" style="margin:8px 0 0"><a class="btn sm sec" href="#a/'+g.id+'/'+a.id+'">Ver ficha</a></p>';
+}
+const partPer=g=>partF.p?'Parcial '+partF.p+(g.periodos&&g.periodos[partF.p]&&g.periodos[partF.p].ini?' ('+fcorta(g.periodos[partF.p].ini)+' a '+fcorta(g.periodos[partF.p].fin)+')':''):'Todo el semestre';
+function partTexto(g,R,cnt){const al=activos(g),PF=S.perfil||{},by=k=>al.filter(a=>R[a.id].niv===k);
+  let t='*Participación en el blog*\n'+matNom(g.materia)+' · Grupo '+g.nombre+'\n'+partPer(g)+' · al '+fcorta(hoy())+'\n\n'+
+    'Participaron: *'+(al.length-cnt.nula)+' de '+al.length+'*\nAlta: '+cnt.alta+' · Media: '+cnt.media+' · Baja: '+cnt.baja+' · Sin participación: '+cnt.nula+'\n';
+  const top=by('alta').sort((a,b)=>R[b.id].pts-R[a.id].pts||R[b.id].dias-R[a.id].dias);
+  if(top.length)t+='\n⭐ *Participación alta:*\n'+top.map(a=>'• '+a.nombre+' ('+R[a.id].dias+' días, '+R[a.id].nI+' insignias)').join('\n')+'\n';
+  const nul=by('nula');if(nul.length)t+='\n⚠️ *Sin participación:*\n'+nul.map(a=>'• '+a.nombre).join('\n')+'\n';
+  const baj=by('baja');if(baj.length)t+='\n*Participación baja (entró un solo día):*\n'+baj.map(a=>'• '+a.nombre).join('\n')+'\n';
+  return t+'\n'+(PF.docente?'Docente: '+PF.docente:'');}
+function partImprimir(g,R,cnt,pf){const al=activos(g);
+  let h=incEnc(g,'Reporte de participación en el blog')+'<tr><td><b>Asignatura:</b> '+esc(matNom(g.materia))+'</td><td><b>Periodo:</b> '+esc(partPer(g))+'</td></tr></table>'+
+    '<p class="pres">Participaron: <b>'+(al.length-cnt.nula)+' de '+al.length+'</b> · Alta: <b>'+cnt.alta+'</b> · Media: <b>'+cnt.media+'</b> · Baja: <b>'+cnt.baja+'</b> · Sin participación: <b>'+cnt.nula+'</b></p>'+
+    '<table class="pt"><thead><tr><th>No.</th><th>Alumno</th><th>Días</th><th>Videos</th><th>Prácticas (prom. /10)</th><th>Autoev. (prom. /5)</th><th>Simul.</th><th>Insignias B·P·O·E</th><th>Pts</th><th>Última</th><th>Nivel</th></tr></thead><tbody>'+
+    al.map((a,i)=>{const r=R[a.id];return '<tr><td class="c">'+(i+1)+'</td><td><b>'+esc(a.nombre)+'</b></td><td class="c">'+r.dias+'</td><td class="c">'+r.vid+'</td><td class="c">'+r.prac+(r.pProm!=null?' ('+f1(r.pProm)+')':'')+'</td><td class="c">'+r.auto+(r.aProm!=null?' ('+f1(r.aProm)+')':'')+'</td><td class="c">'+r.sim+'</td><td class="c">'+(r.nI?r.bro+'·'+r.pla+'·'+r.oro+'·'+r.esp:'0')+'</td><td class="c">'+r.pts+'</td><td>'+(r.ult?fcorta(r.ult.slice(0,10)):'—')+'</td><td>'+PART_NIV[r.niv].n+'</td></tr>';}).join('')+'</tbody></table>';
+  if(pf.length)h+='<h2 style="font-size:12pt;margin:14px 0 4px">Insignias por propósito formativo (alumnos)</h2><table class="pt" style="width:auto"><thead><tr><th>Propósito</th><th>Bronce</th><th>Plata</th><th>Oro</th></tr></thead><tbody>'+pf.map(([k,o])=>'<tr><td>'+k+' '+esc(o.nom)+'</td><td class="c">'+o.bronce+'</td><td class="c">'+o.plata+'</td><td class="c">'+o.oro+'</td></tr>').join('')+'</tbody></table>';
+  return h+'<p style="font-size:8.5pt;color:#444;margin-top:10px">Alta: 5 días o más, o 4 o más insignias · Media: 2 a 4 días o alguna insignia · Baja: entró un solo día · Sin participación: ningún registro en el periodo. Fuente: registros del blog de la asignatura.</p>'+firmas(['Docente','Orientación educativa']);}
 function pendientesYTarde(g,p){
   const h=hoy(),dias=Object.keys(g.asis).filter(f=>parcialDe(g,f)===p&&f<=h).sort();
   return activos(g).map(x=>{const c=calif(g,x.id,p);const ff=dias.filter(f=>g.asis[f].m[x.id]==='F'),rr=dias.filter(f=>g.asis[f].m[x.id]==='R');
@@ -1140,9 +1245,10 @@ function vFicha(g,aid){
   h+='<p style="margin-top:14px"><button class="btn sm sec" id="f-copia">Copiar resumen (para padres u orientación)</button></p>';
   const LI=incDeAlumno(g,aid);
   h+='<h3>Incidencias'+(LI.length?' <span class="chip">'+LI.filter(z=>incNeg(z.o)).length+'</span>':'')+'</h3>'+(LI.length?LI.map(z=>'<div class="inc" style="--c:'+(INC_T[z.o.tipo]||'#64748b')+'"><div class="ih">'+fcorta(z.o.fecha)+(z.o.hora?' · '+esc(z.o.hora):'')+(z.src!==g?' · '+esc(matNom(z.src.materia)):'')+' '+incTipoChip(z.o)+' '+incGravChip(z.o)+((z.o.estado||'abierta')==='abierta'?' <span class="chip inf">En seguimiento</span>':' <span class="chip ok">Cerrada</span>')+'</div><div class="ide" style="margin-top:4px">'+esc(z.o.desc)+'</div>'+((z.o.acc||[]).length?'<div class="muted" style="margin-top:4px">Acciones: '+esc(z.o.acc.join(', '))+'</div>':'')+'</div>').join(''):'<p class="muted">Sin incidencias.</p>')+
-    '<p class="row"><button class="btn sm" id="f-inc">➕ Registrar incidencia</button><button class="btn sm sec" id="f-incp">🖨️ Reporte de incidencias (para padres u orientación)</button></p>';
+    '<p class="row"><a class="btn sm sec" href="#g/'+g.id+'/blog" id="f-blog">📊 Participación en el blog</a><button class="btn sm" id="f-inc">➕ Registrar incidencia</button><button class="btn sm sec" id="f-incp">🖨️ Reporte de incidencias (para padres u orientación)</button></p>';
   h+='<h3>Observaciones</h3>'+listaObs(g,g.obs.filter(o=>o.aid===aid),false)+formObs(g,aid);
   app.innerHTML=h;wireObs(g,aid);
+  $('#f-blog').onclick=()=>{partAbierto=aid;partF.q='';};
   $('#f-inc').onclick=()=>{incPre=aid;incEdit=null;location.hash='g/'+g.id+'/inc';};
   $('#f-incp').onclick=()=>imprimir(incReporteAlumno(g,aid),'Incidencias_'+archivoSeguro(x.nombre));
   $('#f-copia').onclick=()=>{
