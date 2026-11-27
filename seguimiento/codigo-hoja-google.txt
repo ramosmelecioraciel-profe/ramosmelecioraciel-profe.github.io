@@ -20,7 +20,9 @@ function doPost(e) {
   try { p = JSON.parse(e.postData.contents); } catch (x) {}
   return salida_(manejar_(p));
 }
-function doGet() {
+function doGet(e) {
+  const q = (e && e.parameter) || {};
+  if (q.accion === 'blog') return salida_(blogPublico_(String(q.asig || 'PM1')));   // lo lee el blog (solo avisos vigentes y temas)
   return salida_({ ok: true, mensaje: 'Servidor de seguimiento activo' });
 }
 
@@ -36,6 +38,12 @@ function manejar_(p) {
     if (p.accion === 'cargar') return { ok: true, datos: cur.datos, rev: cur.rev };
     if (p.accion === 'insignias') return insignias_(p.asignatura);
     if (p.accion === 'participacion') return participacion_(p.asignatura);
+    if (p.accion === 'blogleer') return { ok: true, blog: leerBlog_()[p.asig] || null };
+    if (p.accion === 'blogguardar') {
+      if (!p.blog || !Array.isArray(p.blog.avisos)) return { ok: false, error: 'datos' };
+      const todo = leerBlog_(); todo[p.asig] = { avisos: p.blog.avisos.slice(0, 40), avance: p.blog.avance || null, act: new Date().toISOString() };
+      guardarBlog_(todo, p.asig); return { ok: true };
+    }
     if (p.accion === 'guardar') {
       if (!p.datos || !Array.isArray(p.datos.grupos)) return { ok: false, error: 'datos' };
       if (Number(p.base) !== -1 && cur.rev && Number(p.base) !== cur.rev)
@@ -363,4 +371,29 @@ function llamarGemini_(k, usr, sis) {
     } catch (e) { err = 'ia: ' + String((e && e.message) || e).slice(0, 160); }
   }
   return { ok: false, error: err };
+}
+
+/* ---------- Blog: avisos y temas que publicas desde la app ---------- */
+const HOJA_BLOG = '_blog';
+function leerBlog_() {
+  const h = SpreadsheetApp.getActive().getSheetByName(HOJA_BLOG);
+  if (!h) return {};
+  try { return JSON.parse(h.getRange(1, 1).getValue() || '{}'); } catch (e) { return {}; }
+}
+function guardarBlog_(o, asig) {
+  const ss = SpreadsheetApp.getActive();
+  let h = ss.getSheetByName(HOJA_BLOG);
+  if (!h) { h = ss.insertSheet(HOJA_BLOG); h.hideSheet(); }
+  h.getRange(1, 1).setValue(JSON.stringify(o));
+  CacheService.getScriptCache().remove('blog_' + asig);
+}
+function blogPublico_(asig) {
+  const c = CacheService.getScriptCache(), k = 'blog_' + asig, hit = c.get(k);
+  if (hit) return JSON.parse(hit);
+  const b = leerBlog_()[asig] || {}, hoy = Utilities.formatDate(new Date(), 'America/Mexico_City', 'yyyy-MM-dd');
+  const avisos = (b.avisos || []).filter(a => a.desde <= hoy && a.hasta >= hoy)
+    .map(a => ({ id: a.id, titulo: a.titulo, msg: a.msg, enlace: a.enlace, grupos: a.grupos || [], desde: a.desde, hasta: a.hasta }));
+  const r = { ok: true, avisos: avisos, avance: b.avance || null };
+  try { c.put(k, JSON.stringify(r), 60); } catch (e) {}
+  return r;
 }

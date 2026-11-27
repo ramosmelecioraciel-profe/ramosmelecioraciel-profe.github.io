@@ -499,6 +499,7 @@ function render(){
   if(r[0]==='g'&&grupo(r[1]))return vGrupo(grupo(r[1]),r[2]||'lista');
   if(r[0]==='a'&&grupo(r[1]))return vFicha(grupo(r[1]),r[2]);
   if(r[0]==='ajustes')return vAjustes();
+  if(r[0]==='blog')return vBlogDoc();
   if(r[0]==='nuevo')return vNuevo(r[1]&&grupo(r[1]));
   vInicio();
 }
@@ -509,6 +510,7 @@ function vInicio(){
   if(!(S.perfil&&S.perfil.docente))h+='<div class="card"><label class="f" for="i-doc" style="margin-top:0">Escribe tu nombre para que aparezca arriba</label><div class="row"><input class="in" id="i-doc" placeholder="Ej. Prof. Raciel Ramos Melecio" style="flex:1;min-width:200px"><button class="btn" id="i-docok">Guardar</button></div></div>';
   if(!C.url)h+='<div class="card" style="background:var(--warn)"><b>Tus datos se guardan solo en este equipo.</b> Conecta tu Hoja de Google para verlos también en el celular y la computadora. <a href="#ajustes">Conectar</a></div>';
   if(instalar&&!instalada())h+='<div class="card row" style="justify-content:space-between;background:#e8f3ec"><span><b>Instala la app</b> en este equipo: ícono propio, pantalla completa y abre sin internet.</span><button class="btn sm xl" id="i-inst">📲 Instalar</button></div>';
+  if(S.grupos.some(g=>g.materia==='PM1'))h+='<a class="card row" href="#blog" style="justify-content:space-between;text-decoration:none;color:inherit;border-left:6px solid #2563eb"><span><b>📢 Blog de Pensamiento Matemático I</b><br><span class="muted">Publica avisos, mira quién los vio y abre o cierra temas.</span></span><span class="btn sm">Abrir</span></a>';
   h+='<div class="row" style="justify-content:space-between"><h2>Mis grupos</h2><a class="btn sm" href="#nuevo">+ Nuevo grupo o asignatura</a></div>';
   if(!S.grupos.length){app.innerHTML=h+'<div class="card empty-st"><p><b>Todavía no tienes grupos.</b></p><p>Crea uno, elige su asignatura e importa o pega la lista de tus alumnos.</p><p class="muted">¿Es tu primera vez? Revisa <a href="#ajustes">⚙ Primeros pasos</a> para guardar tus datos en tu propia Hoja de Google.</p><a class="btn" href="#nuevo">Crear mi primer grupo</a></div>';return;}
   const orden=[...S.grupos].sort((a,b)=>(a.nombre+'|'+(a.semestre||'')).localeCompare(b.nombre+'|'+(b.semestre||''),'es',{numeric:true})||matNom(a.materia).localeCompare(matNom(b.materia),'es'));
@@ -942,6 +944,98 @@ function partImprimir(g,R,cnt,pf){const al=activos(g);
     al.map((a,i)=>{const r=R[a.id];return '<tr><td class="c">'+(i+1)+'</td><td><b>'+esc(a.nombre)+'</b></td><td class="c">'+r.dias+'</td><td class="c">'+r.vid+'</td><td class="c">'+r.prac+(r.pProm!=null?' ('+f1(r.pProm)+')':'')+'</td><td class="c">'+r.auto+(r.aProm!=null?' ('+f1(r.aProm)+')':'')+'</td><td class="c">'+r.sim+'</td><td class="c">'+(r.nI?r.bro+'·'+r.pla+'·'+r.oro+'·'+r.esp:'0')+'</td><td class="c">'+r.pts+'</td><td>'+(r.ult?fcorta(r.ult.slice(0,10)):'—')+'</td><td>'+PART_NIV[r.niv].n+'</td></tr>';}).join('')+'</tbody></table>';
   if(pf.length)h+='<h2 style="font-size:12pt;margin:14px 0 4px">Insignias por propósito formativo (alumnos)</h2><table class="pt" style="width:auto"><thead><tr><th>Propósito</th><th>Bronce</th><th>Plata</th><th>Oro</th></tr></thead><tbody>'+pf.map(([k,o])=>'<tr><td>'+k+' '+esc(o.nom)+'</td><td class="c">'+o.bronce+'</td><td class="c">'+o.plata+'</td><td class="c">'+o.oro+'</td></tr>').join('')+'</tbody></table>';
   return h+'<p style="font-size:8.5pt;color:#444;margin-top:10px">Alta: 5 días o más, o 4 o más insignias · Media: 2 a 4 días o alguna insignia · Baja: entró un solo día · Sin participación: ningún registro en el periodo. Fuente: registros del blog de la asignatura.</p>'+firmas(['Docente','Orientación educativa']);}
+/* --- 📢 panel del blog (avisos y temas) --- */
+const BLOGS={PM1:{n:'Pensamiento Matemático I',url:'https://ramosmelecioraciel-profe.github.io/pensamiento-matematico-1/',
+  pf:{pf1:'PF1 Lógica matemática',pf2:'PF2 El concepto de conteo',pf3:'PF3 Naturales y enteros',pf4:'PF4 Fracciones y porcentajes',pf5:'PF5 Potencias y raíces',pf6:'PF6 La medición',pf7:'PF7 Operaciones combinadas'},
+  mat:[['','Sin material'],['archivos/Leyes_exponentes_radicales_PM1.pdf','Tabla de leyes de exponentes y radicales'],['archivos/Cuadernillo_PM1.pdf','Cuadernillo de ejercicios'],['archivos/Cuadernillo_Paso_a_Paso_PM1.pdf','Cuadernillo paso a paso'],
+    ['archivos/PF1.pdf','Presentación PF1 Lógica'],['archivos/PF2.pdf','Presentación PF2 Conteo'],['archivos/PF3.pdf','Presentación PF3 Naturales y enteros'],['archivos/PF4.pdf','Presentación PF4 Fracciones'],['archivos/PF5.pdf','Presentación PF5 Potencias'],['archivos/PF6.pdf','Presentación PF6 Medición'],['archivos/PF7.pdf','Presentación PF7 Operaciones'],
+    ['#interes','Problemas de interés simple y compuesto'],['#practica','Práctica sin límite'],['#autoevaluacion','Autoevaluaciones'],['#simuladores','Simuladores'],['#videos','Videos'],['otro','Otro enlace…']]}};
+let blogEst=null,blogEd=null,blogPart=null;
+const grNorm=t=>String(t||'').replace(/\D/g,'');
+const masDias=(f,n)=>{const d=new Date(f+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);};
+const mismoArchivo=(a,b)=>{const t=x=>normal(String(x).replace(/\.pdf$/i,'').replace(/[_\-.]+/g,' ')).split(' ').filter(w=>w.length>=4&&!/^PM\d|^PDF$/.test(w));const A=t(a),B=new Set(t(b));const k=A.filter(w=>B.has(w)).length;return A.length&&k>=Math.min(2,A.length);};
+const avisoEstado=a=>a.hasta<hoy()?['Vencido','#64748b','#f1f5f9']:a.desde>hoy()?['Programado','#1d4ed8','#dbeafe']:['Visible','#15803d','#dcfce7'];
+function vBlogDoc(){
+  const B=BLOGS.PM1,G=S.grupos.filter(g=>matNom(g.materia)===B.n);
+  titulo('📢 Blog · '+B.n,true);
+  app.innerHTML='<div class="card"><p class="muted" style="margin:0">Publica avisos para tus alumnos y decide qué temas están abiertos en tu <a href="'+B.url+'" target="_blank" rel="noopener">blog</a>. Lo que guardes aquí aparece en el blog en uno o dos minutos.</p></div><div id="bd"><p class="muted">Cargando…</p></div>';
+  const box=$('#bd');
+  const cargar=async()=>{
+    if(!C.url){box.innerHTML='<div class="note">Conecta primero tu Hoja de Google en ⚙.</div>';return;}
+    try{
+      const r=await api({accion:'blogleer',asig:'PM1'});
+      if(!r.ok){box.innerHTML=r.error==='accion'?'<div class="note"><b>Falta actualizar el código de tu Hoja de Google (una sola vez).</b><ol style="margin:6px 0 0 18px;padding:0"><li>Extensiones → Apps Script → en <b>Código.gs</b> borra todo y pega el de <a href="codigo-hoja-google.txt" target="_blank" rel="noopener">codigo-hoja-google.txt</a>. Guarda.</li><li><b>Implementar → Administrar implementaciones → ✏️ → Nueva versión → Implementar.</b></li><li>Regresa aquí y recarga.</li></ol></div>':'<div class="note">No se pudo leer ('+esc(r.error||'')+').</div>';return;}
+      blogEst=Object.assign({avisos:[],avance:null},r.blog||{});
+      if(!blogEst.avance){try{const j=await (await fetch(B.url+'avance.json',{cache:'no-store'})).json();blogEst.avance=j;}catch(e){blogEst.avance={temas:{}};}}
+      blogEst.avance.temas=blogEst.avance.temas||{};
+      pinta();cargarPart();
+    }catch(e){box.innerHTML='<div class="note">Sin conexión con tu Hoja de Google.</div>';}
+  };
+  const guardar=async(msg)=>{try{const r=await api({accion:'blogguardar',asig:'PM1',blog:blogEst});if(!r.ok)throw 0;toast(msg||'Guardado');}catch(e){toast('No se pudo guardar; revisa tu internet');}};
+  async function cargarPart(){try{const r=await api({accion:'participacion',asignatura:B.n});if(r.ok){blogPart=r.alumnos||[];pinta();}}catch(e){}}
+  function enterados(a){   // por grupo: quién dio Enterado y quién descargó
+    if(!blogPart)return null;const res=[];
+    G.filter(g=>!a.grupos.length||a.grupos.some(x=>grNorm(x)===grNorm(g.nombre))).forEach(g=>{
+      const d=blogPart.map(e=>Object.assign({},e));emparejarBlog(g,d);
+      const ok=new Set(),des=new Set(),arch=(a.enlace||'').split('/').pop();
+      d.forEach(e=>{if(!e.aid)return;e.ev.forEach(v=>{if(/^Enterado aviso/i.test(v[1])&&String(v[2]).startsWith(a.id))ok.add(e.aid);if(arch&&/^Abri/i.test(v[1])&&v[0].slice(0,10)>=a.desde&&mismoArchivo(arch,v[2]))des.add(e.aid);});});
+      const al=activos(g);res.push({g,al,ok:al.filter(x=>ok.has(x.id)),falta:al.filter(x=>!ok.has(x.id)),des:al.filter(x=>des.has(x.id)),arch:!!arch&&/archivos\//.test(a.enlace)});});
+    return res;
+  }
+  function pinta(){
+    const ed=blogEd&&blogEst.avisos.find(a=>a.id===blogEd),a0=ed||{titulo:'',msg:'',enlace:'',etq:'',grupos:[],desde:hoy(),hasta:masDias(hoy(),7)};
+    const matSel=B.mat.some(m=>m[0]&&m[0]===a0.enlace)?a0.enlace:a0.enlace?'otro':'';
+    let h='<details class="card" '+(ed||!blogEst.avisos.length?'open':'')+' id="bd-f"><summary style="font-size:17px;font-weight:800">'+(ed?'✏️ Editar aviso':'➕ Nuevo aviso')+'</summary>'+
+      '<label class="f" for="bd-t">Título</label><input class="in" id="bd-t" maxlength="80" placeholder="Ej. Descarga e imprime la tabla de leyes" value="'+esc(a0.titulo)+'">'+
+      '<label class="f" for="bd-m">Mensaje</label><textarea class="in" id="bd-m" rows="3" spellcheck="true" lang="es" placeholder="Ej. Para la clase del lunes traigan impresa la tabla de leyes de exponentes y radicales, pegada en su cuaderno.">'+esc(a0.msg)+'</textarea>'+
+      '<label class="f" for="bd-e">Material o enlace (opcional)</label><select class="in" id="bd-e">'+B.mat.map(m=>'<option value="'+esc(m[0])+'"'+(m[0]===matSel?' selected':'')+'>'+esc(m[1])+'</option>').join('')+'</select>'+
+      '<input class="in'+(matSel==='otro'?'':' hidden')+'" id="bd-o" style="margin-top:6px" placeholder="Pega el enlace (https://…)" value="'+esc(matSel==='otro'?a0.enlace:'')+'">'+
+      '<label class="f">¿Para qué grupos?</label><div class="chips picks" id="bd-g"><button type="button" class="pick'+(!a0.grupos.length?' on':'')+'" style="--c:#1d3557" data-bg="">Todos</button>'+
+        G.map(g=>'<button type="button" class="pick'+(a0.grupos.some(x=>grNorm(x)===grNorm(g.nombre))?' on':'')+'" style="--c:#1d3557" data-bg="'+esc(g.nombre)+'">'+esc(g.nombre)+'</button>').join('')+'</div>'+
+      '<div class="row" style="margin-top:4px"><div style="flex:1;min-width:140px"><label class="f" for="bd-d">Se muestra desde</label><input type="date" class="in" id="bd-d" value="'+a0.desde+'"></div><div style="flex:1;min-width:140px"><label class="f" for="bd-h">Hasta</label><input type="date" class="in" id="bd-h" value="'+a0.hasta+'"></div></div>'+
+      '<p class="row" style="margin-top:12px"><button class="btn" id="bd-ok">'+(ed?'Guardar cambios':'📢 Publicar aviso')+'</button>'+(ed?'<button class="btn sec" id="bd-no">Cancelar</button>':'')+'</p></details>';
+    const L=[...blogEst.avisos].sort((x,y)=>y.desde.localeCompare(x.desde));
+    h+='<h3>Avisos</h3>'+(L.length?L.map(a=>{const st=avisoEstado(a),E=enterados(a),mat=B.mat.find(m=>m[0]===a.enlace);
+      return '<div class="card" style="border-left:6px solid '+st[1]+'"><div class="row" style="gap:6px"><span class="chip" style="background:'+st[2]+';color:'+st[1]+'">'+st[0]+'</span><span class="muted">'+fcorta(a.desde)+' a '+fcorta(a.hasta)+' · '+(a.grupos.length?a.grupos.map(esc).join(', '):'Todos los grupos')+'</span></div>'+
+        '<div style="font-weight:800;font-size:17px;margin-top:6px">'+esc(a.titulo)+'</div>'+(a.msg?'<div style="white-space:pre-wrap">'+esc(a.msg)+'</div>':'')+(a.enlace?'<div class="muted" style="margin-top:4px">📎 '+esc(mat?mat[1]:a.enlace)+'</div>':'')+
+        (E?E.map(x=>'<details style="margin-top:8px"><summary><b>'+esc(x.g.nombre)+':</b> ✔ '+x.ok.length+' de '+x.al.length+' dieron “Enterado”'+(x.arch?' · ⬇️ '+x.des.length+' descargaron':'')+'</summary>'+
+          (x.falta.length?'<p class="muted" style="margin:4px 0 0">Faltan: '+x.falta.map(z=>esc(z.nombre)).join(', ')+'</p>':'<p class="muted">¡Todos lo vieron!</p>')+'</details>').join(''):'<p class="muted" style="margin-top:6px">Leyendo quién lo ha visto…</p>')+
+        '<div class="row" style="margin-top:8px;gap:6px"><button class="btn sm sec" data-bwa="'+a.id+'">📲 WhatsApp</button><button class="btn sm sec" data-bed="'+a.id+'">✏️ Editar</button>'+(st[0]==='Visible'?'<button class="btn sm sec" data-bfin="'+a.id+'">⏹ Quitar del blog</button>':'')+'<button class="btn sm sec" data-bdel="'+a.id+'" aria-label="Eliminar">🗑️</button></div></div>';}).join(''):'<div class="card empty-st">Todavía no hay avisos.</div>');
+    const av=blogEst.avance;
+    const optA=v=>[['oculto','Oculta'],['cerrado','Cerrada (“Próximamente”)'],['fecha','Se abre en una fecha'],['abierto','Abierta']].map(o=>'<option value="'+o[0]+'"'+(o[0]===(/^\d{4}/.test(v||'')?'fecha':v==='abierto'||v==='oculto'?v:'cerrado')?' selected':'')+'>'+o[1]+'</option>').join('');
+    const optT=v=>[['','Sin marca'],['proximo','Próximo tema'],['fecha','Próximo, con fecha'],['visto','✓ Tema visto'],['oculto','Oculto']].map(o=>'<option value="'+o[0]+'"'+(o[0]===(/^\d{4}/.test(v||'')?'fecha':v||'')?' selected':'')+'>'+o[1]+'</option>').join('');
+    h+='<h3>Temas del blog</h3><div class="card"><p class="muted" style="margin-top:0">La <b>marca del tema</b> aparece en el video y en el programa. La <b>autoevaluación</b> decide si los alumnos pueden contestarla. Con fecha, se abre sola ese día.</p>'+
+      Object.keys(B.pf).map(k=>{const va=av[k],vt=av.temas[k];return '<div style="border-top:1px solid var(--line);padding:8px 0"><b>'+esc(B.pf[k])+'</b><div class="row" style="gap:6px;margin-top:4px">'+
+        '<label class="muted" style="font-size:13px">Marca del tema<select class="in" data-tt="'+k+'">'+optT(vt)+'</select></label><input type="date" class="in'+(/^\d{4}/.test(vt||'')?'':' hidden')+'" data-ttf="'+k+'" value="'+(/^\d{4}/.test(vt||'')?vt:hoy())+'" style="width:auto">'+
+        '<label class="muted" style="font-size:13px">Autoevaluación<select class="in" data-ta="'+k+'">'+optA(va)+'</select></label><input type="date" class="in'+(/^\d{4}/.test(va||'')?'':' hidden')+'" data-taf="'+k+'" value="'+(/^\d{4}/.test(va||'')?va:hoy())+'" style="width:auto"></div></div>';}).join('')+
+      '<p class="row" style="margin:10px 0 0"><button class="btn" id="bd-tg">Guardar temas</button></p></div>';
+    box.innerHTML=h;
+    // formulario
+    $('#bd-e').onchange=()=>$('#bd-o').classList.toggle('hidden',$('#bd-e').value!=='otro');
+    box.querySelectorAll('[data-bg]').forEach(b=>b.onclick=()=>{if(!b.dataset.bg){box.querySelectorAll('[data-bg]').forEach(x=>x.classList.toggle('on',x===b));}else{b.classList.toggle('on');box.querySelector('[data-bg=""]').classList.toggle('on',!box.querySelector('[data-bg]:not([data-bg=""]).on'));}});
+    $('#bd-ok').onclick=()=>{const t=$('#bd-t').value.trim();if(!t){toast('Escribe un título');$('#bd-t').focus();return;}
+      let e=$('#bd-e').value;if(e==='otro'){e=$('#bd-o').value.trim();if(e&&!/^https?:\/\//.test(e)){toast('El enlace debe empezar con https://');return;}}
+      const d=$('#bd-d').value||hoy(),hs=$('#bd-h').value||masDias(d,7);if(hs<d){toast('La fecha “hasta” es antes de “desde”');return;}
+      const a=ed||{id:'a'+Date.now().toString(36)};Object.assign(a,{titulo:t,msg:$('#bd-m').value.trim(),enlace:e,grupos:[...box.querySelectorAll('[data-bg].on')].map(b=>b.dataset.bg).filter(Boolean),desde:d,hasta:hs});
+      if(!ed)blogEst.avisos.push(a);blogEst.avisos=blogEst.avisos.sort((x,y)=>y.desde.localeCompare(x.desde)).slice(0,40);blogEd=null;guardar(ed?'Aviso actualizado':'Aviso publicado en el blog');pinta();};
+    if($('#bd-no'))$('#bd-no').onclick=()=>{blogEd=null;pinta();};
+    box.querySelectorAll('[data-bed]').forEach(b=>b.onclick=()=>{blogEd=b.dataset.bed;pinta();window.scrollTo(0,0);});
+    box.querySelectorAll('[data-bfin]').forEach(b=>b.onclick=()=>{const a=blogEst.avisos.find(x=>x.id===b.dataset.bfin);a.hasta=masDias(hoy(),-1);guardar('El aviso ya no se muestra');pinta();});
+    box.querySelectorAll('[data-bdel]').forEach(b=>b.onclick=()=>{if(!confirm('¿Eliminar este aviso?'))return;blogEst.avisos=blogEst.avisos.filter(x=>x.id!==b.dataset.bdel);guardar('Aviso eliminado');pinta();});
+    box.querySelectorAll('[data-bwa]').forEach(b=>b.onclick=()=>{const a=blogEst.avisos.find(x=>x.id===b.dataset.bwa);
+      const t='📢 *'+a.titulo+'*\n'+(a.msg?a.msg+'\n':'')+'\nEntra al blog: '+B.url+(a.enlace&&a.enlace.startsWith('#')?a.enlace:'')+(S.perfil&&S.perfil.docente?'\n\n'+S.perfil.docente:'');
+      window.open('https://wa.me/?text='+encodeURIComponent(t),'_blank');});
+    // temas
+    box.querySelectorAll('[data-tt]').forEach(s=>s.onchange=()=>box.querySelector('[data-ttf="'+s.dataset.tt+'"]').classList.toggle('hidden',s.value!=='fecha'));
+    box.querySelectorAll('[data-ta]').forEach(s=>s.onchange=()=>box.querySelector('[data-taf="'+s.dataset.ta+'"]').classList.toggle('hidden',s.value!=='fecha'));
+    $('#bd-tg').onclick=()=>{Object.keys(B.pf).forEach(k=>{
+        const t=box.querySelector('[data-tt="'+k+'"]').value,a=box.querySelector('[data-ta="'+k+'"]').value;
+        const tv=t==='fecha'?box.querySelector('[data-ttf="'+k+'"]').value:t;if(tv)blogEst.avance.temas[k]=tv;else delete blogEst.avance.temas[k];
+        blogEst.avance[k]=a==='fecha'?box.querySelector('[data-taf="'+k+'"]').value:a;});
+      guardar('Temas guardados; el blog se actualiza en uno o dos minutos');};
+  }
+  cargar();
+}
 function pendientesYTarde(g,p){
   const h=hoy(),dias=Object.keys(g.asis).filter(f=>parcialDe(g,f)===p&&f<=h).sort();
   return activos(g).map(x=>{const c=calif(g,x.id,p);const ff=dias.filter(f=>g.asis[f].m[x.id]==='F'),rr=dias.filter(f=>g.asis[f].m[x.id]==='R');
