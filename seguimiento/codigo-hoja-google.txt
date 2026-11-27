@@ -300,8 +300,8 @@ function probarCorrector() {
   // Ejecútala desde el editor de Apps Script (botón ▶ Ejecutar) para autorizar la conexión con Gemini y ver el resultado.
   const k = PropertiesService.getScriptProperties().getProperty('GEMINI_KEY');
   if (!k) { Logger.log('Falta la clave: usa el menú Seguimiento → Activar corrector de redacción.'); return; }
-  const t = llamarGemini_(k, 'Corrige: "el alumno no traia su tarea"', 'Responde solo con el texto corregido.');
-  Logger.log(t.ok ? 'FUNCIONA: ' + t.texto : 'ERROR: ' + t.error);
+  const t0 = Date.now(), t = llamarGemini_(k, 'Corrige: "el alumno no traia su tarea"', 'Responde solo con el texto corregido.');
+  Logger.log(t.ok ? 'FUNCIONA (' + t.modelo + ', ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s): ' + t.texto : 'ERROR: ' + t.error);
   try { SpreadsheetApp.getUi().alert(t.ok ? 'Corrector funcionando.\n\nPrueba: ' + t.texto : explicaErrorIA_(t.error)); } catch (e) {}
 }
 function explicaErrorIA_(e) {
@@ -335,23 +335,30 @@ function redactar_(p) {
   return llamarGemini_(k, usr, sis);
 }
 function llamarGemini_(k, usr, sis) {
-  const modelos = ['gemini-flash-latest', 'gemini-3.5-flash-lite'];
+  // Primero el modelo más rápido y con el "razonamiento" al mínimo: la redacción de un párrafo no lo necesita.
+  const intentos = [
+    ['gemini-3.5-flash-lite', true], ['gemini-3.5-flash-lite', false],
+    ['gemini-flash-lite-latest', false], ['gemini-flash-latest', true], ['gemini-flash-latest', false]
+  ];
   let err = 'ia';
-  for (const m of modelos) {
+  for (const [m, rapido] of intentos) {
     try {
+      const cuerpo = { systemInstruction: { parts: [{ text: sis }] }, contents: [{ role: 'user', parts: [{ text: usr }] }] };
+      if (rapido) cuerpo.generationConfig = { thinkingConfig: { thinkingLevel: 'minimal' } };
       const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent', {
         method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'x-goog-api-key': k },
-        payload: JSON.stringify({ systemInstruction: { parts: [{ text: sis }] }, contents: [{ role: 'user', parts: [{ text: usr }] }] })
+        payload: JSON.stringify(cuerpo)
       });
       const c = r.getResponseCode();
       if (c === 404) { err = 'modelo'; continue; }
       if (c === 429) return { ok: false, error: 'cuota' };
+      if (c === 400 && rapido) continue;            // el modelo no acepta ese ajuste: se intenta sin él
       if (c === 400 || c === 401 || c === 403) return { ok: false, error: 'clave' + c };
       if (c !== 200) { err = 'ia' + c; continue; }
       const j = JSON.parse(r.getContentText());
       const t = (((j.candidates || [])[0] || {}).content || {}).parts;
-      const txt = (t || []).map(x => x.text || '').join('').trim().replace(/^["“]|["”]$/g, '');
-      if (txt) return { ok: true, texto: txt };
+      const txt = (t || []).filter(x => !x.thought).map(x => x.text || '').join('').trim().replace(/^["“]|["”]$/g, '');
+      if (txt) return { ok: true, texto: txt, modelo: m };
       err = 'vacio';
     } catch (e) { err = 'ia: ' + String((e && e.message) || e).slice(0, 160); }
   }

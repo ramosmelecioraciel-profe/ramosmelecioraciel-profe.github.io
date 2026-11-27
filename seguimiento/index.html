@@ -279,8 +279,10 @@ let tSub=null;
 function cambio(){C.dirty=true;seq++;persist();estado();clearTimeout(tSub);tSub=setTimeout(subir,1500);}
 
 /* ---------- sincronización con tu Hoja de Google ---------- */
-async function api(body){
-  const r=await fetch(C.url,{method:'POST',body:JSON.stringify(Object.assign({clave:C.clave},body))});
+async function api(body,ms){
+  const ac=ms?new AbortController():null,tm=ms?setTimeout(()=>ac.abort(),ms):0;
+  let r;try{r=await fetch(C.url,{method:'POST',body:JSON.stringify(Object.assign({clave:C.clave},body)),signal:ac?ac.signal:undefined});}
+  catch(e){if(ac&&ac.signal.aborted)throw {e:'tiempo'};throw e;}finally{clearTimeout(tm);}
   const t=await r.text();try{return JSON.parse(t);}catch(e){throw new Error('respuesta');}
 }
 function estado(){
@@ -1194,11 +1196,12 @@ async function incRedactar(g,sel,modo,D,accSel){
   if(!orig){toast('Primero escribe tu idea de lo que pasó');D.focus();return;}
   const tipo=(app.querySelector('[data-it].on')||{dataset:{it:'Otra'}}).dataset.it,grav=(app.querySelector('[data-ig].on')||{dataset:{}}).dataset.ig||'';
   const A=anonimizar(g,sel,orig);
-  box.innerHTML='<div class="note" style="margin-top:8px">'+(modo==='mejorar'?'✨ Mejorando la redacción…':'Revisando ortografía…')+'</div>';
-  let out=null,aviso='';
+  box.innerHTML='<div class="note" style="margin-top:8px">'+(modo==='mejorar'?'✨ Mejorando la redacción…':'Revisando ortografía…')+' <b id="i-seg">0 s</b></div>';
+  const t0=Date.now(),reloj=setInterval(()=>{const e=$('#i-seg');if(e)e.textContent=Math.round((Date.now()-t0)/1000)+' s';else clearInterval(reloj);},1000);
+  let out=null,aviso='';try{
   try{
     if(!C.url)throw {e:'sinurl'};
-    const r=await api({accion:'redactar',modo,texto:A.t,tipo,gravedad:grav&&INC_G[grav]?INC_G[grav].n:'',acciones:accSel(),alumnos:A.marcas.filter(m=>/ALUMN/.test(m.ph)).map(m=>m.ph)});
+    const r=await api({accion:'redactar',modo,texto:A.t,tipo,gravedad:grav&&INC_G[grav]?INC_G[grav].n:'',acciones:accSel(),alumnos:A.marcas.filter(m=>/ALUMN/.test(m.ph)).map(m=>m.ph)},40000);
     if(r.ok)out=r.texto;else throw {e:r.error};
   }catch(x){
     const e=x&&x.e;
@@ -1206,10 +1209,11 @@ async function incRedactar(g,sel,modo,D,accSel){
     else if(e==='sinia')aviso='Para <b>mejorar la redacción</b> falta activar el corrector en tu Hoja de Google: menú <b>Seguimiento → Activar corrector de redacción</b> (pide una clave gratuita de Google AI Studio).';
     else if(/^clave4/.test(String(e)))aviso='La clave de Gemini no es válida o fue revocada: vuelve a usar el menú <b>Seguimiento → Activar corrector de redacción</b>.';
     else if(e==='cuota')aviso='Se alcanzó el límite gratuito de Gemini por ahora; intenta en unos minutos.';
+    else if(e==='tiempo')aviso='El mejorador tardó demasiado (más de 40 s).';
     else if(e==='sinurl')aviso='Conecta tu Hoja de Google en ⚙ para mejorar la redacción.';
     else aviso='No se pudo usar el mejorador de redacción ('+esc(String(e||'sin conexión'))+').';
     try{out=await ortografiaLT(A.t);aviso+=' Mientras tanto se corrigió <b>solo la ortografía</b>.';}catch(_){box.innerHTML='<div class="note" style="margin-top:8px">'+aviso+' Tampoco se pudo revisar la ortografía (¿sin internet?).</div>';return;}
-  }
+  }}finally{clearInterval(reloj);}
   const prop=restaurar(out,A.marcas).trim();
   if(!prop){box.innerHTML='<div class="note" style="margin-top:8px">No hubo respuesta. Intenta de nuevo.</div>';return;}
   box.innerHTML='<div class="isug"><div class="muted" style="font-weight:800;font-size:13px;margin-bottom:4px">'+(prop===orig?'✔ No encontré nada que corregir':'Propuesta de redacción (puedes editarla aquí mismo):')+'</div>'+
